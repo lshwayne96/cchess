@@ -1,18 +1,18 @@
-package main.java.com.chess.engine.player;
+package com.chess.engine.player;
 
-import main.java.com.chess.engine.Alliance;
-import main.java.com.chess.engine.board.Board;
-import main.java.com.chess.engine.board.Coordinate;
-import main.java.com.chess.engine.board.Move;
-import main.java.com.chess.engine.pieces.General;
-import main.java.com.chess.engine.pieces.Piece;
+import com.chess.engine.Alliance;
+import com.chess.engine.board.Board;
+import com.chess.engine.board.Coordinate;
+import com.chess.engine.board.Move;
+import com.chess.engine.pieces.General;
+import com.chess.engine.pieces.Piece;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import static main.java.com.chess.engine.pieces.Piece.*;
+import static com.chess.engine.pieces.Piece.*;
 
 public abstract class Player {
 

@@ -1,6 +1,6 @@
-package main.java.com.chess;
+package com.chess;
 
-import main.java.com.chess.gui.Table;
+import com.chess.gui.Table;
 
 public class CChess {
 

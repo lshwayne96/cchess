@@ -1,9 +1,9 @@
-package main.java.com.chess.engine.player;
+package com.chess.engine.player;
 
-import main.java.com.chess.engine.Alliance;
-import main.java.com.chess.engine.board.Board;
-import main.java.com.chess.engine.board.Move;
-import main.java.com.chess.engine.pieces.Piece;
+import com.chess.engine.Alliance;
+import com.chess.engine.board.Board;
+import com.chess.engine.board.Move;
+import com.chess.engine.pieces.Piece;
 
 import java.util.Collection;
 

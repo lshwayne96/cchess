@@ -1,17 +1,17 @@
-package main.java.com.chess.engine.board;
+package com.chess.engine.board;
 
-import main.java.com.chess.engine.Alliance;
-import main.java.com.chess.engine.pieces.Advisor;
-import main.java.com.chess.engine.pieces.Cannon;
-import main.java.com.chess.engine.pieces.Chariot;
-import main.java.com.chess.engine.pieces.Elephant;
-import main.java.com.chess.engine.pieces.General;
-import main.java.com.chess.engine.pieces.Horse;
-import main.java.com.chess.engine.pieces.Piece;
-import main.java.com.chess.engine.pieces.Soldier;
-import main.java.com.chess.engine.player.BlackPlayer;
-import main.java.com.chess.engine.player.Player;
-import main.java.com.chess.engine.player.RedPlayer;
+import com.chess.engine.Alliance;
+import com.chess.engine.pieces.Advisor;
+import com.chess.engine.pieces.Cannon;
+import com.chess.engine.pieces.Chariot;
+import com.chess.engine.pieces.Elephant;
+import com.chess.engine.pieces.General;
+import com.chess.engine.pieces.Horse;
+import com.chess.engine.pieces.Piece;
+import com.chess.engine.pieces.Soldier;
+import com.chess.engine.player.BlackPlayer;
+import com.chess.engine.player.Player;
+import com.chess.engine.player.RedPlayer;
 
 import java.util.ArrayList;
 import java.util.Collection;

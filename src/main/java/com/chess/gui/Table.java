@@ -1,12 +1,12 @@
-package main.java.com.chess.gui;
+package com.chess.gui;
 
-import main.java.com.chess.engine.Alliance;
-import main.java.com.chess.engine.board.Board;
-import main.java.com.chess.engine.board.Coordinate;
-import main.java.com.chess.engine.board.Move;
-import main.java.com.chess.engine.board.Point;
-import main.java.com.chess.engine.pieces.Piece;
-import main.java.com.chess.engine.player.MoveTransition;
+import com.chess.engine.Alliance;
+import com.chess.engine.board.Board;
+import com.chess.engine.board.Coordinate;
+import com.chess.engine.board.Move;
+import com.chess.engine.board.Point;
+import com.chess.engine.pieces.Piece;
+import com.chess.engine.player.MoveTransition;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static main.java.com.chess.engine.pieces.Piece.*;
+import static com.chess.engine.pieces.Piece.*;
 import static javax.swing.SwingUtilities.isLeftMouseButton;
 import static javax.swing.SwingUtilities.isRightMouseButton;
 
@@ -59,8 +59,8 @@ public class Table {
     private static final Dimension BOARD_PANEL_DIMENSION = new Dimension(585, 650);
     private static final Dimension POINT_PANEL_DIMENSION = new Dimension(65, 65);
 
-    private static final String GRAPHICS_MISC_PATH = "/main/resources/graphics/misc/";
-    private static final String GRAPHICS_PIECES_PATH = "/main/resources/graphics/pieces/";
+    private static final String GRAPHICS_MISC_PATH = "/graphics/misc/";
+    private static final String GRAPHICS_PIECES_PATH = "/graphics/pieces/";
     private static final ImageIcon HIGHLIGHT_ICON = getHighlightIcon();
     private static final Map<Coordinate, ImageIcon> POINT_ICON_MAP = getPointIconMap();
     public static final Map<String, ImageIcon> PIECE_ICON_MAP = getPieceIconMap();

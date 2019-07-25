@@ -1,4 +1,4 @@
-package main.java.com.chess.engine.board;
+package com.chess.engine.board;
 
 public class Coordinate {
 

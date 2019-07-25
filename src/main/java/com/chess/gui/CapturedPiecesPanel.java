@@ -1,8 +1,8 @@
-package main.java.com.chess.gui;
+package com.chess.gui;
 
-import main.java.com.chess.engine.board.Move;
-import main.java.com.chess.engine.pieces.Piece;
-import main.java.com.chess.engine.player.Player;
+import com.chess.engine.board.Move;
+import com.chess.engine.pieces.Piece;
+import com.chess.engine.player.Player;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
@@ -20,7 +20,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
-import static main.java.com.chess.gui.Table.*;
+import static com.chess.gui.Table.*;
 
 public class CapturedPiecesPanel extends JPanel {
 

@@ -1,6 +1,6 @@
-package main.java.com.chess.gui;
+package com.chess.gui;
 
-import main.java.com.chess.engine.board.Move;
+import com.chess.engine.board.Move;
 
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
@@ -14,7 +14,7 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.List;
 
-import static main.java.com.chess.gui.Table.*;
+import static com.chess.gui.Table.*;
 
 public class GameHistoryPanel extends JPanel {
 

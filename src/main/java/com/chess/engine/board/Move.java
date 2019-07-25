@@ -1,12 +1,12 @@
-package main.java.com.chess.engine.board;
+package com.chess.engine.board;
 
-import main.java.com.chess.engine.Alliance;
-import main.java.com.chess.engine.pieces.Piece;
+import com.chess.engine.Alliance;
+import com.chess.engine.pieces.Piece;
 
 import java.util.Optional;
 
-import static main.java.com.chess.engine.board.Board.*;
-import static main.java.com.chess.engine.pieces.Piece.*;
+import static com.chess.engine.board.Board.*;
+import static com.chess.engine.pieces.Piece.*;
 
 public class Move {
 

@@ -1,8 +1,8 @@
-package main.java.com.chess.engine;
+package com.chess.engine;
 
-import main.java.com.chess.engine.player.BlackPlayer;
-import main.java.com.chess.engine.player.Player;
-import main.java.com.chess.engine.player.RedPlayer;
+import com.chess.engine.player.BlackPlayer;
+import com.chess.engine.player.Player;
+import com.chess.engine.player.RedPlayer;
 
 public enum Alliance {
     RED {
