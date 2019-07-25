@@ -1,0 +1,71 @@
+package main.java.com.chess.engine.pieces;
+
+import main.java.com.chess.engine.Alliance;
+import main.java.com.chess.engine.board.Board;
+import main.java.com.chess.engine.board.Coordinate;
+import main.java.com.chess.engine.board.Move;
+
+import main.java.com.chess.engine.board.Point;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+public class Horse extends Piece {
+
+    private static final double VALUE = 4;
+
+    private static final List<Coordinate> FIRST_MOVE_VECTORS =
+            List.of(new Coordinate(-1, 0),
+                    new Coordinate(0, -1),
+                    new Coordinate(1, 0),
+                    new Coordinate(0, 1));
+
+    private static final List<List<Coordinate>> SECOND_MOVE_VECTORS_LIST =
+            List.of(List.of(new Coordinate(-1, -1), new Coordinate(-1 ,1)),
+                    List.of(new Coordinate(-1, -1), new Coordinate(1, -1)),
+                    List.of(new Coordinate(1, -1), new Coordinate(1, 1)),
+                    List.of(new Coordinate(-1, 1), new Coordinate(1, 1)));
+
+    public Horse(Coordinate position, Alliance alliance) {
+        super(PieceType.HORSE, position, alliance);
+    }
+
+    @Override
+    public Collection<Move> calculateLegalMoves(Board board) {
+        List<Move> legalMoves = new ArrayList<>();
+
+        for (int i = 0; i < FIRST_MOVE_VECTORS.size(); i++) {
+            Coordinate firstPosition = position.add(FIRST_MOVE_VECTORS.get(i));
+            if (!(Board.isWithinBounds(firstPosition)
+                    && board.getPoint(firstPosition).isEmpty())) continue;
+
+            for (Coordinate second : SECOND_MOVE_VECTORS_LIST.get(i)) {
+                Coordinate destPosition = firstPosition.add(second);
+                if (!Board.isWithinBounds(destPosition)) continue;
+
+                Point destPoint = board.getPoint(destPosition);
+                Optional<Piece> destPiece = destPoint.getPiece();
+                destPiece.ifPresentOrElse(p -> {
+                    if (this.alliance != p.alliance) {
+                        legalMoves.add(new Move(board, this, destPosition, p));
+                    }
+                }, () -> legalMoves.add(new Move(board, this, destPosition)));
+            }
+        }
+
+        return Collections.unmodifiableCollection(legalMoves);
+    }
+
+    @Override
+    public Horse movePiece(Move move) {
+        return new Horse(move.getDestPosition(), move.getMovedPiece().getAlliance());
+    }
+
+    @Override
+    public double getValue() {
+        return VALUE;
+    }
+}
