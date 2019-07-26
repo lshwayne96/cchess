@@ -81,6 +81,7 @@ public class Table {
         gameFrame.setJMenuBar(tableMenuBar);
         gameFrame.setSize(OUTER_FRAME_DIMENSION);
         gameFrame.setLayout(new BorderLayout());
+        gameFrame.setResizable(false);
         gameFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         gameFrame.add(boardPanel, BorderLayout.CENTER);
         gameFrame.add(historyPanel, BorderLayout.EAST);

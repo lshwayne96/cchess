@@ -1,9 +1,4 @@
-build/
-.gradle/
-.settings/
 .idea/
-lib/*
 *.iml
-classes/
 out/
 
