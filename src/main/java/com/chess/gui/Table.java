@@ -23,7 +23,9 @@ import javax.swing.WindowConstants;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
@@ -45,7 +47,7 @@ public class Table {
     private final JFrame gameFrame;
     private final BoardPanel boardPanel;
     private final GameHistoryPanel historyPanel;
-    private final CapturedPiecesPanel capturedPiecesPanel;
+    private final InfoPanel infoPanel;
     private final MoveLog movelog;
     private final List<Board> boardHistory;
     private Board board;
@@ -55,39 +57,43 @@ public class Table {
     private Point destPoint;
     private Piece humanMovedPiece;
 
-    private static final Dimension OUTER_FRAME_DIMENSION = new Dimension(785, 685);
-    private static final Dimension BOARD_PANEL_DIMENSION = new Dimension(585, 650);
-    private static final Dimension POINT_PANEL_DIMENSION = new Dimension(65, 65);
-
+    private static final Dimension BOARD_PANEL_DIMENSION = new Dimension(540, 600);
+    private static final Dimension POINT_PANEL_DIMENSION = new Dimension(60, 60);
     private static final String GRAPHICS_MISC_PATH = "/graphics/misc/";
     private static final String GRAPHICS_PIECES_PATH = "/graphics/pieces/";
+    private static final ImageIcon GAME_ICON = getGameIcon();
+    private static final ImageIcon BOARD_ICON = getBoardIcon();
     private static final ImageIcon HIGHLIGHT_ICON = getHighlightIcon();
-    private static final Map<Coordinate, ImageIcon> POINT_ICON_MAP = getPointIconMap();
     public static final Map<String, ImageIcon> PIECE_ICON_MAP = getPieceIconMap();
 
     public Table() {
         gameFrame = new JFrame("CChess");
+        gameFrame.setIconImage(GAME_ICON.getImage());
+
         board = Board.initialiseBoard();
         boardDirection = BoardDirection.NORMAL;
-        boardPanel = new BoardPanel();
+        boardPanel = new BoardPanel(BOARD_ICON.getImage());
         historyPanel = new GameHistoryPanel();
-        capturedPiecesPanel = new CapturedPiecesPanel();
-        capturedPiecesPanel.updateStatus(board.getCurrPlayer());
+        infoPanel = new InfoPanel();
+        infoPanel.updateStatusPanel(board.getCurrPlayer());
         movelog = new MoveLog();
         boardHistory = new ArrayList<>();
         boardHistory.add(board);
         JMenuBar tableMenuBar = createMenuBar();
 
         gameFrame.setJMenuBar(tableMenuBar);
-        gameFrame.setSize(OUTER_FRAME_DIMENSION);
         gameFrame.setLayout(new BorderLayout());
-        gameFrame.setResizable(false);
-        gameFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        gameFrame.add(boardPanel, BorderLayout.CENTER);
-        gameFrame.add(historyPanel, BorderLayout.EAST);
-        gameFrame.add(capturedPiecesPanel, BorderLayout.WEST);
 
+        JPanel wrapperPanel = new JPanel();
+        wrapperPanel.add(boardPanel);
+        gameFrame.add(wrapperPanel, BorderLayout.CENTER);
+        gameFrame.add(historyPanel, BorderLayout.EAST);
+        gameFrame.add(infoPanel, BorderLayout.WEST);
+
+        gameFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        gameFrame.setResizable(false);
         gameFrame.setVisible(true);
+        gameFrame.pack();
     }
 
     private JMenuBar createMenuBar() {
@@ -136,8 +142,8 @@ public class Table {
             board = boardHistory.get(boardHistory.size() - 1);
 
             historyPanel.update(movelog);
-            capturedPiecesPanel.update(movelog);
-            capturedPiecesPanel.updateStatus(board.getCurrPlayer());
+            infoPanel.updateCapturedPanel(movelog);
+            infoPanel.updateStatusPanel(board.getCurrPlayer());
             boardPanel.drawBoard(board);
         }
     }
@@ -151,7 +157,29 @@ public class Table {
     private void flipBoard() {
         boardDirection = boardDirection.opposite();
         boardPanel.drawBoard(board);
-        capturedPiecesPanel.setDirection(boardDirection);
+        infoPanel.setDirection(boardDirection);
+    }
+
+    private static ImageIcon getGameIcon() {
+        try {
+            BufferedImage image = ImageIO.read(Table.class.getResource("/graphics/icon.png"));
+            return new ImageIcon(image);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    private static ImageIcon getBoardIcon() {
+        try {
+            BufferedImage image = ImageIO.read(Table.class.getResource("/graphics/board.png"));
+            return new ImageIcon(image);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     private static ImageIcon getHighlightIcon() {
@@ -161,107 +189,8 @@ public class Table {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         return null;
-    }
-
-    private static Map<Coordinate, ImageIcon> getPointIconMap() {
-        ImageIcon dl = null;
-        try {
-            BufferedImage image = ImageIO.read(Table.class.getResource(GRAPHICS_MISC_PATH + "point_dl.png"));
-            dl = new ImageIcon(image);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        ImageIcon dlr = null;
-        try {
-            BufferedImage image = ImageIO.read(Table.class.getResource(GRAPHICS_MISC_PATH + "point_dlr.png"));
-            dlr = new ImageIcon(image);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        ImageIcon dr = null;
-        try {
-            BufferedImage image = ImageIO.read(Table.class.getResource(GRAPHICS_MISC_PATH + "point_dr.png"));
-            dr = new ImageIcon(image);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        ImageIcon udl = null;
-        try {
-            BufferedImage image = ImageIO.read(Table.class.getResource(GRAPHICS_MISC_PATH + "point_udl.png"));
-            udl = new ImageIcon(image);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        ImageIcon udlr = null;
-        try {
-            BufferedImage image = ImageIO.read(Table.class.getResource(GRAPHICS_MISC_PATH + "point_udlr.png"));
-            udlr = new ImageIcon(image);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        ImageIcon udr = null;
-        try {
-            BufferedImage image = ImageIO.read(Table.class.getResource(GRAPHICS_MISC_PATH + "point_udr.png"));
-            udr = new ImageIcon(image);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        ImageIcon ul = null;
-        try {
-            BufferedImage image = ImageIO.read(Table.class.getResource(GRAPHICS_MISC_PATH + "point_ul.png"));
-            ul = new ImageIcon(image);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        ImageIcon ulr = null;
-        try {
-            BufferedImage image = ImageIO.read(Table.class.getResource(GRAPHICS_MISC_PATH + "point_ulr.png"));
-            ulr = new ImageIcon(image);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        ImageIcon ur = null;
-        try {
-            BufferedImage image = ImageIO.read(Table.class.getResource(GRAPHICS_MISC_PATH + "point_ur.png"));
-            ur = new ImageIcon(image);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        Map<Coordinate, ImageIcon> pointIconMap = new HashMap<>();
-        for (int row = 0; row < Board.NUM_ROWS; row++) {
-            for (int col = 0; col < Board.NUM_COLS; col++) {
-                Coordinate position = new Coordinate(row, col);
-                ImageIcon icon;
-
-                if ((row == 0 || row == Board.RIVER_ROW_RED) && col == 0) {
-                    icon = dr;
-                } else if ((row == 0 || row == Board.RIVER_ROW_RED) && (col > 0 && col < Board.NUM_COLS - 1)) {
-                    icon = dlr;
-                } else if ((row == 0 || row == Board.RIVER_ROW_RED) && col == Board.NUM_COLS - 1) {
-                    icon = dl;
-                } else if (((row > 0 && row < Board.RIVER_ROW_BLACK)
-                        || (row > Board.RIVER_ROW_RED && row < Board.NUM_ROWS - 1)) && col == 0) {
-                    icon = udr;
-                } else if (((row > 0 && row < Board.RIVER_ROW_BLACK)
-                        || (row > Board.RIVER_ROW_RED && row < Board.NUM_ROWS - 1)) && col == Board.NUM_COLS - 1) {
-                    icon = udl;
-                } else if ((row == Board.RIVER_ROW_BLACK || row == Board.NUM_ROWS - 1) && col == 0) {
-                    icon = ur;
-                } else if ((row == Board.RIVER_ROW_BLACK || row == Board.NUM_ROWS - 1)
-                        && (col > 0 && col < Board.NUM_COLS - 1)) {
-                    icon = ulr;
-                } else if ((row == Board.RIVER_ROW_BLACK || row == Board.NUM_ROWS - 1) && col == Board.NUM_COLS - 1) {
-                    icon = ul;
-                } else {
-                    icon = udlr;
-                }
-                pointIconMap.put(position, icon);
-            }
-        }
-
-        return pointIconMap;
     }
 
     private static Map<String, ImageIcon> getPieceIconMap() {
@@ -290,13 +219,6 @@ public class Table {
 
     private static Color getAllianceColor(Alliance alliance) {
         return alliance.isRed() ? Color.RED : Color.BLACK;
-    }
-
-    private static Coordinate getAbsolutePosition(Coordinate relative, BoardDirection direction) {
-        if (direction.isNormal()) {
-            return relative;
-        }
-        return new Coordinate(Board.NUM_ROWS - relative.getRow() - 1, Board.NUM_COLS - relative.getCol() - 1);
     }
 
 
@@ -328,10 +250,6 @@ public class Table {
             }
 
             return null;
-        }
-
-        public void clear() {
-            moves.clear();
         }
     }
 
@@ -381,25 +299,32 @@ public class Table {
     private class BoardPanel extends JPanel {
 
         final List<PointPanel> pointPanels;
+        final Image background;
 
-        BoardPanel() {
+        BoardPanel(Image background) {
             super(new GridLayout(Board.NUM_ROWS, Board.NUM_COLS));
             pointPanels = new ArrayList<>();
+            this.background = background;
 
             for (int row = 0; row < Board.NUM_ROWS; row++) {
                 for (int col = 0; col < Board.NUM_COLS; col++) {
                     PointPanel pointPanel
                             = new PointPanel(this, new Coordinate(row, col));
                     pointPanels.add(pointPanel);
-                    this.add(pointPanel);
+                    add(pointPanel);
                 }
             }
 
             setPreferredSize(BOARD_PANEL_DIMENSION);
-            setMinimumSize(BOARD_PANEL_DIMENSION);
             setMaximumSize(BOARD_PANEL_DIMENSION);
-            setBackground(Color.decode("0xa77d46"));
+            setMinimumSize(BOARD_PANEL_DIMENSION);
+
             validate();
+        }
+
+        @Override
+        public void paintComponent(Graphics g) {
+            g.drawImage(background, 0, 0, null);
         }
 
         private void drawBoard(Board board) {
@@ -423,12 +348,8 @@ public class Table {
             super();
             this.position = position;
 
-            setOpaque(false);
-            setPreferredSize(POINT_PANEL_DIMENSION);
-            setMinimumSize(POINT_PANEL_DIMENSION);
-            setMaximumSize(POINT_PANEL_DIMENSION);
+            setSize(POINT_PANEL_DIMENSION);
             assignPointPieceIcon(board);
-            drawTile();
 
             addMouseListener(new MouseListener() {
                 @Override
@@ -460,8 +381,8 @@ public class Table {
                                 clearSelections();
                                 SwingUtilities.invokeLater(() -> {
                                     historyPanel.update(movelog);
-                                    capturedPiecesPanel.update(movelog);
-                                    capturedPiecesPanel.updateStatus(board.getCurrPlayer());
+                                    infoPanel.updateCapturedPanel(movelog);
+                                    infoPanel.updateStatusPanel(board.getCurrPlayer());
                                 });
                             }
                         }
@@ -502,18 +423,11 @@ public class Table {
 
         private void drawPoint(Board board) {
             assignPointPieceIcon(board);
-            drawTile();
             highlightLastMoveAndSelectedPiece();
             highlightPossibleMoves(board);
 
             validate();
             repaint();
-        }
-
-        private void drawTile() {
-            JLabel label = new JLabel(POINT_ICON_MAP.get(getAbsolutePosition(position, boardDirection)));
-            add(label, DEFAULT_LAYER);
-            label.setBounds(0, 0, label.getIcon().getIconWidth(), label.getIcon().getIconHeight());
         }
 
         private void assignPointPieceIcon(Board board) {
@@ -526,7 +440,9 @@ public class Table {
                 ImageIcon icon = PIECE_ICON_MAP.get(name);
                 JLabel label = new JLabel(icon);
                 add(label, PALETTE_LAYER);
-                label.setBounds(1, 1, icon.getIconWidth(), icon.getIconHeight());
+
+                int offset = (int) (POINT_PANEL_DIMENSION.getWidth() - icon.getIconWidth()) / 2;
+                label.setBounds(offset, offset, icon.getIconWidth(), icon.getIconHeight());
             });
         }
 
@@ -567,7 +483,9 @@ public class Table {
                 if (move.getDestPosition().equals(position)) {
                     JLabel label = new JLabel(HIGHLIGHT_ICON);
                     add(label, MODAL_LAYER);
-                    label.setBounds(24, 24, HIGHLIGHT_ICON.getIconWidth(), HIGHLIGHT_ICON.getIconHeight());
+
+                    int offset = (int) (POINT_PANEL_DIMENSION.getWidth() - HIGHLIGHT_ICON.getIconWidth()) / 2;
+                    label.setBounds(offset, offset, HIGHLIGHT_ICON.getIconWidth(), HIGHLIGHT_ICON.getIconHeight());
                 }
             }
         }
@@ -580,5 +498,3 @@ public class Table {
         }
     }
 }
-
-//TODO: read/save game, AI

@@ -22,59 +22,64 @@ import java.util.Optional;
 
 import static com.chess.gui.Table.*;
 
-public class CapturedPiecesPanel extends JPanel {
+public class InfoPanel extends JPanel {
 
-    private final JPanel redPanel;
-    private final JPanel blackPanel;
+    private final JPanel redCapturedPanel;
+    private final JPanel blackCapturedPanel;
     private final JPanel statusPanel;
 
-    private static final Dimension CAPTURED_PIECES_DIMENSION = new Dimension(100, 650);
-    private static final Dimension STATUS_PANEL_DIMENSION = new Dimension(100, 150);
     private static final EtchedBorder PANEL_BORDER = new EtchedBorder(EtchedBorder.RAISED);
-    private static final JLabel CHECK = new JLabel("Check", SwingConstants.CENTER);
-    private static final JLabel CHECKMATE = new JLabel("Checkmate", SwingConstants.CENTER);
+    private static final Dimension PANEL_DIMENSION = new Dimension(100, 600);
+    private static final Dimension CAPTURED_PANEL_DIMENSION = new Dimension(100, 250);
+    private static final Color CAPTURED_PANEL_COLOR = Color.LIGHT_GRAY;
+    private static final Dimension STATUS_PANEL_DIMENSION = new Dimension(100, 100);
+    private static final JLabel CHECK_LABEL = new JLabel("Check", SwingConstants.CENTER);
+    private static final JLabel CHECKMATE_LABEL = new JLabel("Checkmate", SwingConstants.CENTER);
 
-    public CapturedPiecesPanel() {
+    public InfoPanel() {
         super(new BorderLayout());
         setBorder(PANEL_BORDER);
 
-        redPanel = new JPanel(new GridLayout(8,2));
-        redPanel.setBackground(Color.LIGHT_GRAY);
-        redPanel.setPreferredSize(new Dimension(100, 250));
-        blackPanel = new JPanel(new GridLayout(8,2));
-        blackPanel.setBackground(Color.LIGHT_GRAY);
-        blackPanel.setPreferredSize(new Dimension(100, 250));
+        redCapturedPanel = new JPanel(new GridLayout(8,2));
+        redCapturedPanel.setBackground(CAPTURED_PANEL_COLOR);
+        redCapturedPanel.setPreferredSize(CAPTURED_PANEL_DIMENSION);
+        blackCapturedPanel = new JPanel(new GridLayout(8,2));
+        blackCapturedPanel.setBackground(CAPTURED_PANEL_COLOR);
+        blackCapturedPanel.setPreferredSize(CAPTURED_PANEL_DIMENSION);
         statusPanel = new JPanel(new GridLayout(2,1));
         statusPanel.setPreferredSize(STATUS_PANEL_DIMENSION);
 
-        add(redPanel, BorderLayout.SOUTH);
-        add(blackPanel, BorderLayout.NORTH);
+        add(redCapturedPanel, BorderLayout.SOUTH);
+        add(blackCapturedPanel, BorderLayout.NORTH);
         add(statusPanel, BorderLayout.CENTER);
-        setPreferredSize(CAPTURED_PIECES_DIMENSION);
+
+        setPreferredSize(PANEL_DIMENSION);
+        setMaximumSize(PANEL_DIMENSION);
+        setMinimumSize(PANEL_DIMENSION);
     }
 
-    public void updateStatus(Player currPlayer) {
+    public void updateStatusPanel(Player currPlayer) {
         statusPanel.removeAll();
 
         if (currPlayer.isInCheckmate()) {
             statusPanel.add(new JLabel(currPlayer.getOpponent().getAlliance().toString() + " wins",
                     SwingConstants.CENTER));
-            statusPanel.add(CHECKMATE);
+            statusPanel.add(CHECKMATE_LABEL);
             validate();
             return;
         }
 
         statusPanel.add(new JLabel(currPlayer.getAlliance().toString() + "'s turn", SwingConstants.CENTER));
         if (currPlayer.isInCheck()) {
-            statusPanel.add(CHECK);
+            statusPanel.add(CHECK_LABEL);
         }
 
         validate();
     }
 
-    public void update(MoveLog movelog) {
-        redPanel.removeAll();
-        blackPanel.removeAll();
+    public void updateCapturedPanel(MoveLog movelog) {
+        redCapturedPanel.removeAll();
+        blackCapturedPanel.removeAll();
 
         List<Piece> redCapturedPieces = new ArrayList<>();
         List<Piece> blackCapturedPieces = new ArrayList<>();
@@ -90,12 +95,7 @@ public class CapturedPiecesPanel extends JPanel {
         });
         }
 
-        Comparator<Piece> comparator = new Comparator<>() {
-            @Override
-            public int compare(Piece p1, Piece p2) {
-                return p1.getType().compareTo(p2.getType());
-            }
-        };
+        Comparator<Piece> comparator = Comparator.comparing(Piece::getType);
         Collections.sort(redCapturedPieces, comparator);
         Collections.sort(blackCapturedPieces, comparator);
 
@@ -103,17 +103,17 @@ public class CapturedPiecesPanel extends JPanel {
             String name = (piece.getAlliance().toString().substring(0, 1)
                     + piece.getType().toString()).toLowerCase();
             ImageIcon icon = PIECE_ICON_MAP.get(name);
-            Image image = icon.getImage().getScaledInstance(icon.getIconWidth() - 30,
-                    icon.getIconWidth() - 30, Image.SCALE_SMOOTH);
-            redPanel.add(new JLabel(new ImageIcon(image)));
+            Image image = icon.getImage().getScaledInstance(icon.getIconWidth()/2,
+                    icon.getIconWidth()/2, Image.SCALE_SMOOTH);
+            redCapturedPanel.add(new JLabel(new ImageIcon(image)));
         }
         for (Piece piece : blackCapturedPieces) {
             String name = (piece.getAlliance().toString().substring(0, 1)
                     + piece.getType().toString()).toLowerCase();
             ImageIcon icon = PIECE_ICON_MAP.get(name);
-            Image image = icon.getImage().getScaledInstance(icon.getIconWidth() - 30,
-                    icon.getIconWidth() - 30, Image.SCALE_SMOOTH);
-            blackPanel.add(new JLabel(new ImageIcon(image)));
+            Image image = icon.getImage().getScaledInstance(icon.getIconWidth()/2,
+                    icon.getIconWidth()/2, Image.SCALE_SMOOTH);
+            blackCapturedPanel.add(new JLabel(new ImageIcon(image)));
         }
 
         validate();
@@ -124,12 +124,12 @@ public class CapturedPiecesPanel extends JPanel {
         removeAll();
         add(statusPanel, BorderLayout.CENTER);
 
-        if (direction == BoardDirection.NORMAL) {
-            add(blackPanel, BorderLayout.NORTH);
-            add(redPanel, BorderLayout.SOUTH);
+        if (direction.isNormal()) {
+            add(blackCapturedPanel, BorderLayout.NORTH);
+            add(redCapturedPanel, BorderLayout.SOUTH);
         } else {
-            add(redPanel, BorderLayout.NORTH);
-            add(blackPanel, BorderLayout.SOUTH);
+            add(redCapturedPanel, BorderLayout.NORTH);
+            add(blackCapturedPanel, BorderLayout.SOUTH);
         }
 
         validate();

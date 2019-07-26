@@ -9,7 +9,6 @@ import javax.swing.JTable;
 import javax.swing.border.EtchedBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,14 +19,13 @@ public class GameHistoryPanel extends JPanel {
 
     private final DataModel model;
     private final JScrollPane scrollPane;
-    private static final Color PANEL_COLOR = Color.LIGHT_GRAY;
     private static final EtchedBorder PANEL_BORDER = new EtchedBorder(EtchedBorder.RAISED);
     private static final Dimension HISTORY_PANEL_DIMENSION = new Dimension(100, 40);
 
     GameHistoryPanel() {
         setLayout(new BorderLayout());
         setBorder(PANEL_BORDER);
-        setBackground(PANEL_COLOR);
+
         model = new DataModel();
         JTable table = new JTable(model);
         table.setRowHeight(20);
@@ -101,6 +99,7 @@ public class GameHistoryPanel extends JPanel {
             if(values == null) {
                 return 0;
             }
+
             return values.size();
         }
 
@@ -112,23 +111,27 @@ public class GameHistoryPanel extends JPanel {
         @Override
         public Object getValueAt(int row, int col) {
             Row currentRow = values.get(row);
+
             if(col == 0) {
                 return currentRow.getRedMove();
             } else if (col == 1) {
                 return currentRow.getBlackMove();
             }
+
             return null;
         }
 
         @Override
         public void setValueAt(Object aValue, int row, int col) {
             Row currentRow;
+
             if(values.size() <= row) {
                 currentRow = new Row();
                 values.add(currentRow);
             } else {
                 currentRow = values.get(row);
             }
+
             if(col == 0) {
                 currentRow.setRedMove((String) aValue);
                 fireTableRowsInserted(row, row);
