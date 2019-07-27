@@ -46,25 +46,25 @@ public class Move {
     }
 
     /**
-     * [single-letter piece abbreviation][former file][operator indicating direction of movement]
-     * [new file, or in the case of purely vertical movement, number of ranks traversed]
+     * [piece abbr][former rank][former file]-[new rank][new file]
+     * rank 10 is represented by "X"
      */
     @Override
     public String toString() {
-        Coordinate position = movedPiece.getPosition();
+        Coordinate sourcePosition = movedPiece.getPosition();
         Alliance alliance = movedPiece.getAlliance();
         PieceType type = movedPiece.getType();
 
-        int rowsMoved = (destPosition.getRow() - position.getRow()) * alliance.getDirection();
-        String direction = getStringDirection(rowsMoved);
-        String move = getPieceString(type, alliance) + colToFile(position.getCol(), alliance) + direction;
+        String formerRank = rankToString(rowToRank(sourcePosition.getRow(), alliance));
+        String formerFile = Integer.toString(colToFile(sourcePosition.getCol(), alliance));
+        String newRank = rankToString(rowToRank(destPosition.getRow(), alliance));
+        String newFile = Integer.toString(colToFile(destPosition.getCol(), alliance));
 
-        int destCol = colToFile(destPosition.getCol(), alliance);
-        if (type == PieceType.ADVISOR || type == PieceType.ELEPHANT || type == PieceType.HORSE) {
-            return move + destCol;
-        } else {
-            return move + (rowsMoved == 0 ? destCol : Math.abs(rowsMoved));
-        }
+        return new StringBuilder().append(getPieceString(type, alliance))
+                .append(formerRank).append(formerFile)
+                .append("-")
+                .append(newRank).append(newFile)
+                .toString();
     }
 
     public Piece getMovedPiece() {
@@ -96,14 +96,28 @@ public class Move {
         return builder.build();
     }
 
-    public static Optional<Move> getMove(Board board, Coordinate currPosition, Coordinate destPosition) {
+    public static Optional<Move> getMove(Board board, Coordinate sourcePosition, Coordinate destPosition) {
         for (Move move : board.getCurrPlayer().getLegalMoves()) {
-            if (move.getMovedPiece().getPosition().equals(currPosition)
+            if (move.getMovedPiece().getPosition().equals(sourcePosition)
                     && move.getDestPosition().equals(destPosition)) {
                 return Optional.of(move);
             }
         }
         return Optional.empty();
+    }
+
+    public static Optional<Move> stringToMove(Board board, String str) {
+        Alliance alliance = board.getCurrPlayer().getAlliance();
+
+        int formerRow = rankToRow(charToRank(str.charAt(1)), alliance);
+        int formerCol = fileToCol(Character.getNumericValue(str.charAt(2)), alliance);
+        int newRow = rankToRow(charToRank(str.charAt(4)), alliance);
+        int newCol = fileToCol(Character.getNumericValue(str.charAt(5)), alliance);
+
+        Coordinate sourcePosition = new Coordinate(formerRow, formerCol);
+        Coordinate destPosition = new Coordinate(newRow, newCol);
+
+        return getMove(board, sourcePosition, destPosition);
     }
 
     private static String getPieceString(PieceType type, Alliance alliance) {
@@ -114,13 +128,23 @@ public class Move {
         return alliance.isRed() ? Board.NUM_COLS - col : col + 1;
     }
 
-    private String getStringDirection(int direction) {
-        if (direction > 0) {
-            return "+";
-        } else if (direction == 0) {
-            return ".";
-        } else {
-            return "-";
-        }
+    private static int fileToCol(int file, Alliance alliance) {
+        return alliance.isRed() ? Board.NUM_COLS - file : file - 1;
+    }
+
+    private static int rowToRank(int row, Alliance alliance) {
+        return alliance.isRed() ? Board.NUM_ROWS - row : row + 1;
+    }
+
+    private static int rankToRow(int rank, Alliance alliance) {
+        return alliance.isRed() ? Board.NUM_ROWS - rank : rank - 1;
+    }
+
+    private static String rankToString(int rank) {
+        return rank < 10 ? Integer.toString(rank) : "X";
+    }
+
+    private static int charToRank(char rank) {
+        return rank == 'X' ? 10 : Character.getNumericValue(rank);
     }
 }
