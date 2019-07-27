@@ -1,6 +1,5 @@
 package com.chess.gui;
 
-import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
@@ -61,10 +60,12 @@ public class Table {
     private static final Dimension POINT_PANEL_DIMENSION = new Dimension(60, 60);
     private static final String GRAPHICS_MISC_PATH = "/graphics/misc/";
     private static final String GRAPHICS_PIECES_PATH = "/graphics/pieces/";
+    private static final Color HIGHLIGHT_BORDER_COLOR = Color.WHITE;
     private static final ImageIcon GAME_ICON = getGameIcon();
     private static final ImageIcon BOARD_ICON = getBoardIcon();
     private static final ImageIcon HIGHLIGHT_ICON = getHighlightIcon();
     public static final Map<String, ImageIcon> PIECE_ICON_MAP = getPieceIconMap();
+
 
     public Table() {
         gameFrame = new JFrame("CChess");
@@ -215,10 +216,6 @@ public class Table {
         }
 
         return stringToIconMap;
-    }
-
-    private static Color getAllianceColor(Alliance alliance) {
-        return alliance.isRed() ? Color.RED : Color.BLACK;
     }
 
 
@@ -451,20 +448,20 @@ public class Table {
 
             if (lastMove != null) {
                 Piece lastMovedPiece = lastMove.getMovedPiece();
-                Color color = getAllianceColor(lastMovedPiece.getAlliance());
                 if (lastMovedPiece.getPosition().equals(position)) {
-                    setBorder(BorderFactory.createDashedBorder(color, 2, 2, 2, true));
+                    setBorder(BorderFactory
+                            .createDashedBorder(HIGHLIGHT_BORDER_COLOR, 2, 2, 2, true));
                     return;
                 }
                 if (lastMove.getDestPosition().equals(position)) {
-                    setBorder(BorderFactory.createDashedBorder(color, 2, 2, 2, true));
+                    setBorder(BorderFactory
+                            .createDashedBorder(HIGHLIGHT_BORDER_COLOR, 2, 2, 2, true));
                     return;
                 }
             }
 
             if (humanMovedPiece != null && humanMovedPiece.getPosition().equals(position)) {
-                Color color = getAllianceColor(humanMovedPiece.getAlliance());
-                setBorder(BorderFactory.createLineBorder(color, 2, true));
+                setBorder(BorderFactory.createLineBorder(HIGHLIGHT_BORDER_COLOR, 2, true));
                 return;
             }
 
