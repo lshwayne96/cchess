@@ -1,5 +1,6 @@
 package com.chess.gui;
 
+import com.chess.engine.LoadGameUtil;
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
@@ -10,12 +11,14 @@ import com.chess.engine.player.MoveTransition;
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
@@ -28,7 +31,10 @@ import java.awt.Image;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -110,8 +116,24 @@ public class Table {
         JMenu gameMenu = new JMenu("Game");
 
         JMenuItem newGame = new JMenuItem("New game");
-        newGame.addActionListener(e -> undoAllMoves());
+        newGame.addActionListener(e -> {
+            int option = JOptionPane.showConfirmDialog(gameFrame, "Start a new game?",
+                    "", JOptionPane.YES_NO_OPTION);
+            if (option == JOptionPane.YES_OPTION) {
+                undoAllMoves();
+            }
+        });
         gameMenu.add(newGame);
+        gameMenu.addSeparator();
+
+        JMenuItem saveGame = new JMenuItem("Save game");
+        saveGame.addActionListener(e -> saveGame());
+        gameMenu.add(saveGame);
+        gameMenu.addSeparator();
+
+        JMenuItem loadGame = new JMenuItem("Load game");
+        loadGame.addActionListener(e -> loadGame());
+        gameMenu.add(loadGame);
         gameMenu.addSeparator();
 
         JMenuItem exit = new JMenuItem("Exit");
@@ -136,8 +158,66 @@ public class Table {
         return optionsMenu;
     }
 
+    private void saveGame() {
+        if (movelog.isEmpty()) {
+            JOptionPane.showMessageDialog(gameFrame, "No moves made");
+            return;
+        }
+
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Save game");
+
+        int val = fc.showSaveDialog(gameFrame);
+        if (val == JFileChooser.APPROVE_OPTION) {
+            File file = fc.getSelectedFile();
+            try {
+                PrintWriter pw = new PrintWriter(file);
+                for (Move move : movelog.getMoves()) {
+                    pw.append(move.toString()).append("\n");
+                }
+                pw.flush();
+                pw.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            JOptionPane.showMessageDialog(gameFrame, "Save success");
+        }
+    }
+
+    private void loadGame() {
+        JFileChooser fc = new JFileChooser() {
+            @Override
+            public void approveSelection() {
+                File file = getSelectedFile();
+                LoadGameUtil lgu = new LoadGameUtil(file);
+                if (!lgu.isValidFile()) {
+                    JOptionPane.showMessageDialog(gameFrame, "Invalid file");
+                } else {
+                    List<Board> boards = lgu.getBoardHistory();
+                    boardHistory.clear();
+                    boardHistory.addAll(boards);
+                    board = boardHistory.get(boardHistory.size() - 1);
+
+                    movelog.clear();
+                    for (Move move : lgu.getMoves()) {
+                        movelog.addMove(move);
+                    }
+                    historyPanel.update(movelog);
+                    infoPanel.updateCapturedPanel(movelog);
+                    infoPanel.updateStatusPanel(board.getCurrPlayer());
+                    boardPanel.drawBoard(board);
+
+                    JOptionPane.showMessageDialog(gameFrame, "Load success");
+                }
+            }
+        };
+        fc.setDialogTitle("Load game");
+
+        fc.showOpenDialog(gameFrame);
+    }
+
     private void undoLastMove() {
-        if (boardHistory.size() > 1) {
+        if (!movelog.isEmpty()) {
             movelog.removeLastMove();
             boardHistory.remove(boardHistory.size() - 1);
             board = boardHistory.get(boardHistory.size() - 1);
@@ -247,6 +327,14 @@ public class Table {
             }
 
             return null;
+        }
+
+        public void clear() {
+            moves.clear();
+        }
+
+        public boolean isEmpty() {
+            return moves.isEmpty();
         }
     }
 

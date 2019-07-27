@@ -107,6 +107,10 @@ public class Move {
     }
 
     public static Optional<Move> stringToMove(Board board, String str) {
+        if (str.length() != 6) {
+            return Optional.empty();
+        }
+
         Alliance alliance = board.getCurrPlayer().getAlliance();
 
         int formerRow = rankToRow(charToRank(str.charAt(1)), alliance);
