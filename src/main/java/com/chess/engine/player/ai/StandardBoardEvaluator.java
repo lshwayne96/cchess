@@ -4,11 +4,12 @@ import com.chess.engine.board.Board;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.Player;
 
+import static com.chess.engine.board.Board.*;
 import static com.chess.engine.pieces.Piece.*;
 
 public final class StandardBoardEvaluator implements BoardEvaluator {
 
-    private static final StandardBoardEvaluator evaluator = new StandardBoardEvaluator();
+    private static final StandardBoardEvaluator INSTANCE = new StandardBoardEvaluator();
     private static final int CHECKMATE_VALUE = PieceType.GENERAL.getDefaultValue();
 
     private StandardBoardEvaluator() {
@@ -21,7 +22,7 @@ public final class StandardBoardEvaluator implements BoardEvaluator {
     }
 
     public static StandardBoardEvaluator getInstance() {
-        return evaluator;
+        return INSTANCE;
     }
 
     private static int getPlayerScore(Board board, Player player, int depth) {
@@ -39,9 +40,10 @@ public final class StandardBoardEvaluator implements BoardEvaluator {
 
     private static int getTotalPieceValue(Board board, Player player) {
         int totalPieceValue = 0;
+        BoardStatus boardStatus = board.getStatus();
 
         for (Piece piece : player.getActivePieces()) {
-            totalPieceValue += piece.getMaterialValue(board) + piece.getPositionValue();
+            totalPieceValue += piece.getMaterialValue(boardStatus) + piece.getPositionValue();
         }
 
         return totalPieceValue;

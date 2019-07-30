@@ -61,11 +61,11 @@ public abstract class Piece {
         return result;
     }
 
-    public int getMaterialValue(Board board) {
-        if (board.getStatus().equals(BoardStatus.OPENING)) {
+    public int getMaterialValue(BoardStatus boardStatus) {
+        if (boardStatus.equals(BoardStatus.OPENING)) {
             return type.openingValue;
         }
-        if (board.getStatus().equals(BoardStatus.MIDDLE)) {
+        if (boardStatus.equals(BoardStatus.MIDDLE)) {
             return type.midValue;
         }
         return type.endValue;
@@ -82,7 +82,7 @@ public abstract class Piece {
 
     public enum PieceType {
 
-        SOLDIER("S", 100, 200, 300, Board.POSITION_VALUES_SOLDIER),
+        SOLDIER("S", 100, 150, 300, Board.POSITION_VALUES_SOLDIER),
         ADVISOR("A", 150, 200, 250, Board.POSITION_VALUES_ADVISOR),
         ELEPHANT("E", 200, 250, 300, Board.POSITION_VALUES_ELEPHANT),
         HORSE("H", 400, 500, 600, Board.POSITION_VALUES_HORSE),
