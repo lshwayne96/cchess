@@ -13,10 +13,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-
 public class Advisor extends Piece {
-
-    private static final int VALUE = 200;
 
     private static final List<Coordinate> MOVE_VECTORS =
             List.of(new Coordinate(-1, -1), new Coordinate(1, -1),
@@ -59,11 +56,6 @@ public class Advisor extends Piece {
     @Override
     public Advisor movePiece(Move move) {
         return new Advisor(move.getDestPosition(), move.getMovedPiece().getAlliance());
-    }
-
-    @Override
-    public int getValue() {
-        return VALUE;
     }
 
     private boolean isValidPosition(Coordinate positionToTest) {

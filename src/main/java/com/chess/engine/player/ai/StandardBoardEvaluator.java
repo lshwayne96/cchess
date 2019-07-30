@@ -1,16 +1,17 @@
 package com.chess.engine.player.ai;
 
 import com.chess.engine.board.Board;
-import com.chess.engine.pieces.General;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.Player;
 
+import static com.chess.engine.pieces.Piece.*;
+
 public final class StandardBoardEvaluator implements BoardEvaluator {
 
-    private static final int CHECK_VALUE = 30;
-    private static final int CHECKMATE_VALUE = General.VALUE;
+    private static final StandardBoardEvaluator evaluator = new StandardBoardEvaluator();
+    private static final int CHECKMATE_VALUE = PieceType.GENERAL.getDefaultValue();
 
-    public StandardBoardEvaluator() {
+    private StandardBoardEvaluator() {
     }
 
     @Override
@@ -19,10 +20,13 @@ public final class StandardBoardEvaluator implements BoardEvaluator {
                 - getPlayerScore(board, board.getBlackPlayer(), depth);
     }
 
+    public static StandardBoardEvaluator getInstance() {
+        return evaluator;
+    }
+
     private static int getPlayerScore(Board board, Player player, int depth) {
-        int standardValue = getTotalPieceValue(player)
+        int standardValue = getTotalPieceValue(board, player);
                 //+ getMobility(player)
-                + getCheckValue(player);
 
         // only need to get checkmate value for opp
         int checkmateValue = 0;
@@ -33,11 +37,11 @@ public final class StandardBoardEvaluator implements BoardEvaluator {
         return standardValue + checkmateValue;
     }
 
-    private static int getTotalPieceValue(Player player) {
+    private static int getTotalPieceValue(Board board, Player player) {
         int totalPieceValue = 0;
 
         for (Piece piece : player.getActivePieces()) {
-            totalPieceValue += piece.getValue();
+            totalPieceValue += piece.getMaterialValue(board) + piece.getPositionValue();
         }
 
         return totalPieceValue;
@@ -50,10 +54,6 @@ public final class StandardBoardEvaluator implements BoardEvaluator {
         } else {
             return Math.max(ratio, -300);
         }
-    }
-
-    private static int getCheckValue(Player player) {
-        return player.getOpponent().isInCheck() ? CHECK_VALUE : 0;
     }
 
     private static int getCheckmateValue(Player player) {

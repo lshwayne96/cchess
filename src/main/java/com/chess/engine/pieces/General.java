@@ -14,8 +14,6 @@ import java.util.Optional;
 
 public class General extends Piece {
 
-    public static final int VALUE = 5000;
-
     private static final List<Coordinate> MOVE_VECTORS =
             List.of(new Coordinate(-1, 0), new Coordinate(0, -1),
                     new Coordinate(1, 0), new Coordinate(0, 1));
@@ -62,11 +60,6 @@ public class General extends Piece {
     @Override
     public General movePiece(Move move) {
         return new General(move.getDestPosition(), move.getMovedPiece().getAlliance());
-    }
-
-    @Override
-    public int getValue() {
-        return VALUE;
     }
 
     private boolean isValidPosition(Coordinate positionToTest) {

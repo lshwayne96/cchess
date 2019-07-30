@@ -15,8 +15,6 @@ import java.util.Set;
 
 public class Elephant extends Piece {
 
-    private static final int VALUE = 200;
-
     private static final List<Coordinate> MOVE_VECTORS =
             List.of(new Coordinate(-1, -1), new Coordinate(1, -1),
                     new Coordinate(1, 1), new Coordinate(-1, 1));
@@ -62,11 +60,6 @@ public class Elephant extends Piece {
     @Override
     public Elephant movePiece(Move move) {
         return new Elephant(move.getDestPosition(), move.getMovedPiece().getAlliance());
-    }
-
-    @Override
-    public int getValue() {
-        return VALUE;
     }
 
     private boolean isValidPosition(Coordinate positionToTest) {

@@ -15,9 +15,6 @@ import java.util.Optional;
 
 public class Soldier extends Piece {
 
-    private static final int VALUE_BEFORE_RIVER = 100;
-    private static final int VALUE_AFTER_RIVER = 200;
-
     private static final Coordinate MOVE_VECTOR_BEFORE_RIVER = new Coordinate(1, 0);
 
     private static final List<Coordinate> MOVE_VECTORS_AFTER_RIVER =
@@ -70,10 +67,5 @@ public class Soldier extends Piece {
     @Override
     public Soldier movePiece(Move move) {
         return new Soldier(move.getDestPosition(), move.getMovedPiece().getAlliance());
-    }
-
-    @Override
-    public int getValue() {
-        return crossedRiver() ? VALUE_AFTER_RIVER : VALUE_BEFORE_RIVER;
     }
 }

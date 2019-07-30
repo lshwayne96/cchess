@@ -2,6 +2,7 @@ package com.chess.engine.pieces;
 
 import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
+import com.chess.engine.board.Board.BoardStatus;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
 
@@ -60,31 +61,56 @@ public abstract class Piece {
         return result;
     }
 
-    public abstract int getValue();
+    public int getMaterialValue(Board board) {
+        if (board.getStatus().equals(BoardStatus.OPENING)) {
+            return type.openingValue;
+        }
+        if (board.getStatus().equals(BoardStatus.MIDDLE)) {
+            return type.midValue;
+        }
+        return type.endValue;
+    }
+
+    public int getPositionValue() {
+        return alliance.isRed() ? type.positionValues[position.getRow()][position.getCol()]
+                : type.positionValues[Board.NUM_ROWS - position.getRow() - 1][Board.NUM_COLS - position.getCol() - 1];
+    }
 
     public abstract Collection<Move> calculateLegalMoves(Board board);
 
     public abstract Piece movePiece(Move move);
 
-
     public enum PieceType {
-        SOLDIER("S"),
-        ADVISOR("A"),
-        ELEPHANT("E"),
-        HORSE("H"),
-        CANNON("C"),
-        CHARIOT("R"),
-        GENERAL("G");
 
-        private String abbr;
+        SOLDIER("S", 100, 200, 300, Board.POSITION_VALUES_SOLDIER),
+        ADVISOR("A", 150, 200, 250, Board.POSITION_VALUES_ADVISOR),
+        ELEPHANT("E", 200, 250, 300, Board.POSITION_VALUES_ELEPHANT),
+        HORSE("H", 400, 500, 600, Board.POSITION_VALUES_HORSE),
+        CANNON("C", 500, 500, 500, Board.POSITION_VALUES_CANNON),
+        CHARIOT("R", 1000, 1000, 1000, Board.POSITION_VALUES_CHARIOT),
+        GENERAL("G", 5000, 5000, 5000, Board.POSITION_VALUES_GENERAL);
 
-        PieceType(String abbr) {
-            this.abbr = abbr;
+        private final String abbrev;
+        private final int openingValue;
+        private final int midValue;
+        private final int endValue;
+        private final int[][] positionValues;
+
+        PieceType(String abbrev, int openingValue, int midValue, int endValue, int[][] positionValues) {
+            this.abbrev = abbrev;
+            this.openingValue = openingValue;
+            this.midValue = midValue;
+            this.endValue = endValue;
+            this.positionValues = positionValues;
         }
 
         @Override
         public String toString() {
-            return abbr;
+            return abbrev;
+        }
+
+        public int getDefaultValue() {
+            return openingValue;
         }
     }
 }

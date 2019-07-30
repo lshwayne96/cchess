@@ -15,8 +15,6 @@ import java.util.Optional;
 
 public class Horse extends Piece {
 
-    private static final int VALUE = 400;
-
     private static final List<Coordinate> FIRST_MOVE_VECTORS =
             List.of(new Coordinate(-1, 0),
                     new Coordinate(0, -1),
@@ -62,10 +60,5 @@ public class Horse extends Piece {
     @Override
     public Horse movePiece(Move move) {
         return new Horse(move.getDestPosition(), move.getMovedPiece().getAlliance());
-    }
-
-    @Override
-    public int getValue() {
-        return VALUE;
     }
 }
