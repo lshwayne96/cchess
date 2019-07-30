@@ -61,7 +61,7 @@ public class GameSetup extends JDialog {
 
         panel.add(new JLabel("Search"));
         searchDepthSpinner = addLabeledSpinner(panel, "Search Depth",
-                new SpinnerNumberModel(searchDepth, 1, 10, 1));
+                new SpinnerNumberModel(searchDepth, 1, 6, 1));
 
         JButton cancelButton = new JButton("Cancel");
         JButton okButton = new JButton("OK");
@@ -70,6 +70,7 @@ public class GameSetup extends JDialog {
             redPlayerType = redComputerButton.isSelected() ? PlayerType.COMPUTER : PlayerType.HUMAN;
             blackPlayerType = blackComputerButton.isSelected() ? PlayerType.COMPUTER : PlayerType.HUMAN;
             searchDepth = (int) searchDepthSpinner.getValue();
+
 
             setVisible(false);
         });

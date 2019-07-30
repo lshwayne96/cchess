@@ -1,6 +1,7 @@
 package com.chess.engine.player.ai;
 
 import com.chess.engine.board.Board;
+import com.chess.engine.board.Move;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.Player;
 
@@ -26,8 +27,7 @@ public final class StandardBoardEvaluator implements BoardEvaluator {
     }
 
     private static int getPlayerScore(Board board, Player player, int depth) {
-        int standardValue = getTotalPieceValue(board, player);
-                //+ getMobility(player)
+        int standardValue = getTotalPieceValue(board, player) + getTotalMobilityValue(player);
 
         // only need to get checkmate value for opp
         int checkmateValue = 0;
@@ -49,13 +49,14 @@ public final class StandardBoardEvaluator implements BoardEvaluator {
         return totalPieceValue;
     }
 
-    private static int getMobility(Player player) {
-        int ratio = (int) (player.getLegalMoves().size() * 100.0f / player.getOpponent().getLegalMoves().size());
-        if (ratio > 1) {
-            return Math.min(ratio, 300);
-        } else {
-            return Math.max(ratio, -300);
+    private static int getTotalMobilityValue(Player player) {
+        int totalMobilityValue = 0;
+
+        for (Move move : player.getLegalMoves()) {
+            totalMobilityValue += move.getMovedPiece().getType().getMobilityValue();
         }
+
+        return totalMobilityValue;
     }
 
     private static int getCheckmateValue(Player player) {

@@ -82,25 +82,29 @@ public abstract class Piece {
 
     public enum PieceType {
 
-        SOLDIER("S", 100, 150, 300, Board.POSITION_VALUES_SOLDIER),
-        ADVISOR("A", 150, 200, 250, Board.POSITION_VALUES_ADVISOR),
-        ELEPHANT("E", 200, 250, 300, Board.POSITION_VALUES_ELEPHANT),
-        HORSE("H", 400, 500, 600, Board.POSITION_VALUES_HORSE),
-        CANNON("C", 500, 500, 500, Board.POSITION_VALUES_CANNON),
-        CHARIOT("R", 1000, 1000, 1000, Board.POSITION_VALUES_CHARIOT),
-        GENERAL("G", 5000, 5000, 5000, Board.POSITION_VALUES_GENERAL);
+        SOLDIER("S", 100, 150, 300, 30, Board.POSITION_VALUES_SOLDIER),
+        ADVISOR("A", 200, 250, 300, 2, Board.POSITION_VALUES_ADVISOR),
+        ELEPHANT("E", 200, 250, 300, 2, Board.POSITION_VALUES_ELEPHANT),
+        HORSE("H", 400, 500, 600, 24, Board.POSITION_VALUES_HORSE),
+        CANNON("C", 500, 500, 500, 12, Board.POSITION_VALUES_CANNON),
+        CHARIOT("R", 1000, 1000, 1000, 12, Board.POSITION_VALUES_CHARIOT),
+        GENERAL("G", 5000, 5000, 5000, 0, Board.POSITION_VALUES_GENERAL);
 
         private final String abbrev;
         private final int openingValue;
         private final int midValue;
         private final int endValue;
+        private final int mobilityValue;
         private final int[][] positionValues;
 
-        PieceType(String abbrev, int openingValue, int midValue, int endValue, int[][] positionValues) {
+        PieceType(String abbrev,
+                  int openingValue, int midValue, int endValue, int mobilityValue,
+                  int[][] positionValues) {
             this.abbrev = abbrev;
             this.openingValue = openingValue;
             this.midValue = midValue;
             this.endValue = endValue;
+            this.mobilityValue = mobilityValue;
             this.positionValues = positionValues;
         }
 
@@ -111,6 +115,10 @@ public abstract class Piece {
 
         public int getDefaultValue() {
             return openingValue;
+        }
+
+        public int getMobilityValue() {
+            return mobilityValue;
         }
     }
 }

@@ -157,6 +157,24 @@ public class Board {
         return sb.toString();
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof Board)) {
+            return false;
+        }
+        Board other = (Board) obj;
+        return this.toString().equals(other.toString())
+                && this.currPlayer.getAlliance().equals(other.currPlayer.getAlliance());
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * toString().hashCode() + currPlayer.getAlliance().hashCode();
+    }
+
     public Point getPoint(Coordinate position) {
         return points.get(positionToIndex(position.getRow(), position.getCol()));
     }

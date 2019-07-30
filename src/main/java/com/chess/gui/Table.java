@@ -79,6 +79,7 @@ public class Table extends Observable {
     private static final ImageIcon GAME_ICON = getGameIcon();
     private static final ImageIcon BOARD_ICON = getBoardIcon();
     private static final ImageIcon HIGHLIGHT_ICON = getHighlightIcon();
+    private static final Color HIGHLIGHT_BORDER_COLOR = Color.WHITE;
     public static final Map<String, ImageIcon> PIECE_ICON_MAP = getPieceIconMap();
 
     private static final Table TABLE_INSTANCE = new Table();
@@ -297,6 +298,9 @@ public class Table extends Observable {
     }
 
     private void setupUpdate(GameSetup gameSetup) {
+        if (aiPlayer != null) {
+            aiPlayer.cancel(true);
+        }
         setChanged();
         notifyObservers(gameSetup);
     }
@@ -625,19 +629,17 @@ public class Table extends Observable {
             if (lastMove != null) {
                 Piece lastMovedPiece = lastMove.getMovedPiece();
                 if (lastMovedPiece.getPosition().equals(position)) {
-                    setBorder(BorderFactory.createDashedBorder(getHighlightBorderColor(lastMovedPiece),
-                                    2, 2, 2, true));
+                    setBorder(BorderFactory.createDashedBorder(HIGHLIGHT_BORDER_COLOR, 2, 2, 2, true));
                     return;
                 }
                 if (lastMove.getDestPosition().equals(position)) {
-                    setBorder(BorderFactory.createDashedBorder(getHighlightBorderColor(lastMovedPiece),
-                            2, 2, 2, true));
+                    setBorder(BorderFactory.createDashedBorder(HIGHLIGHT_BORDER_COLOR, 2, 2, 2, true));
                     return;
                 }
             }
 
             if (humanMovedPiece != null && humanMovedPiece.getPosition().equals(position)) {
-                setBorder(BorderFactory.createLineBorder(getHighlightBorderColor(humanMovedPiece), 2, true));
+                setBorder(BorderFactory.createLineBorder(HIGHLIGHT_BORDER_COLOR, 2, true));
                 return;
             }
 
