@@ -12,7 +12,6 @@ public class Minimax implements MoveStrategy {
     private final int searchDepth;
     private final MoveOrdering moveOrdering;
     private final Map<BoardState, Integer> stateToValueMap;
-    private int boards;
 
     public Minimax(int searchDepth) {
         evaluator = StandardBoardEvaluator.getInstance();
@@ -24,7 +23,6 @@ public class Minimax implements MoveStrategy {
     @Override
     public Move execute(Board board) {
         stateToValueMap.clear();
-        boards = 0;
         Move bestMove = null;
         int maxValue = Integer.MIN_VALUE;
         int minValue = Integer.MAX_VALUE;
@@ -51,14 +49,12 @@ public class Minimax implements MoveStrategy {
         }
         long end = System.currentTimeMillis();
         System.out.println(bestMove.toString() + " " + (end-start) + "ms");
-        System.out.println(boards + " boards");
 
         return bestMove;
     }
 
     private int min(Board board, int depth, int alpha, int beta) {
         if (depth == 0 || board.isGameOver()) {
-            boards++;
             return evaluator.evaluate(board, depth);
         }
         BoardState state = new BoardState(board, depth);
@@ -83,7 +79,6 @@ public class Minimax implements MoveStrategy {
 
     private int max(Board board, int depth, int alpha, int beta) {
         if (depth == 0 || board.isGameOver()) {
-            boards++;
             return evaluator.evaluate(board, depth);
         }
         BoardState state = new BoardState(board, depth);
