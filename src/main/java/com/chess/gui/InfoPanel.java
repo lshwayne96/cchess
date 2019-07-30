@@ -29,10 +29,10 @@ public class InfoPanel extends JPanel {
     private final JPanel statusPanel;
 
     private static final EtchedBorder PANEL_BORDER = new EtchedBorder(EtchedBorder.RAISED);
-    private static final Dimension PANEL_DIMENSION = new Dimension(100, 600);
-    private static final Dimension CAPTURED_PANEL_DIMENSION = new Dimension(100, 250);
+    private static final Dimension PANEL_DIMENSION = new Dimension(120, 600);
+    private static final Dimension CAPTURED_PANEL_DIMENSION = new Dimension(120, 250);
     private static final Color CAPTURED_PANEL_COLOR = Color.LIGHT_GRAY;
-    private static final Dimension STATUS_PANEL_DIMENSION = new Dimension(100, 100);
+    private static final Dimension STATUS_PANEL_DIMENSION = new Dimension(120, 100);
     private static final JLabel CHECK_LABEL = new JLabel("Check", SwingConstants.CENTER);
     private static final JLabel CHECKMATE_LABEL = new JLabel("Checkmate", SwingConstants.CENTER);
 

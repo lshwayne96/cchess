@@ -48,6 +48,9 @@ public class Point {
     }
 
     public static Point getInstance(Coordinate position, Piece piece) {
+        if (piece == null) {
+            return getInstance(position);
+        }
         return new Point(position, piece);
     }
 

@@ -60,7 +60,7 @@ public abstract class Piece {
         return result;
     }
 
-    public abstract double getValue();
+    public abstract int getValue();
 
     public abstract Collection<Move> calculateLegalMoves(Board board);
 

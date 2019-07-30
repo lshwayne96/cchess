@@ -80,6 +80,7 @@ public class Move {
     }
 
     public Board execute() {
+        if (capturedPiece != null && capturedPiece.getType().equals(PieceType.GENERAL)) System.out.println("GEN CAPTURED");
         Builder builder = new Builder();
 
         for (Piece piece : board.getCurrPlayer().getActivePieces()) {

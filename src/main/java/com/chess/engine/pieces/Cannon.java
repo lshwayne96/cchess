@@ -14,7 +14,7 @@ import java.util.Optional;
 
 public class Cannon extends Piece {
 
-    private static final double VALUE = 4.5;
+    private static final int VALUE = 500;
 
     private static final List<Coordinate> MOVE_VECTORS =
             List.of(new Coordinate(-1, 0), new Coordinate(0, -1),
@@ -60,7 +60,7 @@ public class Cannon extends Piece {
     }
 
     @Override
-    public double getValue() {
+    public int getValue() {
         return VALUE;
     }
 }

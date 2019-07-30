@@ -14,7 +14,7 @@ import java.util.Optional;
 
 public class General extends Piece {
 
-    private static final double VALUE = 100;
+    public static final int VALUE = 5000;
 
     private static final List<Coordinate> MOVE_VECTORS =
             List.of(new Coordinate(-1, 0), new Coordinate(0, -1),
@@ -65,7 +65,7 @@ public class General extends Piece {
     }
 
     @Override
-    public double getValue() {
+    public int getValue() {
         return VALUE;
     }
 

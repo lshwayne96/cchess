@@ -7,6 +7,8 @@ import com.chess.engine.board.Move;
 import com.chess.engine.board.Point;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.MoveTransition;
+import com.chess.engine.player.ai.Minimax;
+import com.chess.engine.player.ai.MoveStrategy;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -21,6 +23,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.WindowConstants;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -41,22 +44,29 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Observable;
+import java.util.Observer;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 import static com.chess.engine.pieces.Piece.*;
 import static javax.swing.SwingUtilities.isLeftMouseButton;
 import static javax.swing.SwingUtilities.isRightMouseButton;
 
-public class Table {
+public class Table extends Observable {
 
     private final JFrame gameFrame;
+
     private final BoardPanel boardPanel;
     private final GameHistoryPanel historyPanel;
     private final InfoPanel infoPanel;
     private final MoveLog movelog;
     private final List<Board> boardHistory;
+    private final GameSetup gameSetup;
+
     private Board board;
     private BoardDirection boardDirection;
+    private AIPlayer aiPlayer;
 
     private Point sourcePoint;
     private Point destPoint;
@@ -66,14 +76,14 @@ public class Table {
     private static final Dimension POINT_PANEL_DIMENSION = new Dimension(60, 60);
     private static final String GRAPHICS_MISC_PATH = "/graphics/misc/";
     private static final String GRAPHICS_PIECES_PATH = "/graphics/pieces/";
-    private static final Color HIGHLIGHT_BORDER_COLOR = Color.WHITE;
     private static final ImageIcon GAME_ICON = getGameIcon();
     private static final ImageIcon BOARD_ICON = getBoardIcon();
     private static final ImageIcon HIGHLIGHT_ICON = getHighlightIcon();
     public static final Map<String, ImageIcon> PIECE_ICON_MAP = getPieceIconMap();
 
+    private static final Table TABLE_INSTANCE = new Table();
 
-    public Table() {
+    private Table() {
         gameFrame = new JFrame("CChess");
         gameFrame.setIconImage(GAME_ICON.getImage());
 
@@ -86,8 +96,10 @@ public class Table {
         movelog = new MoveLog();
         boardHistory = new ArrayList<>();
         boardHistory.add(board);
-        JMenuBar tableMenuBar = createMenuBar();
+        addObserver(new AIObserver());
+        gameSetup = new GameSetup(gameFrame, true);
 
+        JMenuBar tableMenuBar = createMenuBar();
         gameFrame.setJMenuBar(tableMenuBar);
         gameFrame.setLayout(new BorderLayout());
 
@@ -101,6 +113,10 @@ public class Table {
         gameFrame.setResizable(false);
         gameFrame.setVisible(true);
         gameFrame.pack();
+    }
+
+    public static Table getInstance() {
+        return TABLE_INSTANCE;
     }
 
     private JMenuBar createMenuBar() {
@@ -117,10 +133,16 @@ public class Table {
 
         JMenuItem newGame = new JMenuItem("New game");
         newGame.addActionListener(e -> {
+            if (movelog.isEmpty()) return;
             int option = JOptionPane.showConfirmDialog(gameFrame, "Start a new game?",
                     "", JOptionPane.YES_NO_OPTION);
             if (option == JOptionPane.YES_OPTION) {
+                if (aiPlayer != null) {
+                    aiPlayer.cancel(true);
+                }
                 undoAllMoves();
+                setChanged();
+                notifyObservers();
             }
         });
         gameMenu.add(newGame);
@@ -129,7 +151,6 @@ public class Table {
         JMenuItem saveGame = new JMenuItem("Save game");
         saveGame.addActionListener(e -> saveGame());
         gameMenu.add(saveGame);
-        gameMenu.addSeparator();
 
         JMenuItem loadGame = new JMenuItem("Load game");
         loadGame.addActionListener(e -> loadGame());
@@ -147,8 +168,30 @@ public class Table {
         JMenu optionsMenu = new JMenu("Options");
 
         JMenuItem undoMove = new JMenuItem("Undo last move");
-        undoMove.addActionListener(e -> undoLastMove());
+        undoMove.addActionListener(e -> {
+            aiPlayer.cancel(true);
+            undoLastMove();
+            setChanged();
+            notifyObservers();
+        });
         optionsMenu.add(undoMove);
+
+        JMenuItem undoTurn = new JMenuItem("Undo last turn");
+        undoTurn.addActionListener(e -> {
+            aiPlayer.cancel(true);
+            undoLastTurn();
+            setChanged();
+            notifyObservers();
+        });
+        optionsMenu.add(undoTurn);
+        optionsMenu.addSeparator();
+
+        JMenuItem setupMenuItem = new JMenuItem("Setup...");
+        setupMenuItem.addActionListener(e -> {
+            gameSetup.promptUser();
+            setupUpdate(gameSetup);
+        });
+        optionsMenu.add(setupMenuItem);
         optionsMenu.addSeparator();
 
         JMenuItem flipMenuItem = new JMenuItem("Flip board");
@@ -229,8 +272,15 @@ public class Table {
         }
     }
 
+    private void undoLastTurn() {
+        if (movelog.getSize() > 1) {
+            undoLastMove();
+            undoLastMove();
+        }
+    }
+
     private void undoAllMoves() {
-        while (boardHistory.size() > 1) {
+        while (!movelog.isEmpty()) {
             undoLastMove();
         }
     }
@@ -239,6 +289,16 @@ public class Table {
         boardDirection = boardDirection.opposite();
         boardPanel.drawBoard(board);
         infoPanel.setDirection(boardDirection);
+    }
+
+    private void moveMadeUpdate(PlayerType playerType) {
+        setChanged();
+        notifyObservers(playerType);
+    }
+
+    private void setupUpdate(GameSetup gameSetup) {
+        setChanged();
+        notifyObservers(gameSetup);
     }
 
     private static ImageIcon getGameIcon() {
@@ -280,7 +340,8 @@ public class Table {
         for (PieceType type : PieceType.values()) {
             try {
                 String name = ("R" + type.toString()).toLowerCase();
-                BufferedImage image = ImageIO.read(Table.class.getResource(GRAPHICS_PIECES_PATH + name + ".png"));
+                BufferedImage image
+                        = ImageIO.read(Table.class.getResource(GRAPHICS_PIECES_PATH + name + ".png"));
                 stringToIconMap.put(name, new ImageIcon(image));
             } catch (IOException e) {
                 e.printStackTrace();
@@ -288,7 +349,8 @@ public class Table {
 
             try {
                 String name = ("B" + type.toString()).toLowerCase();
-                BufferedImage image = ImageIO.read(Table.class.getResource(GRAPHICS_PIECES_PATH + name + ".png"));
+                BufferedImage image
+                        = ImageIO.read(Table.class.getResource(GRAPHICS_PIECES_PATH + name + ".png"));
                 stringToIconMap.put(name, new ImageIcon(image));
             } catch (IOException e) {
                 e.printStackTrace();
@@ -298,44 +360,8 @@ public class Table {
         return stringToIconMap;
     }
 
-
-    public static class MoveLog {
-
-        private final List<Move> moves;
-
-        MoveLog() {
-            this.moves = new ArrayList<>();
-        }
-
-        public List<Move> getMoves() {
-            return moves;
-        }
-
-        public void addMove(Move move) {
-            moves.add(move);
-        }
-
-        public void removeLastMove() {
-            if (!moves.isEmpty()) {
-                moves.remove(moves.size() - 1);
-            }
-        }
-
-        public Move getLastMove() {
-            if (!moves.isEmpty()) {
-                return moves.get(moves.size() - 1);
-            }
-
-            return null;
-        }
-
-        public void clear() {
-            moves.clear();
-        }
-
-        public boolean isEmpty() {
-            return moves.isEmpty();
-        }
+    private static Color getHighlightBorderColor(Piece piece) {
+        return piece.getAlliance().isRed() ? Color.RED : Color.BLACK;
     }
 
     public enum BoardDirection {
@@ -379,6 +405,66 @@ public class Table {
         abstract List<PointPanel> traverse(List<PointPanel> pointPanels);
 
         abstract BoardDirection opposite();
+    }
+
+    public enum PlayerType {
+        HUMAN {
+            @Override
+            boolean isComputer() {
+                return false;
+            }
+        },
+        COMPUTER {
+            @Override
+            boolean isComputer() {
+                return true;
+            }
+        };
+
+        abstract boolean isComputer();
+    }
+
+    public static class MoveLog {
+
+        private final List<Move> moves;
+
+        MoveLog() {
+            this.moves = new ArrayList<>();
+        }
+
+        public List<Move> getMoves() {
+            return moves;
+        }
+
+        public int getSize() {
+            return moves.size();
+        }
+
+        public boolean isEmpty() {
+            return moves.isEmpty();
+        }
+
+        public void addMove(Move move) {
+            moves.add(move);
+        }
+
+        public void removeLastMove() {
+            if (!moves.isEmpty()) {
+                moves.remove(moves.size() - 1);
+            }
+        }
+
+        public Move getLastMove() {
+            if (!moves.isEmpty()) {
+                return moves.get(moves.size() - 1);
+            }
+
+            return null;
+        }
+
+        public void clear() {
+            moves.clear();
+        }
     }
 
     private class BoardPanel extends JPanel {
@@ -446,7 +532,8 @@ public class Table {
                             sourcePoint = board.getPoint(position);
                             Optional<Piece> selectedPiece = sourcePoint.getPiece();
                             if (selectedPiece.isPresent()
-                                    && selectedPiece.get().getAlliance() == board.getCurrPlayer().getAlliance()) {
+                                    && selectedPiece.get().getAlliance() == board.getCurrPlayer().getAlliance()
+                                    && !gameSetup.isAIPlayer(board.getCurrPlayer())) {
                                 humanMovedPiece = selectedPiece.get();
                             } else {
                                 sourcePoint = null;
@@ -468,6 +555,7 @@ public class Table {
                                     historyPanel.update(movelog);
                                     infoPanel.updateCapturedPanel(movelog);
                                     infoPanel.updateStatusPanel(board.getCurrPlayer());
+                                    moveMadeUpdate(PlayerType.HUMAN);
                                 });
                             }
                         }
@@ -537,19 +625,19 @@ public class Table {
             if (lastMove != null) {
                 Piece lastMovedPiece = lastMove.getMovedPiece();
                 if (lastMovedPiece.getPosition().equals(position)) {
-                    setBorder(BorderFactory
-                            .createDashedBorder(HIGHLIGHT_BORDER_COLOR, 2, 2, 2, true));
+                    setBorder(BorderFactory.createDashedBorder(getHighlightBorderColor(lastMovedPiece),
+                                    2, 2, 2, true));
                     return;
                 }
                 if (lastMove.getDestPosition().equals(position)) {
-                    setBorder(BorderFactory
-                            .createDashedBorder(HIGHLIGHT_BORDER_COLOR, 2, 2, 2, true));
+                    setBorder(BorderFactory.createDashedBorder(getHighlightBorderColor(lastMovedPiece),
+                            2, 2, 2, true));
                     return;
                 }
             }
 
             if (humanMovedPiece != null && humanMovedPiece.getPosition().equals(position)) {
-                setBorder(BorderFactory.createLineBorder(HIGHLIGHT_BORDER_COLOR, 2, true));
+                setBorder(BorderFactory.createLineBorder(getHighlightBorderColor(humanMovedPiece), 2, true));
                 return;
             }
 
@@ -580,6 +668,49 @@ public class Table {
                 return humanMovedPiece.calculateLegalMoves(board);
             }
             return Collections.emptyList();
+        }
+    }
+
+    private static class AIObserver implements Observer {
+
+        @Override
+        public void update(Observable o, Object arg) {
+            if (Table.getInstance().gameSetup.isAIPlayer(Table.getInstance().board.getCurrPlayer())
+                && !Table.getInstance().board.getCurrPlayer().isInCheckmate()) {
+                getInstance().aiPlayer = new AIPlayer();
+                getInstance().aiPlayer.execute();
+            }
+        }
+    }
+
+    private static class AIPlayer extends SwingWorker<Move, String> {
+
+        private AIPlayer() {
+        }
+
+        @Override
+        public void done() {
+            if (isCancelled()) return;
+
+            try {
+                Move bestMove = get();
+                getInstance().board = getInstance().board.getCurrPlayer().makeMove(bestMove).getNextBoard();
+                getInstance().boardHistory.add(getInstance().board);
+                getInstance().movelog.addMove(bestMove);
+                getInstance().boardPanel.drawBoard(getInstance().board);
+                getInstance().historyPanel.update(getInstance().movelog);
+                getInstance().infoPanel.updateCapturedPanel(getInstance().movelog);
+                getInstance().infoPanel.updateStatusPanel(getInstance().board.getCurrPlayer());
+                getInstance().moveMadeUpdate(PlayerType.COMPUTER);
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        protected Move doInBackground() throws Exception {
+            MoveStrategy strategy = new Minimax(getInstance().gameSetup.getSearchDepth());
+            return strategy.execute(Table.getInstance().board);
         }
     }
 }

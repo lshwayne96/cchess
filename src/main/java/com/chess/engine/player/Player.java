@@ -76,7 +76,7 @@ public abstract class Player {
             }
         }
 
-        throw new RuntimeException("Invalid board");
+        throw new RuntimeException(getAlliance().toString() + "GENERAL missing");
     }
 
     private static Collection<Move> calculateAttacksOnPoint(Coordinate position,

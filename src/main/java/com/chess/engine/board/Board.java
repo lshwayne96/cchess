@@ -88,6 +88,10 @@ public class Board {
         return currPlayer;
     }
 
+    public boolean hasEnded() {
+        return currPlayer.isInCheckmate();
+    }
+
     private Collection<Move> calculateLegalMoves(Collection<Piece> pieces) {
         List<Move> legalMoves = new ArrayList<>();
 

@@ -15,7 +15,7 @@ import java.util.Set;
 
 public class Elephant extends Piece {
 
-    private static final double VALUE = 2;
+    private static final int VALUE = 200;
 
     private static final List<Coordinate> MOVE_VECTORS =
             List.of(new Coordinate(-1, -1), new Coordinate(1, -1),
@@ -65,7 +65,7 @@ public class Elephant extends Piece {
     }
 
     @Override
-    public double getValue() {
+    public int getValue() {
         return VALUE;
     }
 
