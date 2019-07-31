@@ -238,6 +238,9 @@ public class Table extends Observable {
                 if (!lgu.isValidFile()) {
                     JOptionPane.showMessageDialog(gameFrame, "Invalid file");
                 } else {
+                    if (aiPlayer != null) {
+                        aiPlayer.cancel(true);
+                    }
                     List<Board> boards = lgu.getBoardHistory();
                     boardHistory.clear();
                     boardHistory.addAll(boards);
