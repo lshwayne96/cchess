@@ -23,12 +23,19 @@ public final class MoveOrdering {
         }
         return m2.getMovedPiece().getType().getDefaultValue() - m1.getMovedPiece().getType().getDefaultValue();
     };
-    private static final Comparator<MoveEntry> MOVE_ENTRY_COMPARATOR = (e1, e2) -> {
+    private static final Comparator<MoveEntry> MOVE_ENTRY_COMPARATOR_RED = (e1, e2) -> {
         if (e1.getScore() != e2.getScore()) {
             return e2.getScore() - e1.getScore();
         }
         return MOVE_COMPARATOR.compare(e1.getMove(), e2.getMove());
     };
+    private static final Comparator<MoveEntry> MOVE_ENTRY_COMPARATOR_BLACK = (e1, e2) -> {
+        if (e1.getScore() != e2.getScore()) {
+            return e1.getScore() - e2.getScore();
+        }
+        return MOVE_COMPARATOR.compare(e1.getMove(), e2.getMove());
+    };
+
 
     private MoveOrdering() {
         evaluator = BoardEvaluator.getInstance();
@@ -44,7 +51,7 @@ public final class MoveOrdering {
         if (searchDepth == 0) {
             sortedMoves.addAll(board.getCurrPlayer().getLegalMoves());
             sortedMoves.sort(MOVE_COMPARATOR);
-            return sortedMoves;
+            return Collections.unmodifiableList(sortedMoves);
         }
 
         List<MoveEntry> moveEntryList = new ArrayList<>();
@@ -57,9 +64,10 @@ public final class MoveOrdering {
                 moveEntryList.add(new MoveEntry(move, value));
             }
         }
-        moveEntryList.sort(MOVE_ENTRY_COMPARATOR);
-        if (!board.getCurrPlayer().getAlliance().isRed()) {
-            Collections.reverse(moveEntryList);
+        if (board.getCurrPlayer().getAlliance().isRed()) {
+            moveEntryList.sort(MOVE_ENTRY_COMPARATOR_RED);
+        } else {
+            moveEntryList.sort(MOVE_ENTRY_COMPARATOR_BLACK);
         }
         for (MoveEntry moveEntry : moveEntryList) {
             sortedMoves.add(moveEntry.getMove());

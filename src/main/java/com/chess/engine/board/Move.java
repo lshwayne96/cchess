@@ -32,9 +32,9 @@ public class Move {
         if (!(o instanceof Move)) return false;
 
         Move move = (Move) o;
-        return (this.movedPiece.equals(move.movedPiece))
-                && (this.destPosition.equals(move.destPosition))
-                && (this.getCapturedPiece().equals(move.getCapturedPiece()));
+        return this.movedPiece.equals(move.movedPiece)
+                && this.destPosition.equals(move.destPosition)
+                && this.getCapturedPiece().equals(move.getCapturedPiece());
     }
 
     @Override

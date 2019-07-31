@@ -7,9 +7,13 @@ import com.chess.engine.player.MoveTransition;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * MiniMax algorithm with Alpha-Beta pruning and Hashing of calculated board states
+ */
 public class Minimax {
 
     private static Minimax INSTANCE = new Minimax();
+    private static final int SORT_DEPTH = 0;
 
     private final BoardEvaluator evaluator;
     private final MoveOrdering moveOrdering;
@@ -40,23 +44,12 @@ public class Minimax {
         int currValue;
 
         long start = System.currentTimeMillis();
-        for (Move move : moveOrdering.getSortedMoves(board, 0)) {
+        for (Move move : moveOrdering.getSortedMoves(board, SORT_DEPTH)) {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isDone()) {
                 Board nextBoard = transition.getNextBoard();
-                if (nextBoard.getCurrPlayer().isInCheck()) {
-                    if (checkCounter == 0 || move.getMovedPiece().equals(prevMovedPiece)) {
-                        checkCounter++;
-                    } else {
-                        checkCounter = 0;
-                    }
-                    if (checkCounter > 3) {
-                        checkCounter--;
-                        continue;
-                    }
-                } else {
-                    checkCounter = 0;
-                }
+                if (move.getMovedPiece().equals(prevMovedPiece) && nextBoard.getCurrPlayer().isInCheck()
+                        && checkCounter + 1 > 3) continue;
 
                 if (board.getCurrPlayer().getAlliance().isRed()) {
                     currValue = min(nextBoard, searchDepth - 1, maxValue, minValue);
@@ -78,6 +71,11 @@ public class Minimax {
         long end = System.currentTimeMillis();
         System.out.println(bestMove.toString() + " " + (end-start) + "ms");
 
+        if (bestMove.getMovedPiece().equals(prevMovedPiece) && bestNextBoard.getCurrPlayer().isInCheck()) {
+            checkCounter++;
+        } else {
+            checkCounter = 0;
+        }
         prevMovedPiece = bestNextBoard.getPoint(bestMove.getDestPosition()).getPiece().get();
 
         return bestMove;
@@ -95,7 +93,7 @@ public class Minimax {
 
         int alpha = a, beta = b;
         int minValue = Integer.MAX_VALUE;
-        for (Move move : moveOrdering.getSortedMoves(board, 0)) {
+        for (Move move : moveOrdering.getSortedMoves(board, SORT_DEPTH)) {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isDone()) {
                 minValue = Math.min(minValue, max(transition.getNextBoard(), depth - 1, alpha, beta));
@@ -120,7 +118,7 @@ public class Minimax {
 
         int alpha = a, beta = b;
         int maxValue = Integer.MIN_VALUE;
-        for (Move move : moveOrdering.getSortedMoves(board, 0)) {
+        for (Move move : moveOrdering.getSortedMoves(board, SORT_DEPTH)) {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isDone()) {
                 maxValue = Math.max(maxValue, min(transition.getNextBoard(), depth - 1, alpha, beta));
