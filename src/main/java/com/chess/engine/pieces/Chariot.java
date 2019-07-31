@@ -50,6 +50,27 @@ public class Chariot extends Piece {
     }
 
     @Override
+    public Collection<Coordinate> getDestPositions(Board board) {
+        List<Coordinate> destPositions = new ArrayList<>();
+
+        for (Coordinate vector : MOVE_VECTORS) {
+            Coordinate destPosition = position.add(vector);
+
+            while (Board.isWithinBounds(destPosition)) {
+                destPositions.add(destPosition);
+
+                Point destPoint = board.getPoint(destPosition);
+                Optional<Piece> destPiece = destPoint.getPiece();
+                if (destPiece.isPresent()) break;
+
+                destPosition = destPosition.add(vector);
+            }
+        }
+
+        return destPositions;
+    }
+
+    @Override
     public Chariot movePiece(Move move) {
         return new Chariot(move.getDestPosition(), move.getMovedPiece().getAlliance());
     }

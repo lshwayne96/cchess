@@ -5,8 +5,13 @@ import com.chess.engine.board.Board;
 import com.chess.engine.board.Board.BoardStatus;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
+import com.chess.engine.board.Point;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 public abstract class Piece {
 
@@ -76,17 +81,33 @@ public abstract class Piece {
                 : type.positionValues[Board.NUM_ROWS - position.getRow() - 1][Board.NUM_COLS - position.getCol() - 1];
     }
 
-    public abstract Collection<Move> calculateLegalMoves(Board board);
+    public Collection<Move> calculateLegalMoves(Board board) {
+        List<Move> legalMoves = new ArrayList<>();
+
+        for (Coordinate destPosition : getDestPositions(board)) {
+            Point destPoint = board.getPoint(destPosition);
+            Optional<Piece> destPiece = destPoint.getPiece();
+            destPiece.ifPresentOrElse(p -> {
+                if (this.alliance != p.alliance) {
+                    legalMoves.add(new Move(board, this, destPosition, p));
+                }
+            }, () -> legalMoves.add(new Move(board, this, destPosition)));
+        }
+
+        return Collections.unmodifiableCollection(legalMoves);
+    }
+
+    public abstract Collection<Coordinate> getDestPositions(Board board);
 
     public abstract Piece movePiece(Move move);
 
     public enum PieceType {
 
-        SOLDIER("S", 100, 150, 300, 30, Board.POSITION_VALUES_SOLDIER),
-        ADVISOR("A", 200, 250, 300, 2, Board.POSITION_VALUES_ADVISOR),
+        SOLDIER("S", 100, 200, 300, 30, Board.POSITION_VALUES_SOLDIER),
+        ADVISOR("A", 150, 200, 250, 2, Board.POSITION_VALUES_ADVISOR),
         ELEPHANT("E", 200, 250, 300, 2, Board.POSITION_VALUES_ELEPHANT),
-        HORSE("H", 400, 500, 600, 24, Board.POSITION_VALUES_HORSE),
-        CANNON("C", 500, 500, 500, 12, Board.POSITION_VALUES_CANNON),
+        HORSE("H", 450, 500, 550, 24, Board.POSITION_VALUES_HORSE),
+        CANNON("C", 500, 500, 500, 10, Board.POSITION_VALUES_CANNON),
         CHARIOT("R", 1000, 1000, 1000, 12, Board.POSITION_VALUES_CHARIOT),
         GENERAL("G", 5000, 5000, 5000, 0, Board.POSITION_VALUES_GENERAL);
 

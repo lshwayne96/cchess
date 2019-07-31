@@ -34,34 +34,22 @@ public class Soldier extends Piece {
     }
 
     @Override
-    public Collection<Move> calculateLegalMoves(Board board) {
-        List<Move> legalMoves = new ArrayList<>();
+    public Collection<Coordinate> getDestPositions(Board board) {
+        List<Coordinate> destPositions = new ArrayList<>();
 
         if (!crossedRiver()) {
             Coordinate destPosition = position.add(MOVE_VECTOR_BEFORE_RIVER.scale(alliance.getDirection()));
-            Point destPoint = board.getPoint(destPosition);
-            Optional<Piece> destPiece = destPoint.getPiece();
-            destPiece.ifPresentOrElse(p -> {
-                if (this.alliance != p.alliance) {
-                    legalMoves.add(new Move(board, this, destPosition, p));
-                }
-            }, () -> legalMoves.add(new Move(board, this, destPosition)));
+            destPositions.add(destPosition);
         } else {
             for (Coordinate vector : MOVE_VECTORS_AFTER_RIVER) {
                 Coordinate destPosition = position.add(vector.scale(alliance.getDirection()));
-                if (!Board.isWithinBounds(destPosition)) continue;
-
-                Point destPoint = board.getPoint(destPosition);
-                Optional<Piece> destPiece = destPoint.getPiece();
-                destPiece.ifPresentOrElse(p -> {
-                    if (this.alliance != p.alliance) {
-                        legalMoves.add(new Move(board, this, destPosition, p));
-                    }
-                }, () -> legalMoves.add(new Move(board, this, destPosition)));
+                if (Board.isWithinBounds(destPosition)) {
+                    destPositions.add(destPosition);
+                }
             }
         }
 
-        return Collections.unmodifiableCollection(legalMoves);
+        return destPositions;
     }
 
     @Override

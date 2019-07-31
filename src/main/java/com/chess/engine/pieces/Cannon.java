@@ -23,11 +23,11 @@ public class Cannon extends Piece {
     }
 
     @Override
-    public Collection<Move> calculateLegalMoves(Board board) {
-        List<Move> legalMoves = new ArrayList<>();
+    public Collection<Coordinate> getDestPositions(Board board) {
+        List<Coordinate> destPositions = new ArrayList<>();
 
-        for (Coordinate coordinate : MOVE_VECTORS) {
-            Coordinate destPosition = position.add(coordinate);
+        for (Coordinate vector : MOVE_VECTORS) {
+            Coordinate destPosition = position.add(vector);
             boolean jumped = false;
 
             while (Board.isWithinBounds(destPosition)) {
@@ -35,21 +35,19 @@ public class Cannon extends Piece {
                 Optional<Piece> destPiece = destPoint.getPiece();
 
                 if (!jumped && !destPiece.isPresent()) { // before first piece
-                    legalMoves.add(new Move(board, this, destPosition));
+                    destPositions.add(destPosition);
                 } else if (!jumped) { // reached first piece
                     jumped = true;
                 } else if (destPiece.isPresent()) { // after first piece
-                    if (this.alliance != destPiece.get().alliance) {
-                        legalMoves.add(new Move(board, this, destPosition, destPiece.get()));
-                    }
+                    destPositions.add(destPosition);
                     break;
                 }
 
-                destPosition = destPosition.add(coordinate);
+                destPosition = destPosition.add(vector);
             }
         }
 
-        return Collections.unmodifiableCollection(legalMoves);
+        return destPositions;
     }
 
     @Override

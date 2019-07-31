@@ -34,8 +34,8 @@ public class Elephant extends Piece {
     }
 
     @Override
-    public Collection<Move> calculateLegalMoves(Board board) {
-        List<Move> legalMoves = new ArrayList<>();
+    public Collection<Coordinate> getDestPositions(Board board) {
+        List<Coordinate> destPositions = new ArrayList<>();
 
         for (Coordinate vector : MOVE_VECTORS) {
             Coordinate firstPosition = position.add(vector);
@@ -43,18 +43,12 @@ public class Elephant extends Piece {
                     && board.getPoint(firstPosition).isEmpty())) continue;
 
             Coordinate destPosition = firstPosition.add(vector);
-            if (!isValidPosition(destPosition)) continue;
-
-            Point destPoint = board.getPoint(destPosition);
-            Optional<Piece> destPiece = destPoint.getPiece();
-            destPiece.ifPresentOrElse(p -> {
-                if (this.alliance != p.alliance) {
-                    legalMoves.add(new Move(board, this, destPosition, p));
-                }
-            }, () -> legalMoves.add(new Move(board, this, destPosition)));
+            if (isValidPosition(destPosition)) {
+                destPositions.add(destPosition);
+            }
         }
 
-        return Collections.unmodifiableCollection(legalMoves);
+        return destPositions;
     }
 
     @Override

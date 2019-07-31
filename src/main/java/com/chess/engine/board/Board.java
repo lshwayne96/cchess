@@ -35,7 +35,7 @@ public class Board {
     public static final int NUM_COLS = 9;
     public static final int RIVER_ROW_RED = 5;
     public static final int RIVER_ROW_BLACK = 4;
-    public static final int MAX_PIECES_IN_MIDGAME = 12;
+    public static final int MAX_PIECES_IN_MIDGAME = 14;
     public static final int MAX_PIECES_IN_ENDGAME = 8;
 
     public static int[][] POSITION_VALUES_SOLDIER = {
@@ -185,6 +185,14 @@ public class Board {
 
     public Collection<Piece> getBlackPieces() {
         return blackPieces;
+    }
+
+    public Collection<Piece> getAllPieces() {
+        Collection<Piece> allPieces = new ArrayList<>();
+        allPieces.addAll(redPieces);
+        allPieces.addAll(blackPieces);
+
+        return allPieces;
     }
 
     public Player getRedPlayer() {

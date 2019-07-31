@@ -8,7 +8,6 @@ import com.chess.engine.board.Point;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.MoveTransition;
 import com.chess.engine.player.ai.Minimax;
-import com.chess.engine.player.ai.MoveStrategy;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -711,8 +710,8 @@ public class Table extends Observable {
 
         @Override
         protected Move doInBackground() throws Exception {
-            MoveStrategy strategy = new Minimax(getInstance().gameSetup.getSearchDepth());
-            return strategy.execute(Table.getInstance().board);
+            return Minimax.getInstance()
+                    .execute(Table.getInstance().board, getInstance().gameSetup.getSearchDepth());
         }
     }
 }

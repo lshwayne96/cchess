@@ -14,7 +14,6 @@ public final class MoveOrdering {
     private final BoardEvaluator evaluator;
 
     private static final MoveOrdering INSTANCE = new MoveOrdering();
-    private static final int SEARCH_DEPTH = 1;
 
     private static final Comparator<Move> MOVE_COMPARATOR = (m1, m2) -> {
         boolean m1isAttack = m1.getCapturedPiece().isPresent();
@@ -32,27 +31,32 @@ public final class MoveOrdering {
     };
 
     private MoveOrdering() {
-        evaluator = StandardBoardEvaluator.getInstance();
+        evaluator = BoardEvaluator.getInstance();
     }
 
     public static MoveOrdering getInstance() {
         return INSTANCE;
     }
 
-    public List<Move> getSortedMoves(Board board) {
-        List<MoveEntry> moveEntryList = new ArrayList<>();
+    public List<Move> getSortedMoves(Board board, int searchDepth) {
         List<Move> sortedMoves = new ArrayList<>();
 
+        if (searchDepth == 0) {
+            sortedMoves.addAll(board.getCurrPlayer().getLegalMoves());
+            sortedMoves.sort(MOVE_COMPARATOR);
+            return sortedMoves;
+        }
+
+        List<MoveEntry> moveEntryList = new ArrayList<>();
         for (Move move : board.getCurrPlayer().getLegalMoves()) {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isDone()) {
                 int value = board.getCurrPlayer().getAlliance().isRed() ?
-                        min(transition.getNextBoard(), SEARCH_DEPTH - 1) :
-                        max(transition.getNextBoard(), SEARCH_DEPTH - 1);
+                        min(transition.getNextBoard(), searchDepth - 1) :
+                        max(transition.getNextBoard(), searchDepth - 1);
                 moveEntryList.add(new MoveEntry(move, value));
             }
         }
-
         moveEntryList.sort(MOVE_ENTRY_COMPARATOR);
         if (!board.getCurrPlayer().getAlliance().isRed()) {
             Collections.reverse(moveEntryList);

@@ -23,20 +23,14 @@ public class General extends Piece {
     }
 
     @Override
-    public Collection<Move> calculateLegalMoves(Board board) {
-        List<Move> legalMoves = new ArrayList<>();
+    public Collection<Coordinate> getDestPositions(Board board) {
+        List<Coordinate> destPositions = new ArrayList<>();
 
         for (Coordinate vector : MOVE_VECTORS) {
             Coordinate destPosition = position.add(vector);
-            if (!isValidPosition(destPosition)) continue;
-
-            Point destPoint = board.getPoint(destPosition);
-            Optional<Piece> destPiece = destPoint.getPiece();
-            destPiece.ifPresentOrElse(p -> {
-                if (this.alliance != p.alliance) {
-                    legalMoves.add(new Move(board, this, destPosition, p));
-                }
-            }, () -> legalMoves.add(new Move(board, this, destPosition)));
+            if (isValidPosition(destPosition)) {
+                destPositions.add(destPosition);
+            }
         }
 
         // flying general move
@@ -47,14 +41,14 @@ public class General extends Piece {
             Optional<Piece> piece = currPoint.getPiece();
             if (piece.isPresent()) {
                 if (piece.get().getType() == PieceType.GENERAL) {
-                    legalMoves.add(new Move(board, this, currPosition, piece.get()));
+                    destPositions.add(currPosition);
                 }
                 break;
             }
             currPosition = currPosition.add(vector);
         }
 
-        return Collections.unmodifiableCollection(legalMoves);
+        return destPositions;
     }
 
     @Override

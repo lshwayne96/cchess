@@ -56,6 +56,31 @@ public abstract class Player {
         return new MoveTransition(nextBoard, move, MoveStatus.DONE);
     }
 
+    public static Collection<Move> calculateAttacksOnPoint(Coordinate position,
+                                                           Collection<Move> opponentMoves) {
+        List<Move> attacksOnPoint = new ArrayList<>();
+
+        for (Move move : opponentMoves) {
+            if (move.getDestPosition().equals(position)) {
+                attacksOnPoint.add(move);
+            }
+        }
+
+        return Collections.unmodifiableCollection(attacksOnPoint);
+    }
+
+    public Collection<Piece> calculateDefensesOnPoint(Coordinate position) {
+        List<Piece> defendingPieces = new ArrayList<>();
+
+        for (Piece piece : getActivePieces()) {
+            if (!piece.getPosition().equals(position) && piece.getDestPositions(board).contains(position)) {
+                defendingPieces.add(piece);
+            }
+        }
+
+        return defendingPieces;
+    }
+
     private boolean isMoveLegal(Move move) {
         return legalMoves.contains(move);
     }
@@ -77,19 +102,6 @@ public abstract class Player {
         }
 
         throw new RuntimeException(getAlliance().toString() + " GENERAL missing");
-    }
-
-    private static Collection<Move> calculateAttacksOnPoint(Coordinate position,
-                                                            Collection<Move> opponentMoves) {
-        List<Move> attacksOnPoint = new ArrayList<>();
-
-        for (Move move : opponentMoves) {
-            if (move.getDestPosition().equals(position)) {
-                attacksOnPoint.add(move);
-            }
-        }
-
-        return Collections.unmodifiableCollection(attacksOnPoint);
     }
 
     public abstract Collection<Piece> getActivePieces();
