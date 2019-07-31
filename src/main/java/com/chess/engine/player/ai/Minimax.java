@@ -19,25 +19,19 @@ public class Minimax {
     private final MoveOrdering moveOrdering;
     private final Map<BoardState, Integer> stateToValueMap;
 
-    // check for repeated checking
-    private int checkCounter;
-    private Piece prevMovedPiece;
-
     private Minimax() {
         evaluator = BoardEvaluator.getInstance();
         moveOrdering = MoveOrdering.getInstance();
         stateToValueMap = new HashMap<>();
-        checkCounter = 0;
     }
 
     public static Minimax getInstance() {
         return INSTANCE;
     }
 
-    public Move execute(Board board, int searchDepth) {
+    public Move execute(Board board, int searchDepth, Piece bannedPiece) {
         stateToValueMap.clear();
         Move bestMove = null;
-        Board bestNextBoard = null;
 
         int maxValue = Integer.MIN_VALUE;
         int minValue = Integer.MAX_VALUE;
@@ -48,35 +42,26 @@ public class Minimax {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isDone()) {
                 Board nextBoard = transition.getNextBoard();
-                if (move.getMovedPiece().equals(prevMovedPiece) && nextBoard.getCurrPlayer().isInCheck()
-                        && checkCounter + 1 > 3) continue;
+                if (nextBoard.getCurrPlayer().isInCheck() && move.getMovedPiece().equals(bannedPiece)
+                    && !move.getCapturedPiece().isPresent()) continue;
 
                 if (board.getCurrPlayer().getAlliance().isRed()) {
                     currValue = min(nextBoard, searchDepth - 1, maxValue, minValue);
                     if (currValue > maxValue) {
                         maxValue = currValue;
                         bestMove = move;
-                        bestNextBoard = nextBoard;
                     }
                 } else {
                     currValue = max(nextBoard, searchDepth - 1, maxValue, minValue);
                     if (currValue < minValue) {
                         minValue = currValue;
                         bestMove = move;
-                        bestNextBoard = nextBoard;
                     }
                 }
             }
         }
         long end = System.currentTimeMillis();
         System.out.println(bestMove.toString() + " " + (end-start) + "ms");
-
-        if (bestMove.getMovedPiece().equals(prevMovedPiece) && bestNextBoard.getCurrPlayer().isInCheck()) {
-            checkCounter++;
-        } else {
-            checkCounter = 0;
-        }
-        prevMovedPiece = bestNextBoard.getPoint(bestMove.getDestPosition()).getPiece().get();
 
         return bestMove;
     }

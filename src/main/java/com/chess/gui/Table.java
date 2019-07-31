@@ -178,7 +178,9 @@ public class Table extends Observable {
 
         JMenuItem undoTurn = new JMenuItem("Undo last turn");
         undoTurn.addActionListener(e -> {
-            aiPlayer.cancel(true);
+            if (aiPlayer != null) {
+                aiPlayer.cancel(true);
+            }
             undoLastTurn();
             setChanged();
             notifyObservers();
@@ -686,7 +688,32 @@ public class Table extends Observable {
 
     private static class AIPlayer extends SwingWorker<Move, String> {
 
+        private static final int MAX_CONSEC_CHECKS = 3;
+        private Piece bannedPiece; // prevent consec checking
+
         private AIPlayer() {
+            List<Board> boardHistory = getInstance().boardHistory;
+            List<Move> moveHistory = getInstance().movelog.getMoves();
+            if (moveHistory.size() < MAX_CONSEC_CHECKS * 2) return;
+
+            for (int i = 0; i < MAX_CONSEC_CHECKS; i++) {
+                Board board = boardHistory.get(boardHistory.size() - 2 - i*2);
+                if (!board.getCurrPlayer().isInCheck()) return;
+            }
+
+            Board board = boardHistory.get(boardHistory.size() - MAX_CONSEC_CHECKS*2);
+            Move move = moveHistory.get(moveHistory.size() - MAX_CONSEC_CHECKS*2);
+            if (move.getCapturedPiece().isPresent()) return;
+            Piece movedPiece = board.getPoint(move.getDestPosition()).getPiece().get();
+            for (int i = 1; i < MAX_CONSEC_CHECKS; i++) {
+                move = moveHistory.get(moveHistory.size() - MAX_CONSEC_CHECKS*2 + i*2);
+                if (!move.getMovedPiece().equals(movedPiece) || move.getCapturedPiece().isPresent()) return;
+                board = boardHistory.get(boardHistory.size() - MAX_CONSEC_CHECKS*2 + i*2);
+                movedPiece = board.getPoint(move.getDestPosition()).getPiece().get();
+            }
+
+            // check limit reached
+            bannedPiece = movedPiece;
         }
 
         @Override
@@ -711,7 +738,7 @@ public class Table extends Observable {
         @Override
         protected Move doInBackground() throws Exception {
             return Minimax.getInstance()
-                    .execute(Table.getInstance().board, getInstance().gameSetup.getSearchDepth());
+                    .execute(Table.getInstance().board, getInstance().gameSetup.getSearchDepth(), bannedPiece);
         }
     }
 }
