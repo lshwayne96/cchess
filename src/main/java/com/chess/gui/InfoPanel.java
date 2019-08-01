@@ -1,5 +1,6 @@
 package com.chess.gui;
 
+import com.chess.engine.board.Board;
 import com.chess.engine.board.Move;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.Player;
@@ -35,6 +36,7 @@ public class InfoPanel extends JPanel {
     private static final Dimension STATUS_PANEL_DIMENSION = new Dimension(120, 100);
     private static final JLabel CHECK_LABEL = new JLabel("Check", SwingConstants.CENTER);
     private static final JLabel CHECKMATE_LABEL = new JLabel("Checkmate", SwingConstants.CENTER);
+    private static final JLabel DRAW_LABEL = new JLabel("Draw", SwingConstants.CENTER);
 
     public InfoPanel() {
         super(new BorderLayout());
@@ -58,19 +60,21 @@ public class InfoPanel extends JPanel {
         setMinimumSize(PANEL_DIMENSION);
     }
 
-    public void updateStatusPanel(Player currPlayer) {
+    public void updateStatusPanel(Board board) {
         statusPanel.removeAll();
 
-        if (currPlayer.isInCheckmate()) {
-            statusPanel.add(new JLabel(currPlayer.getOpponent().getAlliance().toString() + " wins",
+        if (board.isGameOver()) {
+            statusPanel.add(new JLabel(board.getCurrPlayer().getOpponent().getAlliance().toString() + " wins",
                     SwingConstants.CENTER));
             statusPanel.add(CHECKMATE_LABEL);
             validate();
             return;
         }
 
-        statusPanel.add(new JLabel(currPlayer.getAlliance().toString() + "'s turn", SwingConstants.CENTER));
-        if (currPlayer.isInCheck()) {
+        statusPanel.add(new JLabel(board.getCurrPlayer().getAlliance().toString() + "'s turn", SwingConstants.CENTER));
+        if (board.isGameDraw()) {
+            statusPanel.add(DRAW_LABEL);
+        } else if (board.getCurrPlayer().isInCheck()) {
             statusPanel.add(CHECK_LABEL);
         }
 

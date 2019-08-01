@@ -223,6 +223,18 @@ public class Board {
         return currPlayer.isInCheckmate();
     }
 
+    public boolean isGameDraw() {
+        if (getRedPieces().size() > 5 || getBlackPieces().size() > 5) {
+            return false;
+        }
+        for (Piece piece : getAllPieces()) {
+            if (piece.getType().isAttacking()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private Collection<Move> calculateLegalMoves(Collection<Piece> pieces) {
         List<Move> legalMoves = new ArrayList<>();
 

@@ -103,25 +103,27 @@ public abstract class Piece {
 
     public enum PieceType {
 
-        SOLDIER("S", 100, 200, 300, 30, Board.POSITION_VALUES_SOLDIER),
-        ADVISOR("A", 150, 200, 250, 2, Board.POSITION_VALUES_ADVISOR),
-        ELEPHANT("E", 200, 250, 300, 2, Board.POSITION_VALUES_ELEPHANT),
-        HORSE("H", 450, 500, 550, 24, Board.POSITION_VALUES_HORSE),
-        CANNON("C", 500, 500, 500, 10, Board.POSITION_VALUES_CANNON),
-        CHARIOT("R", 1000, 1000, 1000, 12, Board.POSITION_VALUES_CHARIOT),
-        GENERAL("G", 5000, 5000, 5000, 0, Board.POSITION_VALUES_GENERAL);
+        SOLDIER("S", true, 100, 200, 300, 30, Board.POSITION_VALUES_SOLDIER),
+        ADVISOR("A", false, 150, 200, 250, 2, Board.POSITION_VALUES_ADVISOR),
+        ELEPHANT("E", false, 200, 250, 300, 2, Board.POSITION_VALUES_ELEPHANT),
+        HORSE("H", true, 450, 500, 550, 24, Board.POSITION_VALUES_HORSE),
+        CANNON("C", true, 500, 500, 500, 10, Board.POSITION_VALUES_CANNON),
+        CHARIOT("R", true, 1000, 1000, 1000, 12, Board.POSITION_VALUES_CHARIOT),
+        GENERAL("G", false, 5000, 5000, 5000, 0, Board.POSITION_VALUES_GENERAL);
 
         private final String abbrev;
+        private final boolean isAttacking;
         private final int openingValue;
         private final int midValue;
         private final int endValue;
         private final int mobilityValue;
         private final int[][] positionValues;
 
-        PieceType(String abbrev,
+        PieceType(String abbrev, boolean isAttacking,
                   int openingValue, int midValue, int endValue, int mobilityValue,
                   int[][] positionValues) {
             this.abbrev = abbrev;
+            this.isAttacking = isAttacking;
             this.openingValue = openingValue;
             this.midValue = midValue;
             this.endValue = endValue;
@@ -140,6 +142,10 @@ public abstract class Piece {
 
         public int getMobilityValue() {
             return mobilityValue;
+        }
+
+        public boolean isAttacking() {
+            return isAttacking;
         }
     }
 }

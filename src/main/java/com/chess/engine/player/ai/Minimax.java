@@ -67,7 +67,7 @@ public class Minimax {
     }
 
     private int min(Board board, int depth, int a, int b) {
-        if (depth == 0 || board.isGameOver()) {
+        if (depth == 0 || board.isGameOver() || board.isGameDraw()) {
             return evaluator.evaluate(board, depth);
         }
         BoardState state = new BoardState(board, depth);
@@ -92,7 +92,7 @@ public class Minimax {
     }
 
     private int max(Board board, int depth, int a, int b) {
-        if (depth == 0 || board.isGameOver()) {
+        if (depth == 0 || board.isGameOver() || board.isGameDraw()) {
             return evaluator.evaluate(board, depth);
         }
         BoardState state = new BoardState(board, depth);

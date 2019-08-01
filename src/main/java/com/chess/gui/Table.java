@@ -92,7 +92,7 @@ public class Table extends Observable {
         boardPanel = new BoardPanel(BOARD_ICON.getImage());
         historyPanel = new GameHistoryPanel();
         infoPanel = new InfoPanel();
-        infoPanel.updateStatusPanel(board.getCurrPlayer());
+        infoPanel.updateStatusPanel(board);
         movelog = new MoveLog();
         boardHistory = new ArrayList<>();
         boardHistory.add(board);
@@ -252,7 +252,7 @@ public class Table extends Observable {
                     }
                     historyPanel.update(movelog);
                     infoPanel.updateCapturedPanel(movelog);
-                    infoPanel.updateStatusPanel(board.getCurrPlayer());
+                    infoPanel.updateStatusPanel(board);
                     boardPanel.drawBoard(board);
 
                     JOptionPane.showMessageDialog(gameFrame, "Load success");
@@ -272,7 +272,7 @@ public class Table extends Observable {
 
             historyPanel.update(movelog);
             infoPanel.updateCapturedPanel(movelog);
-            infoPanel.updateStatusPanel(board.getCurrPlayer());
+            infoPanel.updateStatusPanel(board);
             boardPanel.drawBoard(board);
         }
     }
@@ -562,7 +562,7 @@ public class Table extends Observable {
                                 SwingUtilities.invokeLater(() -> {
                                     historyPanel.update(movelog);
                                     infoPanel.updateCapturedPanel(movelog);
-                                    infoPanel.updateStatusPanel(board.getCurrPlayer());
+                                    infoPanel.updateStatusPanel(board);
                                     moveMadeUpdate(PlayerType.HUMAN);
                                 });
                             }
@@ -731,7 +731,7 @@ public class Table extends Observable {
                 getInstance().boardPanel.drawBoard(getInstance().board);
                 getInstance().historyPanel.update(getInstance().movelog);
                 getInstance().infoPanel.updateCapturedPanel(getInstance().movelog);
-                getInstance().infoPanel.updateStatusPanel(getInstance().board.getCurrPlayer());
+                getInstance().infoPanel.updateStatusPanel(getInstance().board);
                 getInstance().moveMadeUpdate(PlayerType.COMPUTER);
             } catch (InterruptedException | ExecutionException e) {
                 e.printStackTrace();
