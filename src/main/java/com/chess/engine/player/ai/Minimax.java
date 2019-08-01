@@ -12,7 +12,7 @@ import java.util.Map;
  */
 public class Minimax {
 
-    private static Minimax INSTANCE = new Minimax();
+    private static final Minimax INSTANCE = new Minimax();
     private static final int SORT_DEPTH = 0;
 
     private final BoardEvaluator evaluator;
@@ -37,7 +37,7 @@ public class Minimax {
         int minValue = Integer.MAX_VALUE;
         int currValue;
 
-        long start = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
         for (Move move : moveOrdering.getSortedMoves(board, SORT_DEPTH)) {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isDone()) {
@@ -60,8 +60,8 @@ public class Minimax {
                 }
             }
         }
-        long end = System.currentTimeMillis();
-        System.out.println(bestMove.toString() + " " + (end-start) + "ms");
+        long endTime = System.currentTimeMillis();
+        System.out.println(bestMove.toString() + " " + (endTime - startTime) + "ms");
 
         return bestMove;
     }
@@ -117,10 +117,10 @@ public class Minimax {
     }
 
     private static class BoardState {
-        final Board board;
-        final int depth;
+        private final Board board;
+        private final int depth;
 
-        BoardState(Board board, int depth) {
+        private BoardState(Board board, int depth) {
             this.board = board;
             this.depth = depth;
         }

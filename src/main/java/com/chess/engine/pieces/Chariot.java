@@ -4,13 +4,11 @@ import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
-import com.chess.engine.board.Point;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 public class Chariot extends Piece {
 
@@ -23,33 +21,6 @@ public class Chariot extends Piece {
     }
 
     @Override
-    public Collection<Move> calculateLegalMoves(Board board) {
-        List<Move> legalMoves = new ArrayList<>();
-
-        for (Coordinate coordinate : MOVE_VECTORS) {
-            Coordinate destPosition = position.add(coordinate);
-
-            while (Board.isWithinBounds(destPosition)) {
-                Point destPoint = board.getPoint(destPosition);
-                Optional<Piece> destPiece = destPoint.getPiece();
-
-                if (!destPiece.isPresent()) {
-                    legalMoves.add(new Move(board, this, destPosition));
-                } else {
-                    if (this.alliance != destPiece.get().alliance) {
-                        legalMoves.add(new Move(board, this, destPosition, destPiece.get()));
-                    }
-                    break; // cannot advance further
-                }
-
-                destPosition = destPosition.add(coordinate);
-            }
-        }
-
-        return Collections.unmodifiableCollection(legalMoves);
-    }
-
-    @Override
     public Collection<Coordinate> getDestPositions(Board board) {
         List<Coordinate> destPositions = new ArrayList<>();
 
@@ -59,15 +30,13 @@ public class Chariot extends Piece {
             while (Board.isWithinBounds(destPosition)) {
                 destPositions.add(destPosition);
 
-                Point destPoint = board.getPoint(destPosition);
-                Optional<Piece> destPiece = destPoint.getPiece();
-                if (destPiece.isPresent()) break;
+                if (board.getPoint(destPosition).getPiece().isPresent()) break;
 
                 destPosition = destPosition.add(vector);
             }
         }
 
-        return destPositions;
+        return Collections.unmodifiableList(destPositions);
     }
 
     @Override

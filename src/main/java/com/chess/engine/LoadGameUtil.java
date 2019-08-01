@@ -27,6 +27,7 @@ public class LoadGameUtil {
         try {
             BufferedReader br = new BufferedReader(new FileReader(file));
             String str;
+
             while (isValid && (str = br.readLine()) != null) {
                 Optional<Move> move = Move.stringToMove(board, str);
                 if (move.isPresent()) {

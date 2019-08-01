@@ -617,7 +617,7 @@ public class Table extends Observable {
             Point point = board.getPoint(position);
             Optional<Piece> destPiece = point.getPiece();
             destPiece.ifPresent(p -> {
-                String name = (p.getAlliance().toString().substring(0, 1) + p.getType().toString()).toLowerCase();
+                String name = (p.getAlliance().toString().substring(0, 1) + p.getPieceType().toString()).toLowerCase();
                 ImageIcon icon = PIECE_ICON_MAP.get(name);
                 JLabel label = new JLabel(icon);
                 add(label, PALETTE_LAYER);
@@ -671,7 +671,7 @@ public class Table extends Observable {
 
         private Collection<Move> pieceLegalMoves(Board board) {
             if (humanMovedPiece != null) {
-                return humanMovedPiece.calculateLegalMoves(board);
+                return humanMovedPiece.getLegalMoves(board);
             }
             return Collections.emptyList();
         }

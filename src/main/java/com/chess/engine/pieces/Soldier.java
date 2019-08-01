@@ -4,14 +4,11 @@ import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
-import com.chess.engine.board.Point;
-
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 public class Soldier extends Piece {
 
@@ -23,14 +20,6 @@ public class Soldier extends Piece {
 
     public Soldier(Coordinate position, Alliance alliance) {
         super(PieceType.SOLDIER, position, alliance);
-    }
-
-    private boolean crossedRiver() {
-        if (alliance.isRed()) {
-            return position.getRow() < Board.RIVER_ROW_RED;
-        } else {
-            return position.getRow() > Board.RIVER_ROW_BLACK;
-        }
     }
 
     @Override
@@ -49,11 +38,19 @@ public class Soldier extends Piece {
             }
         }
 
-        return destPositions;
+        return Collections.unmodifiableList(destPositions);
     }
 
     @Override
     public Soldier movePiece(Move move) {
         return new Soldier(move.getDestPosition(), move.getMovedPiece().getAlliance());
+    }
+
+    private boolean crossedRiver() {
+        if (alliance.isRed()) {
+            return position.getRow() < Board.RIVER_ROW_RED;
+        } else {
+            return position.getRow() > Board.RIVER_ROW_BLACK;
+        }
     }
 }

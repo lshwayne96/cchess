@@ -3,7 +3,6 @@ package com.chess.gui;
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Move;
 import com.chess.engine.pieces.Piece;
-import com.chess.engine.player.Player;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
@@ -99,13 +98,13 @@ public class InfoPanel extends JPanel {
         });
         }
 
-        Comparator<Piece> comparator = Comparator.comparing(Piece::getType);
+        Comparator<Piece> comparator = Comparator.comparing(Piece::getPieceType);
         Collections.sort(redCapturedPieces, comparator);
         Collections.sort(blackCapturedPieces, comparator);
 
         for (Piece piece : redCapturedPieces) {
             String name = (piece.getAlliance().toString().substring(0, 1)
-                    + piece.getType().toString()).toLowerCase();
+                    + piece.getPieceType().toString()).toLowerCase();
             ImageIcon icon = PIECE_ICON_MAP.get(name);
             Image image = icon.getImage().getScaledInstance(icon.getIconWidth()/2,
                     icon.getIconWidth()/2, Image.SCALE_SMOOTH);
@@ -113,7 +112,7 @@ public class InfoPanel extends JPanel {
         }
         for (Piece piece : blackCapturedPieces) {
             String name = (piece.getAlliance().toString().substring(0, 1)
-                    + piece.getType().toString()).toLowerCase();
+                    + piece.getPieceType().toString()).toLowerCase();
             ImageIcon icon = PIECE_ICON_MAP.get(name);
             Image image = icon.getImage().getScaledInstance(icon.getIconWidth()/2,
                     icon.getIconWidth()/2, Image.SCALE_SMOOTH);

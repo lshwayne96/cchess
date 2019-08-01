@@ -15,73 +15,23 @@ import java.util.Optional;
 
 public abstract class Piece {
 
-    protected final PieceType type;
+    private final PieceType pieceType;
     protected final Coordinate position;
     protected final Alliance alliance;
     private final int hashCode;
 
-    Piece(PieceType type, Coordinate position, Alliance alliance) {
-        this.type = type;
+    Piece(PieceType pieceType, Coordinate position, Alliance alliance) {
+        this.pieceType = pieceType;
         this.position = position;
         this.alliance = alliance;
-        hashCode = computeHashCode();
+        hashCode = getHashCode();
     }
 
-    @Override
-    public String toString() {
-        return type.toString();
-    }
+    public abstract Collection<Coordinate> getDestPositions(Board board);
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Piece)) return false;
+    public abstract Piece movePiece(Move move);
 
-        Piece piece = (Piece) o;
-        return (this.position.equals(piece.position)) && (this.alliance == piece.alliance)
-                && (this.type == piece.type);
-    }
-
-    @Override
-    public int hashCode() {
-        return hashCode;
-    }
-
-    public PieceType getType() {
-        return type;
-    }
-
-    public Coordinate getPosition() {
-        return position;
-    }
-
-    public Alliance getAlliance() {
-        return alliance;
-    }
-
-    private int computeHashCode() {
-        int result = type.hashCode();
-        result = 31*result + alliance.hashCode();
-        result = 31*result + position.hashCode();
-        return result;
-    }
-
-    public int getMaterialValue(BoardStatus boardStatus) {
-        if (boardStatus.equals(BoardStatus.OPENING)) {
-            return type.openingValue;
-        }
-        if (boardStatus.equals(BoardStatus.MIDDLE)) {
-            return type.midValue;
-        }
-        return type.endValue;
-    }
-
-    public int getPositionValue() {
-        return alliance.isRed() ? type.positionValues[position.getRow()][position.getCol()]
-                : type.positionValues[Board.NUM_ROWS - position.getRow() - 1][Board.NUM_COLS - position.getCol() - 1];
-    }
-
-    public Collection<Move> calculateLegalMoves(Board board) {
+    public Collection<Move> getLegalMoves(Board board) {
         List<Move> legalMoves = new ArrayList<>();
 
         for (Coordinate destPosition : getDestPositions(board)) {
@@ -94,22 +44,85 @@ public abstract class Piece {
             }, () -> legalMoves.add(new Move(board, this, destPosition)));
         }
 
-        return Collections.unmodifiableCollection(legalMoves);
+        return Collections.unmodifiableList(legalMoves);
     }
 
-    public abstract Collection<Coordinate> getDestPositions(Board board);
+    public PieceType getPieceType() {
+        return pieceType;
+    }
 
-    public abstract Piece movePiece(Move move);
+    public Coordinate getPosition() {
+        return position;
+    }
+
+    public Alliance getAlliance() {
+        return alliance;
+    }
+
+    public int getMaterialValue(BoardStatus boardStatus) {
+        if (boardStatus.equals(BoardStatus.OPENING)) {
+            return pieceType.openingValue;
+        }
+        if (boardStatus.equals(BoardStatus.MIDDLE)) {
+            return pieceType.midValue;
+        }
+        return pieceType.endValue;
+    }
+
+    public int getPositionValue() {
+        return alliance.isRed() ? pieceType.positionValues[position.getRow()][position.getCol()]
+                : pieceType.positionValues[Board.NUM_ROWS - position.getRow() - 1][Board.NUM_COLS - position.getCol() - 1];
+    }
+
+    @Override
+    public String toString() {
+        return pieceType.toString();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof Piece)) {
+            return false;
+        }
+
+        Piece other = (Piece) obj;
+        return this.position.equals(other.position)
+                && this.alliance.equals(other.alliance)
+                && this.pieceType.equals(other.pieceType);
+    }
+
+    @Override
+    public int hashCode() {
+        return hashCode;
+    }
+
+    private int getHashCode() {
+        int result = pieceType.hashCode();
+        result = 31*result + alliance.hashCode();
+        result = 31*result + position.hashCode();
+
+        return result;
+    }
 
     public enum PieceType {
 
-        SOLDIER("S", true, 100, 200, 300, 30, Board.POSITION_VALUES_SOLDIER),
-        ADVISOR("A", false, 150, 200, 250, 2, Board.POSITION_VALUES_ADVISOR),
-        ELEPHANT("E", false, 200, 250, 300, 2, Board.POSITION_VALUES_ELEPHANT),
-        HORSE("H", true, 450, 500, 550, 24, Board.POSITION_VALUES_HORSE),
-        CANNON("C", true, 500, 500, 500, 10, Board.POSITION_VALUES_CANNON),
-        CHARIOT("R", true, 1000, 1000, 1000, 12, Board.POSITION_VALUES_CHARIOT),
-        GENERAL("G", false, 5000, 5000, 5000, 0, Board.POSITION_VALUES_GENERAL);
+        SOLDIER("S", true,
+                100, 200, 300, 30, Board.POSITION_VALUES_SOLDIER),
+        ADVISOR("A", false,
+                150, 200, 250, 2, Board.POSITION_VALUES_ADVISOR),
+        ELEPHANT("E", false,
+                200, 250, 300, 2, Board.POSITION_VALUES_ELEPHANT),
+        HORSE("H", true,
+                450, 500, 550, 24, Board.POSITION_VALUES_HORSE),
+        CANNON("C", true,
+                500, 500, 500, 10, Board.POSITION_VALUES_CANNON),
+        CHARIOT("R", true,
+                1000, 1000, 1000, 12, Board.POSITION_VALUES_CHARIOT),
+        GENERAL("G", false,
+                5000, 5000, 5000, 0, Board.POSITION_VALUES_GENERAL);
 
         private final String abbrev;
         private final boolean isAttacking;
@@ -131,9 +144,8 @@ public abstract class Piece {
             this.positionValues = positionValues;
         }
 
-        @Override
-        public String toString() {
-            return abbrev;
+        public boolean isAttacking() {
+            return isAttacking;
         }
 
         public int getDefaultValue() {
@@ -144,8 +156,9 @@ public abstract class Piece {
             return mobilityValue;
         }
 
-        public boolean isAttacking() {
-            return isAttacking;
+        @Override
+        public String toString() {
+            return abbrev;
         }
     }
 }

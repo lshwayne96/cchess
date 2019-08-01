@@ -10,21 +10,12 @@ public class Coordinate {
         this.col = col;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        }
-        if (!(o instanceof Coordinate)) {
-            return false;
-        }
-        Coordinate c = (Coordinate) o;
-        return (c.row == this.row) && (c.col == this.col);
+    public Coordinate add(Coordinate vector) {
+        return new Coordinate(this.row + vector.row, this.col + vector.col);
     }
 
-    @Override
-    public int hashCode() {
-        return 31*row + col;
+    public Coordinate scale(int factor) {
+        return new Coordinate(this.row * factor, this.col * factor);
     }
 
     public int getRow() {
@@ -35,11 +26,21 @@ public class Coordinate {
         return col;
     }
 
-    public Coordinate add(Coordinate vector) {
-        return new Coordinate(this.row + vector.row, this.col + vector.col);
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (!(obj instanceof Coordinate)) {
+            return false;
+        }
+
+        Coordinate other = (Coordinate) obj;
+        return (this.row == other.row) && (this.col == other.col);
     }
 
-    public Coordinate scale(int factor) {
-        return new Coordinate(this.row * factor, this.col * factor);
+    @Override
+    public int hashCode() {
+        return 31*row + col;
     }
 }

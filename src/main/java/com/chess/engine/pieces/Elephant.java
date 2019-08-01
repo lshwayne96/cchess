@@ -4,13 +4,11 @@ import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
-import com.chess.engine.board.Point;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 public class Elephant extends Piece {
@@ -48,7 +46,7 @@ public class Elephant extends Piece {
             }
         }
 
-        return destPositions;
+        return Collections.unmodifiableList(destPositions);
     }
 
     @Override

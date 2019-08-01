@@ -18,12 +18,6 @@ public enum MoveStatus {
         public boolean isDone() {
             return false;
         }
-    },
-    FINISHING {
-        @Override
-        public boolean isDone() {
-            return false;
-        }
     };
 
     public abstract boolean isDone();

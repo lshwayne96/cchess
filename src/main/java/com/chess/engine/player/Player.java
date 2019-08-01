@@ -17,15 +17,67 @@ import static com.chess.engine.pieces.Piece.*;
 public abstract class Player {
 
     protected final Board board;
-    protected final General playerGeneral;
-    protected final Collection<Move> legalMoves;
+    private final General playerGeneral;
+    private final Collection<Move> legalMoves;
     private final boolean isInCheck;
 
-    Player(Board board, Collection<Move> playerMoves, Collection<Move> opponentMoves) {
+    Player(Board board, Collection<Move> playerLegalMoves, Collection<Move> opponentLegalMoves) {
         this.board = board;
-        playerGeneral = getGeneral();
-        legalMoves = playerMoves;
-        isInCheck = !calculateAttacksOnPoint(playerGeneral.getPosition(), opponentMoves).isEmpty();
+        playerGeneral = getPlayerGeneral();
+        legalMoves = playerLegalMoves;
+        isInCheck = !getIncomingAttacks(playerGeneral.getPosition(), opponentLegalMoves).isEmpty();
+    }
+
+    public abstract Collection<Piece> getActivePieces();
+
+    public abstract Alliance getAlliance();
+
+    public abstract Player getOpponent();
+
+    private General getPlayerGeneral() {
+        for (Piece piece : getActivePieces()) {
+            if (piece.getPieceType().equals(PieceType.GENERAL)) {
+                return (General) piece;
+            }
+        }
+
+        throw new RuntimeException(getAlliance().toString() + " GENERAL missing");
+    }
+
+    public static Collection<Move> getIncomingAttacks(Coordinate position, Collection<Move> opponentMoves) {
+        List<Move> attacksOnPoint = new ArrayList<>();
+
+        for (Move move : opponentMoves) {
+            if (move.getDestPosition().equals(position)) {
+                attacksOnPoint.add(move);
+            }
+        }
+
+        return Collections.unmodifiableList(attacksOnPoint);
+    }
+
+    public Collection<Piece> getDefenses(Coordinate position) {
+        List<Piece> defendingPieces = new ArrayList<>();
+
+        for (Piece piece : getActivePieces()) {
+            if (!piece.getPosition().equals(position) && piece.getDestPositions(board).contains(position)) {
+                defendingPieces.add(piece);
+            }
+        }
+
+        return Collections.unmodifiableList(defendingPieces);
+    }
+
+    public MoveTransition makeMove(Move move) {
+        Board nextBoard = move.execute();
+        Collection<Move> generalAttacks =
+                getIncomingAttacks(nextBoard.getCurrPlayer().getOpponent().playerGeneral.getPosition(),
+                        nextBoard.getCurrPlayer().getLegalMoves());
+        if (!generalAttacks.isEmpty()) {
+            return new MoveTransition(board, move, MoveStatus.SUICIDAL);
+        }
+
+        return new MoveTransition(nextBoard, move, MoveStatus.DONE);
     }
 
     public Collection<Move> getLegalMoves() {
@@ -40,51 +92,6 @@ public abstract class Player {
         return !hasEscapeMoves();
     }
 
-    public MoveTransition makeMove(Move move) {
-        if (!isMoveLegal(move)) {
-            return new MoveTransition(board, move, MoveStatus.ILLEGAL);
-        }
-
-        Board nextBoard = move.execute();
-        Collection<Move> generalAttacks =
-                calculateAttacksOnPoint(nextBoard.getCurrPlayer().getOpponent().playerGeneral.getPosition(),
-                        nextBoard.getCurrPlayer().getLegalMoves());
-        if (!generalAttacks.isEmpty()) {
-            return new MoveTransition(board, move, MoveStatus.SUICIDAL);
-        }
-
-        return new MoveTransition(nextBoard, move, MoveStatus.DONE);
-    }
-
-    public static Collection<Move> calculateAttacksOnPoint(Coordinate position,
-                                                           Collection<Move> opponentMoves) {
-        List<Move> attacksOnPoint = new ArrayList<>();
-
-        for (Move move : opponentMoves) {
-            if (move.getDestPosition().equals(position)) {
-                attacksOnPoint.add(move);
-            }
-        }
-
-        return Collections.unmodifiableCollection(attacksOnPoint);
-    }
-
-    public Collection<Piece> calculateDefensesOnPoint(Coordinate position) {
-        List<Piece> defendingPieces = new ArrayList<>();
-
-        for (Piece piece : getActivePieces()) {
-            if (!piece.getPosition().equals(position) && piece.getDestPositions(board).contains(position)) {
-                defendingPieces.add(piece);
-            }
-        }
-
-        return defendingPieces;
-    }
-
-    private boolean isMoveLegal(Move move) {
-        return legalMoves.contains(move);
-    }
-
     private boolean hasEscapeMoves() {
         for (Move move : legalMoves) {
             MoveTransition transition = makeMove(move);
@@ -93,20 +100,4 @@ public abstract class Player {
 
         return false;
     }
-
-    private General getGeneral() {
-        for (Piece piece : getActivePieces()) {
-            if (piece.getType() == PieceType.GENERAL) {
-                return (General) piece;
-            }
-        }
-
-        throw new RuntimeException(getAlliance().toString() + " GENERAL missing");
-    }
-
-    public abstract Collection<Piece> getActivePieces();
-
-    public abstract Alliance getAlliance();
-
-    public abstract Player getOpponent();
 }

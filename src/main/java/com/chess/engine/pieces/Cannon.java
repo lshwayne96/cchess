@@ -47,7 +47,7 @@ public class Cannon extends Piece {
             }
         }
 
-        return destPositions;
+        return Collections.unmodifiableList(destPositions);
     }
 
     @Override

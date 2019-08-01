@@ -40,7 +40,7 @@ public class General extends Piece {
             Point currPoint = board.getPoint(currPosition);
             Optional<Piece> piece = currPoint.getPiece();
             if (piece.isPresent()) {
-                if (piece.get().getType() == PieceType.GENERAL) {
+                if (piece.get().getPieceType() == PieceType.GENERAL) {
                     destPositions.add(currPosition);
                 }
                 break;
@@ -48,7 +48,7 @@ public class General extends Piece {
             currPosition = currPosition.add(vector);
         }
 
-        return destPositions;
+        return Collections.unmodifiableList(destPositions);
     }
 
     @Override

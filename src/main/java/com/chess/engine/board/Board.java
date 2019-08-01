@@ -23,21 +23,6 @@ import java.util.Optional;
 
 public class Board {
 
-    private final List<Point> points;
-    private final Collection<Piece> redPieces;
-    private final Collection<Piece> blackPieces;
-
-    private final RedPlayer redPlayer;
-    private final BlackPlayer blackPlayer;
-    private final Player currPlayer;
-
-    public static final int NUM_ROWS = 10;
-    public static final int NUM_COLS = 9;
-    public static final int RIVER_ROW_RED = 5;
-    public static final int RIVER_ROW_BLACK = 4;
-    public static final int MAX_PIECES_IN_MIDGAME = 14;
-    public static final int MAX_PIECES_IN_ENDGAME = 8;
-
     public static int[][] POSITION_VALUES_SOLDIER = {
             {  0,    0,    0,    2,    4,    2,    0,    0,    0},
             { 40,   60,  100,  130,  140,  130,  100,   60,   40},
@@ -50,7 +35,6 @@ public class Board {
             {  0,    0,    0,    0,    0,    0,    0,    0,    0},
             {  0,    0,    0,    0,    0,    0,    0,    0,    0}
     };
-
     public static int[][] POSITION_VALUES_ADVISOR = {
             {  0,    0,    0,    0,    0,    0,    0,    0,    0},
             {  0,    0,    0,    0,    0,    0,    0,    0,    0},
@@ -63,7 +47,6 @@ public class Board {
             {  0,    0,    0,    0,    6,    0,    0,    0,    0},
             {  0,    0,    0,    0,    0,    0,    0,    0,    0}
     };
-
     public static int[][] POSITION_VALUES_ELEPHANT = {
             {  0,    0,    0,    0,    0,    0,    0,    0,    0},
             {  0,    0,    0,    0,    0,    0,    0,    0,    0},
@@ -76,7 +59,6 @@ public class Board {
             {  0,    0,    0,    0,    0,    0,    0,    0,    0},
             {  0,    0,    0,    0,    0,    0,    0,    0,    0}
     };
-
     public static int[][] POSITION_VALUES_HORSE = {
             {  4,    4,    4,   16,    4,   16,    4,    4,    4},
             {  4,   16,   30,   18,   12,   18,   30,   16,    4},
@@ -89,7 +71,6 @@ public class Board {
             { -6,    4,    8,   10,  -20,   10,    8,    4,   -6},
             {  0,   -6,    4,    0,    4,    0,    4,   -6,    0}
     };
-
     public static int[][] POSITION_VALUES_CANNON = {
             {  8,    8,    0,  -10,  -12,  -10,    0,    8,    8},
             {  4,    4,    0,   -8,  -14,   -8,    0,    4,    4},
@@ -102,7 +83,6 @@ public class Board {
             {  0,    2,    4,    4,    4,    4,    4,    2,    0},
             {  0,    0,    2,    6,    6,    6,    2,    0,    0}
     };
-
     public static int[][] POSITION_VALUES_CHARIOT = {
             { 12,   16,   14,   26,   28,   26,   14,   16,   12},
             { 12,   24,   18,   32,   66,   32,   18,   24,   12},
@@ -115,7 +95,6 @@ public class Board {
             { 10,   16,   12,   24,    0,   24,   12,   16,   10},
             {-12,   12,    8,   24,    0,   24,    8,   12,  -12}
     };
-
     public static int[][] POSITION_VALUES_GENERAL = {
             {  0,    0,    0,    0,    0,    0,    0,    0,    0},
             {  0,    0,    0,    0,    0,    0,    0,    0,    0},
@@ -128,121 +107,60 @@ public class Board {
             {  0,    0,    0,  -16,  -16,  -16,    0,    0,    0},
             {  0,    0,    0,    2,   10,    2,    0,    0,    0}
     };
+    public static final int NUM_ROWS = 10;
+    public static final int NUM_COLS = 9;
+    public static final int RIVER_ROW_RED = 5;
+    public static final int RIVER_ROW_BLACK = 4;
+
+    private static final int MAX_PIECES_IN_MIDGAME = 14;
+    private static final int MAX_PIECES_IN_ENDGAME = 8;
+
+    private final List<Point> points;
+    private final Collection<Piece> redPieces;
+    private final Collection<Piece> blackPieces;
+    private final RedPlayer redPlayer;
+    private final BlackPlayer blackPlayer;
+    private final Player currPlayer;
 
     private Board(Builder builder) {
         points = createBoard(builder);
         redPieces = getActivePieces(points, Alliance.RED);
         blackPieces = getActivePieces(points, Alliance.BLACK);
 
-        Collection<Move> redStandardLegalMoves = calculateLegalMoves(redPieces);
-        Collection<Move> blackStandardLegalMoves = calculateLegalMoves(blackPieces);
+        Collection<Move> redLegalMoves = getLegalMoves(redPieces);
+        Collection<Move> blackLegalMoves = getLegalMoves(blackPieces);
 
-        redPlayer = new RedPlayer(this, redStandardLegalMoves, blackStandardLegalMoves);
-        blackPlayer = new BlackPlayer(this, redStandardLegalMoves, blackStandardLegalMoves);
+        redPlayer = new RedPlayer(this, redLegalMoves, blackLegalMoves);
+        blackPlayer = new BlackPlayer(this, redLegalMoves, blackLegalMoves);
         currPlayer = builder.currTurn.choosePlayer(redPlayer, blackPlayer);
     }
 
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
+    private static List<Point> createBoard(Builder builder) {
+        List<Point> points = new ArrayList<>();
 
         for (int row = 0; row < NUM_ROWS; row++) {
             for (int col = 0; col < NUM_COLS; col++) {
-                String pointText = points.get(positionToIndex(row, col)).toString();
-                sb.append(String.format("%3s", pointText));
-            }
-            sb.append("\n");
-        }
-
-        return sb.toString();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (!(obj instanceof Board)) {
-            return false;
-        }
-        Board other = (Board) obj;
-        return this.toString().equals(other.toString())
-                && this.currPlayer.getAlliance().equals(other.currPlayer.getAlliance());
-    }
-
-    @Override
-    public int hashCode() {
-        return 31 * toString().hashCode() + currPlayer.getAlliance().hashCode();
-    }
-
-    public Point getPoint(Coordinate position) {
-        return points.get(positionToIndex(position.getRow(), position.getCol()));
-    }
-
-    public Collection<Piece> getRedPieces() {
-        return redPieces;
-    }
-
-    public Collection<Piece> getBlackPieces() {
-        return blackPieces;
-    }
-
-    public Collection<Piece> getAllPieces() {
-        Collection<Piece> allPieces = new ArrayList<>();
-        allPieces.addAll(redPieces);
-        allPieces.addAll(blackPieces);
-
-        return allPieces;
-    }
-
-    public Player getRedPlayer() {
-        return redPlayer;
-    }
-
-    public Player getBlackPlayer() {
-        return blackPlayer;
-    }
-
-    public Player getCurrPlayer() {
-        return currPlayer;
-    }
-
-    public BoardStatus getStatus() {
-        if (redPlayer.getActivePieces().size() <= MAX_PIECES_IN_ENDGAME
-                && blackPlayer.getActivePieces().size() <= MAX_PIECES_IN_ENDGAME) {
-            return BoardStatus.END;
-        }
-        if (redPlayer.getActivePieces().size() <= MAX_PIECES_IN_MIDGAME
-                || blackPlayer.getActivePieces().size() <= MAX_PIECES_IN_MIDGAME) {
-            return BoardStatus.MIDDLE;
-        }
-        return BoardStatus.OPENING;
-    }
-
-    public boolean isGameOver() {
-        return currPlayer.isInCheckmate();
-    }
-
-    public boolean isGameDraw() {
-        if (getRedPieces().size() > 5 || getBlackPieces().size() > 5) {
-            return false;
-        }
-        for (Piece piece : getAllPieces()) {
-            if (piece.getType().isAttacking()) {
-                return false;
+                Coordinate position = new Coordinate(row, col);
+                points.add(Point.getInstance(position, builder.boardConfig.get(position)));
             }
         }
-        return true;
+
+        return Collections.unmodifiableList(points);
     }
 
-    private Collection<Move> calculateLegalMoves(Collection<Piece> pieces) {
-        List<Move> legalMoves = new ArrayList<>();
+    private static Collection<Piece> getActivePieces(List<Point> board, Alliance alliance) {
+        List<Piece> activePieces = new ArrayList<>();
 
-        for (Piece piece : pieces) {
-            legalMoves.addAll(piece.calculateLegalMoves(this));
+        for (Point point : board) {
+            Optional<Piece> piece = point.getPiece();
+            piece.ifPresent(p -> {
+                if (p.getAlliance() == alliance) {
+                    activePieces.add(p);
+                }
+            });
         }
 
-        return Collections.unmodifiableCollection(legalMoves);
+        return Collections.unmodifiableList(activePieces);
     }
 
     public static Board initialiseBoard() {
@@ -290,6 +208,44 @@ public class Board {
         return builder.build();
     }
 
+    private Collection<Move> getLegalMoves(Collection<Piece> pieces) {
+        List<Move> legalMoves = new ArrayList<>();
+
+        for (Piece piece : pieces) {
+            legalMoves.addAll(piece.getLegalMoves(this));
+        }
+
+        return Collections.unmodifiableList(legalMoves);
+    }
+
+    public BoardStatus getStatus() {
+        if (redPlayer.getActivePieces().size() <= MAX_PIECES_IN_ENDGAME
+                && blackPlayer.getActivePieces().size() <= MAX_PIECES_IN_ENDGAME) {
+            return BoardStatus.END;
+        }
+        if (redPlayer.getActivePieces().size() <= MAX_PIECES_IN_MIDGAME
+                || blackPlayer.getActivePieces().size() <= MAX_PIECES_IN_MIDGAME) {
+            return BoardStatus.MIDDLE;
+        }
+        return BoardStatus.OPENING;
+    }
+
+    public boolean isGameOver() {
+        return currPlayer.isInCheckmate();
+    }
+
+    public boolean isGameDraw() {
+        if (getRedPieces().size() > 5 || getBlackPieces().size() > 5) {
+            return false;
+        }
+        for (Piece piece : getAllPieces()) {
+            if (piece.getPieceType().isAttacking()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public static boolean isWithinBounds(Coordinate position) {
         int row = position.getRow();
         int col = position.getCol();
@@ -301,32 +257,70 @@ public class Board {
         return row * NUM_COLS + col;
     }
 
-    private static List<Point> createBoard(Builder builder) {
-        List<Point> points = new ArrayList<>();
+    public Point getPoint(Coordinate position) {
+        return points.get(positionToIndex(position.getRow(), position.getCol()));
+    }
+
+    public Collection<Piece> getRedPieces() {
+        return redPieces;
+    }
+
+    public Collection<Piece> getBlackPieces() {
+        return blackPieces;
+    }
+
+    public Collection<Piece> getAllPieces() {
+        Collection<Piece> allPieces = new ArrayList<>();
+        allPieces.addAll(redPieces);
+        allPieces.addAll(blackPieces);
+
+        return allPieces;
+    }
+
+    public Player getRedPlayer() {
+        return redPlayer;
+    }
+
+    public Player getBlackPlayer() {
+        return blackPlayer;
+    }
+
+    public Player getCurrPlayer() {
+        return currPlayer;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
 
         for (int row = 0; row < NUM_ROWS; row++) {
             for (int col = 0; col < NUM_COLS; col++) {
-                Coordinate position = new Coordinate(row, col);
-                points.add(Point.getInstance(position, builder.boardConfig.get(position)));
+                String pointText = points.get(positionToIndex(row, col)).toString();
+                sb.append(String.format("%3s", pointText));
             }
+            sb.append("\n");
         }
 
-        return Collections.unmodifiableList(points);
+        return sb.toString();
     }
 
-    private static Collection<Piece> getActivePieces(List<Point> board, Alliance alliance) {
-        List<Piece> activePieces = new ArrayList<>();
-
-        for (Point point : board) {
-            Optional<Piece> piece = point.getPiece();
-            piece.ifPresent(p -> {
-                if (p.getAlliance() == alliance) {
-                    activePieces.add(p);
-                }
-            });
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof Board)) {
+            return false;
         }
 
-        return Collections.unmodifiableCollection(activePieces);
+        Board other = (Board) obj;
+        return this.toString().equals(other.toString())
+                && this.currPlayer.getAlliance().equals(other.currPlayer.getAlliance());
+    }
+
+    @Override
+    public int hashCode() {
+        return 31*toString().hashCode() + currPlayer.getAlliance().hashCode();
     }
 
     public enum BoardStatus {
@@ -335,10 +329,10 @@ public class Board {
         END,
     }
 
-    public static class Builder {
+    static class Builder {
 
-        Map<Coordinate, Piece> boardConfig;
-        Alliance currTurn;
+        private Map<Coordinate, Piece> boardConfig;
+        private Alliance currTurn;
 
         Builder() {
             boardConfig = new HashMap<>();

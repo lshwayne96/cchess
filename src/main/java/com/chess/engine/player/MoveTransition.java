@@ -9,7 +9,7 @@ public class MoveTransition {
     private final Move move;
     private final MoveStatus moveStatus;
 
-    public MoveTransition(Board nextBoard, Move move, MoveStatus moveStatus) {
+    MoveTransition(Board nextBoard, Move move, MoveStatus moveStatus) {
         this.nextBoard = nextBoard;
         this.move = move;
         this.moveStatus = moveStatus;

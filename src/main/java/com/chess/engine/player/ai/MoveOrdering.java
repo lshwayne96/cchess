@@ -9,43 +9,41 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public final class MoveOrdering {
-
-    private final BoardEvaluator evaluator;
+class MoveOrdering {
 
     private static final MoveOrdering INSTANCE = new MoveOrdering();
-
     private static final Comparator<Move> MOVE_COMPARATOR = (m1, m2) -> {
         boolean m1isAttack = m1.getCapturedPiece().isPresent();
         boolean m2isAttack = m2.getCapturedPiece().isPresent();
         if (m1isAttack != m2isAttack) {
             return Boolean.compare(m2isAttack, m1isAttack);
         }
-        return m2.getMovedPiece().getType().getDefaultValue() - m1.getMovedPiece().getType().getDefaultValue();
+        return m2.getMovedPiece().getPieceType().getDefaultValue() - m1.getMovedPiece().getPieceType().getDefaultValue();
     };
     private static final Comparator<MoveEntry> MOVE_ENTRY_COMPARATOR_RED = (e1, e2) -> {
-        if (e1.getScore() != e2.getScore()) {
-            return e2.getScore() - e1.getScore();
+        if (e1.getValue() != e2.getValue()) {
+            return e2.getValue() - e1.getValue();
         }
         return MOVE_COMPARATOR.compare(e1.getMove(), e2.getMove());
     };
     private static final Comparator<MoveEntry> MOVE_ENTRY_COMPARATOR_BLACK = (e1, e2) -> {
-        if (e1.getScore() != e2.getScore()) {
-            return e1.getScore() - e2.getScore();
+        if (e1.getValue() != e2.getValue()) {
+            return e1.getValue() - e2.getValue();
         }
         return MOVE_COMPARATOR.compare(e1.getMove(), e2.getMove());
     };
 
+    private final BoardEvaluator evaluator;
 
     private MoveOrdering() {
         evaluator = BoardEvaluator.getInstance();
     }
 
-    public static MoveOrdering getInstance() {
+    static MoveOrdering getInstance() {
         return INSTANCE;
     }
 
-    public List<Move> getSortedMoves(Board board, int searchDepth) {
+    List<Move> getSortedMoves(Board board, int searchDepth) {
         List<Move> sortedMoves = new ArrayList<>();
 
         if (searchDepth == 0) {
@@ -54,22 +52,22 @@ public final class MoveOrdering {
             return Collections.unmodifiableList(sortedMoves);
         }
 
-        List<MoveEntry> moveEntryList = new ArrayList<>();
+        List<MoveEntry> moveEntries = new ArrayList<>();
         for (Move move : board.getCurrPlayer().getLegalMoves()) {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isDone()) {
                 int value = board.getCurrPlayer().getAlliance().isRed() ?
                         min(transition.getNextBoard(), searchDepth - 1) :
                         max(transition.getNextBoard(), searchDepth - 1);
-                moveEntryList.add(new MoveEntry(move, value));
+                moveEntries.add(new MoveEntry(move, value));
             }
         }
         if (board.getCurrPlayer().getAlliance().isRed()) {
-            moveEntryList.sort(MOVE_ENTRY_COMPARATOR_RED);
+            moveEntries.sort(MOVE_ENTRY_COMPARATOR_RED);
         } else {
-            moveEntryList.sort(MOVE_ENTRY_COMPARATOR_BLACK);
+            moveEntries.sort(MOVE_ENTRY_COMPARATOR_BLACK);
         }
-        for (MoveEntry moveEntry : moveEntryList) {
+        for (MoveEntry moveEntry : moveEntries) {
             sortedMoves.add(moveEntry.getMove());
         }
 
@@ -77,7 +75,7 @@ public final class MoveOrdering {
     }
 
     private int min(Board board, int depth) {
-        if (depth == 0 || board.isGameOver()) {
+        if (depth == 0 || board.isGameOver() || board.isGameDraw()) {
             return evaluator.evaluate(board, depth);
         }
 
@@ -93,7 +91,7 @@ public final class MoveOrdering {
     }
 
     private int max(Board board, int depth) {
-        if (depth == 0 || board.isGameOver()) {
+        if (depth == 0 || board.isGameOver() || board.isGameDraw()) {
             return evaluator.evaluate(board, depth);
         }
 
@@ -113,16 +111,16 @@ public final class MoveOrdering {
         final Move move;
         final int value;
 
-        MoveEntry(Move move, int score) {
+        MoveEntry(Move move, int value) {
             this.move = move;
-            this.value = score;
+            this.value = value;
         }
 
         Move getMove() {
             return move;
         }
 
-        int getScore() {
+        int getValue() {
             return value;
         }
     }
