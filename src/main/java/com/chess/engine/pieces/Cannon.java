@@ -54,4 +54,10 @@ public class Cannon extends Piece {
     public Cannon movePiece(Move move) {
         return new Cannon(move.getDestPosition(), move.getMovedPiece().getAlliance());
     }
+
+    @Override
+    public Cannon getMirrorPiece() {
+        Coordinate mirrorPosition = new Coordinate(position.getRow(), Board.NUM_COLS - 1 - position.getCol());
+        return new Cannon(mirrorPosition, alliance);
+    }
 }

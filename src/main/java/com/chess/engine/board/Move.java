@@ -43,6 +43,18 @@ public class Move {
         return builder.build();
     }
 
+    public Move getMirroredMove() {
+        int srcRow = movedPiece.getPosition().getRow();
+        int srcCol = Board.NUM_COLS - 1 - movedPiece.getPosition().getCol();
+        Coordinate mirroredSrcPosition = new Coordinate(srcRow, srcCol);
+
+        int destRow = destPosition.getRow();
+        int destCol = Board.NUM_COLS - 1 - destPosition.getCol();
+        Coordinate mirroredDestPosition = new Coordinate(destRow, destCol);
+
+        return getMove(board.getMirrorBoard(), mirroredSrcPosition, mirroredDestPosition).get();
+    }
+
     public static Optional<Move> getMove(Board board, Coordinate srcPosition, Coordinate destPosition) {
         for (Move move : board.getCurrPlayer().getLegalMoves()) {
             if (move.getMovedPiece().getPosition().equals(srcPosition)

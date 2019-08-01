@@ -8,6 +8,7 @@ import com.chess.engine.board.Point;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.MoveTransition;
 import com.chess.engine.player.ai.Minimax;
+import com.chess.engine.player.ai.MoveBook;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -169,7 +170,9 @@ public class Table extends Observable {
 
         JMenuItem undoMove = new JMenuItem("Undo last move");
         undoMove.addActionListener(e -> {
-            aiPlayer.cancel(true);
+            if (aiPlayer != null) {
+                aiPlayer.cancel(true);
+            }
             undoLastMove();
             setChanged();
             notifyObservers();
@@ -266,6 +269,8 @@ public class Table extends Observable {
 
     private void undoLastMove() {
         if (!movelog.isEmpty()) {
+            clearSelections();
+
             movelog.removeLastMove();
             boardHistory.remove(boardHistory.size() - 1);
             board = boardHistory.get(boardHistory.size() - 1);
@@ -307,6 +312,12 @@ public class Table extends Observable {
         }
         setChanged();
         notifyObservers(gameSetup);
+    }
+
+    private void clearSelections() {
+        sourcePoint = null;
+        destPoint = null;
+        humanMovedPiece = null;
     }
 
     private static ImageIcon getGameIcon() {
@@ -572,12 +583,6 @@ public class Table extends Observable {
                     SwingUtilities.invokeLater(() -> boardPanel.drawBoard(board));
                 }
 
-                private void clearSelections() {
-                    sourcePoint = null;
-                    destPoint = null;
-                    humanMovedPiece = null;
-                }
-
                 @Override
                 public void mousePressed(MouseEvent e) {
 
@@ -691,6 +696,7 @@ public class Table extends Observable {
 
     private static class AIPlayer extends SwingWorker<Move, String> {
 
+        private static final MoveBook movebook = MoveBook.getInstance();
         private static final int MAX_CONSEC_CHECKS = 3;
         private Piece bannedPiece; // prevent consec checking
 
@@ -740,8 +746,11 @@ public class Table extends Observable {
 
         @Override
         protected Move doInBackground() throws Exception {
-            return Minimax.getInstance()
-                    .execute(Table.getInstance().board, getInstance().gameSetup.getSearchDepth(), bannedPiece);
+            Board board = Table.getInstance().board;
+            Optional<Move> move = movebook.getRandomMove(board);
+
+            return move.orElseGet(() ->
+                    Minimax.getInstance().execute(board, getInstance().gameSetup.getSearchDepth(), bannedPiece));
         }
     }
 }

@@ -54,6 +54,12 @@ public class Elephant extends Piece {
         return new Elephant(move.getDestPosition(), move.getMovedPiece().getAlliance());
     }
 
+    @Override
+    public Elephant getMirrorPiece() {
+        Coordinate mirrorPosition = new Coordinate(position.getRow(), Board.NUM_COLS - 1 - position.getCol());
+        return new Elephant(mirrorPosition, alliance);
+    }
+
     private boolean isValidPosition(Coordinate positionToTest) {
         if (alliance.isRed()) {
             return VALID_POSITIONS_RED.contains(positionToTest);

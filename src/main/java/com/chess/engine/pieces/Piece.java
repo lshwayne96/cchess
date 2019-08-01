@@ -31,6 +31,8 @@ public abstract class Piece {
 
     public abstract Piece movePiece(Move move);
 
+    public abstract Piece getMirrorPiece();
+
     public Collection<Move> getLegalMoves(Board board) {
         List<Move> legalMoves = new ArrayList<>();
 

@@ -46,6 +46,12 @@ public class Soldier extends Piece {
         return new Soldier(move.getDestPosition(), move.getMovedPiece().getAlliance());
     }
 
+    @Override
+    public Soldier getMirrorPiece() {
+        Coordinate mirrorPosition = new Coordinate(position.getRow(), Board.NUM_COLS - 1 - position.getCol());
+        return new Soldier(mirrorPosition, alliance);
+    }
+
     private boolean crossedRiver() {
         if (alliance.isRed()) {
             return position.getRow() < Board.RIVER_ROW_RED;

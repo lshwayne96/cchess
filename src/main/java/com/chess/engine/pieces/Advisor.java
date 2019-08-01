@@ -50,6 +50,12 @@ public class Advisor extends Piece {
         return new Advisor(move.getDestPosition(), move.getMovedPiece().getAlliance());
     }
 
+    @Override
+    public Advisor getMirrorPiece() {
+        Coordinate mirrorPosition = new Coordinate(position.getRow(), Board.NUM_COLS - 1 - position.getCol());
+        return new Advisor(mirrorPosition, alliance);
+    }
+
     private boolean isValidPosition(Coordinate positionToTest) {
         if (alliance.isRed()) {
             return VALID_POSITIONS_RED.contains(positionToTest);

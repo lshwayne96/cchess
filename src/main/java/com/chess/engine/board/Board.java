@@ -253,12 +253,24 @@ public class Board {
         return (row >= 0 && row < NUM_ROWS) && (col >= 0 && col < NUM_COLS);
     }
 
-    private static int positionToIndex(int row, int col) {
-        return row * NUM_COLS + col;
+    public Board getMirrorBoard() {
+        Builder builder = new Builder();
+
+        for (Point point : points) {
+            Optional<Piece> piece = point.getPiece();
+            piece.ifPresent(p -> builder.putPiece(p.getMirrorPiece()));
+        }
+        builder.setCurrTurn(currPlayer.getAlliance());
+
+        return builder.build();
     }
 
     public Point getPoint(Coordinate position) {
         return points.get(positionToIndex(position.getRow(), position.getCol()));
+    }
+
+    private static int positionToIndex(int row, int col) {
+        return row * NUM_COLS + col;
     }
 
     public Collection<Piece> getRedPieces() {

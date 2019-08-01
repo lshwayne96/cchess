@@ -52,4 +52,10 @@ public class Horse extends Piece {
     public Horse movePiece(Move move) {
         return new Horse(move.getDestPosition(), move.getMovedPiece().getAlliance());
     }
+
+    @Override
+    public Horse getMirrorPiece() {
+        Coordinate mirrorPosition = new Coordinate(position.getRow(), Board.NUM_COLS - 1 - position.getCol());
+        return new Horse(mirrorPosition, alliance);
+    }
 }

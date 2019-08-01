@@ -56,6 +56,12 @@ public class General extends Piece {
         return new General(move.getDestPosition(), move.getMovedPiece().getAlliance());
     }
 
+    @Override
+    public General getMirrorPiece() {
+        Coordinate mirrorPosition = new Coordinate(position.getRow(), Board.NUM_COLS - 1 - position.getCol());
+        return new General(mirrorPosition, alliance);
+    }
+
     private boolean isValidPosition(Coordinate positionToTest) {
         int row = positionToTest.getRow();
         int col = positionToTest.getCol();

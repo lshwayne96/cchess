@@ -43,4 +43,10 @@ public class Chariot extends Piece {
     public Chariot movePiece(Move move) {
         return new Chariot(move.getDestPosition(), move.getMovedPiece().getAlliance());
     }
+
+    @Override
+    public Chariot getMirrorPiece() {
+        Coordinate mirrorPosition = new Coordinate(position.getRow(), Board.NUM_COLS - 1 - position.getCol());
+        return new Chariot(mirrorPosition, alliance);
+    }
 }
