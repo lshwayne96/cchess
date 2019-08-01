@@ -42,8 +42,8 @@ public class Minimax {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isDone()) {
                 Board nextBoard = transition.getNextBoard();
-                if (nextBoard.getCurrPlayer().isInCheck() && move.getMovedPiece().equals(bannedPiece)
-                    && !move.getCapturedPiece().isPresent()) continue;
+                if (move.getMovedPiece().equals(bannedPiece) && !move.getCapturedPiece().isPresent()
+                        && nextBoard.getCurrPlayer().isInCheck()) continue;
 
                 if (board.getCurrPlayer().getAlliance().isRed()) {
                     currValue = min(nextBoard, searchDepth - 1, maxValue, minValue);
