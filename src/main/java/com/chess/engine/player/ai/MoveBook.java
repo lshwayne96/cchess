@@ -14,9 +14,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
-/**
- * An opening book for the first or second moves of the game
- */
 public class MoveBook {
 
     private static final Board INITIAL_BOARD = Board.initialiseBoard();

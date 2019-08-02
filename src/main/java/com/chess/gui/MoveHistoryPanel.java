@@ -15,14 +15,14 @@ import java.util.List;
 
 import static com.chess.gui.Table.*;
 
-public class GameHistoryPanel extends JPanel {
+public class MoveHistoryPanel extends JPanel {
 
     private final DataModel model;
     private final JScrollPane scrollPane;
     private static final EtchedBorder PANEL_BORDER = new EtchedBorder(EtchedBorder.RAISED);
     private static final Dimension HISTORY_PANEL_DIMENSION = new Dimension(120, 40);
 
-    GameHistoryPanel() {
+    MoveHistoryPanel() {
         setLayout(new BorderLayout());
         setBorder(PANEL_BORDER);
 

@@ -19,8 +19,8 @@ final class BoardEvaluator {
 
     int evaluate(Board board, int depth) {
         return getPlayerScore(board, board.getRedPlayer(), depth)
-                - getPlayerScore(board, board.getBlackPlayer(), depth)
-                + getRelationScore(board);
+                - getPlayerScore(board, board.getBlackPlayer(), depth);
+                //+ getRelationScore(board);
     }
 
     static BoardEvaluator getInstance() {
@@ -28,9 +28,7 @@ final class BoardEvaluator {
     }
 
     private static int getPlayerScore(Board board, Player player, int depth) {
-        int standardValue = getTotalPieceValue(board, player)
-                + getTotalMobilityValue(player)
-                + getCohesionValue(player);
+        int standardValue = getTotalPieceValue(board, player) + getTotalMobilityValue(player);
 
         // only need to get checkmate value for opp
         int checkmateValue = 0;
@@ -42,31 +40,16 @@ final class BoardEvaluator {
     }
 
     private static int getTotalPieceValue(Board board, Player player) {
-        int totalPieceValue = 0;
+        int totalMaterialValue = 0;
+        int totalPositionValue = 0;
+        int totalCohesionValue = 0;
         BoardStatus boardStatus = board.getStatus();
-
-        for (Piece piece : player.getActivePieces()) {
-            totalPieceValue += piece.getMaterialValue(boardStatus) + piece.getPositionValue();
-        }
-
-        return totalPieceValue;
-    }
-
-    private static int getTotalMobilityValue(Player player) {
-        int totalMobilityValue = 0;
-
-        for (Move move : player.getLegalMoves()) {
-            totalMobilityValue += move.getMovedPiece().getPieceType().getMobilityValue();
-        }
-
-        return totalMobilityValue;
-    }
-
-    private static int getCohesionValue(Player player) {
-        int cohesionValue = 0;
 
         int cannonCount = 0, horseCount = 0, elephantCount = 0, advisorCount = 0;
         for (Piece piece : player.getActivePieces()) {
+            totalMaterialValue += piece.getMaterialValue(boardStatus);
+            totalPositionValue += piece.getPositionValue();
+
             if (piece.getPieceType().equals(PieceType.CANNON)) {
                 cannonCount++;
             } else if (piece.getPieceType().equals(PieceType.HORSE)) {
@@ -77,6 +60,7 @@ final class BoardEvaluator {
                 advisorCount++;
             }
         }
+
         int oppChariotCount = 0, oppCannonCount = 0;
         for (Piece piece : player.getOpponent().getActivePieces()) {
             if (piece.getPieceType().equals(PieceType.CHARIOT)) {
@@ -88,32 +72,36 @@ final class BoardEvaluator {
 
         // cannon+horse might be better than cannon+cannon or horse+horse
         if (cannonCount > 0 && horseCount > 0) {
-            cohesionValue += 150 * (2 - oppChariotCount);
+            totalCohesionValue += 100 * (2 - oppChariotCount);
         }
-
         // lack of elephant might be weak to cannon
         if (oppCannonCount == 1 && elephantCount == 0) {
-            cohesionValue -= 100;
+            totalCohesionValue -= 100;
         } else if (oppCannonCount == 1 && elephantCount == 1) {
-            cohesionValue -= 50;
+            totalCohesionValue -= 50;
         } else if (oppCannonCount == 2 && elephantCount == 0) {
-            cohesionValue -= 200;
+            totalCohesionValue -= 200;
         } else if (oppCannonCount == 2 && elephantCount == 1) {
-            cohesionValue -= 100;
+            totalCohesionValue -= 100;
         }
-
-        // lack of advisor might be weak to chariot
-        if (oppChariotCount == 1 && advisorCount == 0) {
-            cohesionValue -= 200;
-        } else if (oppChariotCount == 1 && advisorCount == 1) {
-            cohesionValue -= 100;
-        } else if (oppChariotCount == 2 && advisorCount == 0) {
-            cohesionValue -= 500;
+        // lack of advisor might be weak to double chariot
+        if (oppChariotCount == 2 && advisorCount == 0) {
+            totalCohesionValue -= 400;
         } else if (oppChariotCount == 2 && advisorCount == 1) {
-            cohesionValue -= 300;
+            totalCohesionValue -= 300;
         }
 
-        return cohesionValue;
+        return totalMaterialValue + totalPositionValue + totalCohesionValue;
+    }
+
+    private static int getTotalMobilityValue(Player player) {
+        int totalMobilityValue = 0;
+
+        for (Move move : player.getLegalMoves()) {
+            totalMobilityValue += move.getMovedPiece().getPieceType().getMobilityValue();
+        }
+
+        return totalMobilityValue;
     }
 
     private static int getRelationScore(Board board) {
