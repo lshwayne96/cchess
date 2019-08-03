@@ -7,12 +7,6 @@ public enum MoveStatus {
             return true;
         }
     },
-    ILLEGAL {
-        @Override
-        public boolean isDone() {
-            return false;
-        }
-    },
     SUICIDAL {
         @Override
         public boolean isDone() {

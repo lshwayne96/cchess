@@ -7,7 +7,7 @@ import com.chess.engine.board.Move;
 import com.chess.engine.board.Point;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.MoveTransition;
-import com.chess.engine.player.ai.Minimax;
+import com.chess.engine.player.ai.MiniMax;
 import com.chess.engine.player.ai.MoveBook;
 
 import javax.imageio.ImageIO;
@@ -34,6 +34,9 @@ import java.awt.Image;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -44,33 +47,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Observable;
-import java.util.Observer;
 import java.util.Optional;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ExecutionException;
 
 import static com.chess.engine.pieces.Piece.*;
 import static javax.swing.SwingUtilities.isLeftMouseButton;
 import static javax.swing.SwingUtilities.isRightMouseButton;
 
-public class Table extends Observable {
-
-    private final JFrame gameFrame;
-
-    private final BoardPanel boardPanel;
-    private final GameHistoryPanel historyPanel;
-    private final InfoPanel infoPanel;
-    private final MoveLog movelog;
-    private final List<Board> boardHistory;
-    private final GameSetup gameSetup;
-
-    private Board board;
-    private BoardDirection boardDirection;
-    private AIPlayer aiPlayer;
-
-    private Point sourcePoint;
-    private Point destPoint;
-    private Piece humanMovedPiece;
+public class Table {
 
     private static final Dimension BOARD_PANEL_DIMENSION = new Dimension(540, 600);
     private static final Dimension POINT_PANEL_DIMENSION = new Dimension(60, 60);
@@ -80,9 +66,23 @@ public class Table extends Observable {
     private static final ImageIcon BOARD_ICON = getBoardIcon();
     private static final ImageIcon HIGHLIGHT_ICON = getHighlightIcon();
     private static final Color HIGHLIGHT_BORDER_COLOR = Color.WHITE;
-    public static final Map<String, ImageIcon> PIECE_ICON_MAP = getPieceIconMap();
-
+    static final Map<String, ImageIcon> PIECE_ICON_MAP = getPieceIconMap();
     private static final Table TABLE_INSTANCE = new Table();
+
+    private final JFrame gameFrame;
+    private final BoardPanel boardPanel;
+    private final MoveHistoryPanel moveHistoryPanel;
+    private final InfoPanel infoPanel;
+    private final MoveLog movelog;
+    private final List<Board> boardHistory;
+    private final GameSetup gameSetup;
+    private final AIObserver aiObserver;
+    private final PropertyChangeSupport support;
+    private Board board;
+    private BoardDirection boardDirection;
+    private Point sourcePoint;
+    private Point destPoint;
+    private Piece humanMovedPiece;
 
     private Table() {
         gameFrame = new JFrame("CChess");
@@ -91,14 +91,16 @@ public class Table extends Observable {
         board = Board.initialiseBoard();
         boardDirection = BoardDirection.NORMAL;
         boardPanel = new BoardPanel(BOARD_ICON.getImage());
-        historyPanel = new GameHistoryPanel();
+        moveHistoryPanel = new MoveHistoryPanel();
         infoPanel = new InfoPanel();
         infoPanel.updateStatusPanel(board);
         movelog = new MoveLog();
         boardHistory = new ArrayList<>();
         boardHistory.add(board);
-        addObserver(new AIObserver());
         gameSetup = new GameSetup(gameFrame, true);
+        aiObserver = new AIObserver();
+        support = new PropertyChangeSupport(this);
+        support.addPropertyChangeListener(aiObserver);
 
         JMenuBar tableMenuBar = createMenuBar();
         gameFrame.setJMenuBar(tableMenuBar);
@@ -107,7 +109,7 @@ public class Table extends Observable {
         JPanel wrapperPanel = new JPanel();
         wrapperPanel.add(boardPanel);
         gameFrame.add(wrapperPanel, BorderLayout.CENTER);
-        gameFrame.add(historyPanel, BorderLayout.EAST);
+        gameFrame.add(moveHistoryPanel, BorderLayout.EAST);
         gameFrame.add(infoPanel, BorderLayout.WEST);
 
         gameFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -138,12 +140,9 @@ public class Table extends Observable {
             int option = JOptionPane.showConfirmDialog(gameFrame, "Start a new game?",
                     "", JOptionPane.YES_NO_OPTION);
             if (option == JOptionPane.YES_OPTION) {
-                if (aiPlayer != null) {
-                    aiPlayer.cancel(true);
-                }
+                aiObserver.stopAI();
                 undoAllMoves();
-                setChanged();
-                notifyObservers();
+                support.firePropertyChange("newgame", null, null);
             }
         });
         gameMenu.add(newGame);
@@ -168,33 +167,27 @@ public class Table extends Observable {
     private JMenu createOptionsMenu() {
         JMenu optionsMenu = new JMenu("Options");
 
-        JMenuItem undoMove = new JMenuItem("Undo last move");
-        undoMove.addActionListener(e -> {
-            if (aiPlayer != null) {
-                aiPlayer.cancel(true);
-            }
-            undoLastMove();
-            setChanged();
-            notifyObservers();
-        });
-        optionsMenu.add(undoMove);
-
         JMenuItem undoTurn = new JMenuItem("Undo last turn");
         undoTurn.addActionListener(e -> {
-            if (aiPlayer != null) {
-                aiPlayer.cancel(true);
-            }
+            aiObserver.stopAI();
             undoLastTurn();
-            setChanged();
-            notifyObservers();
+            support.firePropertyChange("undoturn", null, null);
         });
         optionsMenu.add(undoTurn);
+
+        JMenuItem undoMove = new JMenuItem("Undo last move");
+        undoMove.addActionListener(e -> {
+            aiObserver.stopAI();
+            undoLastMove();
+            support.firePropertyChange("undomove", null, null);
+        });
+        optionsMenu.add(undoMove);
         optionsMenu.addSeparator();
 
         JMenuItem setupMenuItem = new JMenuItem("Setup...");
         setupMenuItem.addActionListener(e -> {
             gameSetup.promptUser();
-            setupUpdate(gameSetup);
+            setupUpdate();
         });
         optionsMenu.add(setupMenuItem);
         optionsMenu.addSeparator();
@@ -241,9 +234,7 @@ public class Table extends Observable {
                 if (!lgu.isValidFile()) {
                     JOptionPane.showMessageDialog(gameFrame, "Invalid file");
                 } else {
-                    if (aiPlayer != null) {
-                        aiPlayer.cancel(true);
-                    }
+                    aiObserver.stopAI();
                     List<Board> boards = lgu.getBoardHistory();
                     boardHistory.clear();
                     boardHistory.addAll(boards);
@@ -253,7 +244,7 @@ public class Table extends Observable {
                     for (Move move : lgu.getMoves()) {
                         movelog.addMove(move);
                     }
-                    historyPanel.update(movelog);
+                    moveHistoryPanel.update(movelog);
                     infoPanel.updateCapturedPanel(movelog);
                     infoPanel.updateStatusPanel(board);
                     boardPanel.drawBoard(board);
@@ -275,7 +266,7 @@ public class Table extends Observable {
             boardHistory.remove(boardHistory.size() - 1);
             board = boardHistory.get(boardHistory.size() - 1);
 
-            historyPanel.update(movelog);
+            moveHistoryPanel.update(movelog);
             infoPanel.updateCapturedPanel(movelog);
             infoPanel.updateStatusPanel(board);
             boardPanel.drawBoard(board);
@@ -301,17 +292,13 @@ public class Table extends Observable {
         infoPanel.setDirection(boardDirection);
     }
 
-    private void moveMadeUpdate(PlayerType playerType) {
-        setChanged();
-        notifyObservers(playerType);
+    private void moveMadeUpdate() {
+        support.firePropertyChange("movemade", null, null);
     }
 
-    private void setupUpdate(GameSetup gameSetup) {
-        if (aiPlayer != null) {
-            aiPlayer.cancel(true);
-        }
-        setChanged();
-        notifyObservers(gameSetup);
+    private void setupUpdate() {
+        aiObserver.stopAI();
+        support.firePropertyChange("setupupdate", null, null);
     }
 
     private void clearSelections() {
@@ -381,66 +368,6 @@ public class Table extends Observable {
 
     private static Color getHighlightBorderColor(Piece piece) {
         return piece.getAlliance().isRed() ? Color.RED : Color.BLACK;
-    }
-
-    public enum BoardDirection {
-        NORMAL {
-            @Override
-            boolean isNormal() {
-                return true;
-            }
-
-            @Override
-            List<PointPanel> traverse(List<PointPanel> pointPanels) {
-                return pointPanels;
-            }
-
-            @Override
-            BoardDirection opposite() {
-                return FLIPPED;
-            }
-        },
-        FLIPPED {
-            @Override
-            boolean isNormal() {
-                return false;
-            }
-
-            @Override
-            List<PointPanel> traverse(List<PointPanel> pointPanels) {
-                List<PointPanel> copy = new ArrayList<>(pointPanels);
-                Collections.reverse(copy);
-                return copy;
-            }
-
-            @Override
-            BoardDirection opposite() {
-                return NORMAL;
-            }
-        };
-
-        abstract boolean isNormal();
-
-        abstract List<PointPanel> traverse(List<PointPanel> pointPanels);
-
-        abstract BoardDirection opposite();
-    }
-
-    public enum PlayerType {
-        HUMAN {
-            @Override
-            boolean isComputer() {
-                return false;
-            }
-        },
-        COMPUTER {
-            @Override
-            boolean isComputer() {
-                return true;
-            }
-        };
-
-        abstract boolean isComputer();
     }
 
     public static class MoveLog {
@@ -530,6 +457,49 @@ public class Table extends Observable {
         }
     }
 
+    public enum BoardDirection {
+        NORMAL {
+            @Override
+            boolean isNormal() {
+                return true;
+            }
+
+            @Override
+            List<PointPanel> traverse(List<PointPanel> pointPanels) {
+                return pointPanels;
+            }
+
+            @Override
+            BoardDirection opposite() {
+                return FLIPPED;
+            }
+        },
+        FLIPPED {
+            @Override
+            boolean isNormal() {
+                return false;
+            }
+
+            @Override
+            List<PointPanel> traverse(List<PointPanel> pointPanels) {
+                List<PointPanel> copy = new ArrayList<>(pointPanels);
+                Collections.reverse(copy);
+                return copy;
+            }
+
+            @Override
+            BoardDirection opposite() {
+                return NORMAL;
+            }
+        };
+
+        abstract boolean isNormal();
+
+        abstract List<PointPanel> traverse(List<PointPanel> pointPanels);
+
+        abstract BoardDirection opposite();
+    }
+
     private class PointPanel extends JLayeredPane {
 
         private final Coordinate position;
@@ -571,10 +541,10 @@ public class Table extends Observable {
 
                                 clearSelections();
                                 SwingUtilities.invokeLater(() -> {
-                                    historyPanel.update(movelog);
+                                    moveHistoryPanel.update(movelog);
                                     infoPanel.updateCapturedPanel(movelog);
                                     infoPanel.updateStatusPanel(board);
-                                    moveMadeUpdate(PlayerType.HUMAN);
+                                    moveMadeUpdate();
                                 });
                             }
                         }
@@ -682,75 +652,196 @@ public class Table extends Observable {
         }
     }
 
-    private static class AIObserver implements Observer {
+    private static class AIObserver implements PropertyChangeListener {
+
+        private static final MoveBook movebook = MoveBook.getInstance();
+
+        private FixedDepthAIPlayer fixedDepthAIPlayer;
+        private FixedTimeAIPlayer fixedTimeAIPlayer;
 
         @Override
-        public void update(Observable o, Object arg) {
-            if (Table.getInstance().gameSetup.isAIPlayer(Table.getInstance().board.getCurrPlayer())
-                && !Table.getInstance().board.getCurrPlayer().isInCheckmate()) {
-                getInstance().aiPlayer = new AIPlayer();
-                getInstance().aiPlayer.execute();
+        public void propertyChange(PropertyChangeEvent evt) {
+            if (getInstance().gameSetup.isAIPlayer(getInstance().board.getCurrPlayer())
+                    && !getInstance().board.getCurrPlayer().isInCheckmate()) {
+                Board board = getInstance().board;
+                Optional<Move> move = movebook.getRandomMove(board);
+                if (move.isPresent()) {
+                    makeMove(move.get());
+                    System.out.println(move.get() + " [movebook]");
+                    return;
+                }
+                if (getInstance().gameSetup.isAITimeLimited()) {
+                    fixedTimeAIPlayer = new FixedTimeAIPlayer();
+                    fixedTimeAIPlayer.execute();
+                } else {
+                    fixedDepthAIPlayer = new FixedDepthAIPlayer();
+                    fixedDepthAIPlayer.execute();
+                }
+            }
+        }
+
+        private static void makeMove(Move move) {
+            getInstance().board = getInstance().board.getCurrPlayer().makeMove(move).getNextBoard();
+            getInstance().boardHistory.add(getInstance().board);
+            getInstance().movelog.addMove(move);
+            getInstance().boardPanel.drawBoard(getInstance().board);
+            getInstance().moveHistoryPanel.update(getInstance().movelog);
+            getInstance().infoPanel.updateCapturedPanel(getInstance().movelog);
+            getInstance().infoPanel.updateStatusPanel(getInstance().board);
+            getInstance().moveMadeUpdate();
+        }
+
+        private void stopAI() {
+            if (fixedDepthAIPlayer != null) {
+                fixedDepthAIPlayer.cancel(true);
+            }
+            if (fixedTimeAIPlayer != null) {
+                fixedTimeAIPlayer.cancelTimer();
+                fixedTimeAIPlayer.cancel(true);
             }
         }
     }
 
-    private static class AIPlayer extends SwingWorker<Move, String> {
+    private abstract static class AIPlayer extends SwingWorker<Move, String> {
 
-        private static final MoveBook movebook = MoveBook.getInstance();
         private static final int MAX_CONSEC_CHECKS = 3;
-        private Piece bannedPiece; // prevent consec checking
+
+        Piece bannedPiece;
 
         private AIPlayer() {
+            bannedPiece = getBannedPiece();
+        }
+
+        private Piece getBannedPiece() {
             List<Board> boardHistory = getInstance().boardHistory;
             List<Move> moveHistory = getInstance().movelog.getMoves();
-            if (moveHistory.size() < MAX_CONSEC_CHECKS * 2) return;
+            if (moveHistory.size() < MAX_CONSEC_CHECKS * 2) return null;
 
             for (int i = 0; i < MAX_CONSEC_CHECKS; i++) {
                 Board board = boardHistory.get(boardHistory.size() - 2 - i*2);
-                if (!board.getCurrPlayer().isInCheck()) return;
+                if (!board.getCurrPlayer().isInCheck()) return null;
             }
 
             Board board = boardHistory.get(boardHistory.size() - MAX_CONSEC_CHECKS*2);
             Move move = moveHistory.get(moveHistory.size() - MAX_CONSEC_CHECKS*2);
-            if (move.getCapturedPiece().isPresent()) return;
+            if (move.getCapturedPiece().isPresent()) return null;
             Piece movedPiece = board.getPoint(move.getDestPosition()).getPiece().get();
             for (int i = 1; i < MAX_CONSEC_CHECKS; i++) {
                 move = moveHistory.get(moveHistory.size() - MAX_CONSEC_CHECKS*2 + i*2);
-                if (!move.getMovedPiece().equals(movedPiece) || move.getCapturedPiece().isPresent()) return;
+                if (!move.getMovedPiece().equals(movedPiece) || move.getCapturedPiece().isPresent()) return null;
                 board = boardHistory.get(boardHistory.size() - MAX_CONSEC_CHECKS*2 + i*2);
                 movedPiece = board.getPoint(move.getDestPosition()).getPiece().get();
             }
 
             // check limit reached
-            bannedPiece = movedPiece;
+            return movedPiece;
         }
+    }
+
+    private static class FixedDepthAIPlayer extends AIPlayer {
+
+        private int searchDepth;
+        private long startTime;
+        private long endTime;
 
         @Override
         public void done() {
             if (isCancelled()) return;
-
             try {
                 Move bestMove = get();
-                getInstance().board = getInstance().board.getCurrPlayer().makeMove(bestMove).getNextBoard();
-                getInstance().boardHistory.add(getInstance().board);
-                getInstance().movelog.addMove(bestMove);
-                getInstance().boardPanel.drawBoard(getInstance().board);
-                getInstance().historyPanel.update(getInstance().movelog);
-                getInstance().infoPanel.updateCapturedPanel(getInstance().movelog);
-                getInstance().infoPanel.updateStatusPanel(getInstance().board);
-                getInstance().moveMadeUpdate(PlayerType.COMPUTER);
+                AIObserver.makeMove(bestMove);
+                endTime = System.currentTimeMillis();
+                System.out.println(bestMove.toString() + " | " + (endTime - startTime)/1000 + "s | " + "depth " + searchDepth);
             } catch (InterruptedException | ExecutionException e) {
                 e.printStackTrace();
             }
         }
 
         @Override
-        protected Move doInBackground() throws Exception {
-            Board board = Table.getInstance().board;
-            Optional<Move> move = movebook.getRandomMove(board);
-
-            return move.orElseGet(() ->
-                    Minimax.getInstance().execute(board, getInstance().gameSetup.getSearchDepth(), bannedPiece));
+        protected Move doInBackground() {
+            startTime = System.currentTimeMillis();
+            searchDepth = getInstance().gameSetup.getSearchDepth();
+            return MiniMax.getInstance().fixedDepth(getInstance().board, searchDepth, bannedPiece);
         }
+    }
+
+    public static class FixedTimeAIPlayer extends AIPlayer implements PropertyChangeListener {
+
+        private final Timer timer;
+        private Move currBestMove;
+        private int currDepth;
+        private TimerTask currTask;
+        private int searchTime;
+
+        private FixedTimeAIPlayer() {
+            timer = new Timer("AI Timer");
+        }
+
+        @Override
+        protected Move doInBackground() throws Exception {
+            currTask = getTimerTask();
+            searchTime = getInstance().gameSetup.getSearchTime() * 1000;
+            timer.schedule(currTask, searchTime);
+            return MiniMax.getInstance().iterativeDeepening(getInstance().board, bannedPiece, this,
+                    System.currentTimeMillis() + searchTime);
+        }
+
+        @Override
+        public void propertyChange(PropertyChangeEvent evt) {
+            currBestMove = (Move) evt.getNewValue();
+            currDepth = (int) evt.getOldValue();
+        }
+
+        private TimerTask getTimerTask() {
+            return new TimerTask() {
+                @Override
+                public void run() {
+                    AIObserver.makeMove(currBestMove);
+                    System.out.println(currBestMove.toString() + " | "
+                            + searchTime + "s | " + "depth " + currDepth);
+                    FixedTimeAIPlayer.this.cancel(true);
+                }
+            };
+        }
+
+        void cancelTimer() {
+            if (currTask != null) {
+                currTask.cancel();
+            }
+        }
+    }
+
+    public enum PlayerType {
+        HUMAN {
+            @Override
+            boolean isAI() {
+                return false;
+            }
+        },
+        AI {
+            @Override
+            boolean isAI() {
+                return true;
+            }
+        };
+
+        abstract boolean isAI();
+    }
+
+    public enum AIType {
+        TIME {
+            @Override
+            boolean isTimeLimited() {
+                return true;
+            }
+        },
+        DEPTH {
+            @Override
+            boolean isTimeLimited() {
+                return false;
+            }
+        };
+
+        abstract boolean isTimeLimited();
     }
 }
