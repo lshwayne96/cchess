@@ -21,8 +21,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Represents a Chinese chess board.
+ */
 public class Board {
 
+    /* The following 2D arrays represent the positional values of each piece on all positions of the board */
     public static int[][] POSITION_VALUES_SOLDIER = {
             {  0,    0,    0,    2,    4,    2,    0,    0,    0},
             { 40,   60,  100,  130,  140,  130,  100,   60,   40},
@@ -135,6 +139,9 @@ public class Board {
         currPlayer = builder.currTurn.choosePlayer(redPlayer, blackPlayer);
     }
 
+    /**
+     * Returns a list of points representing a board based on the given builder.
+     */
     private static List<Point> createBoard(Builder builder) {
         List<Point> points = new ArrayList<>();
 
@@ -148,10 +155,13 @@ public class Board {
         return Collections.unmodifiableList(points);
     }
 
-    private static Collection<Piece> getActivePieces(List<Point> board, Alliance alliance) {
+    /**
+     * Returns a collection of active pieces in the given list of points belonging to the given alliance.
+     */
+    private static Collection<Piece> getActivePieces(List<Point> pointList, Alliance alliance) {
         List<Piece> activePieces = new ArrayList<>();
 
-        for (Point point : board) {
+        for (Point point : pointList) {
             Optional<Piece> piece = point.getPiece();
             piece.ifPresent(p -> {
                 if (p.getAlliance() == alliance) {
@@ -163,10 +173,12 @@ public class Board {
         return Collections.unmodifiableList(activePieces);
     }
 
+    /**
+     * Returns the initial state of the board.
+     */
     public static Board initialiseBoard() {
         Builder builder = new Builder();
 
-        // BLACK layout
         builder.putPiece(new Chariot(new Coordinate(0, 0), Alliance.BLACK))
                 .putPiece(new Horse(new Coordinate(0, 1), Alliance.BLACK))
                 .putPiece(new Elephant(new Coordinate(0, 2), Alliance.BLACK))
@@ -184,7 +196,6 @@ public class Board {
                 .putPiece(new Soldier(new Coordinate(3, 6), Alliance.BLACK))
                 .putPiece(new Soldier(new Coordinate(3, 8), Alliance.BLACK));
 
-        // RED layout
         builder.putPiece(new Chariot(new Coordinate(9, 0), Alliance.RED))
                 .putPiece(new Horse(new Coordinate(9, 1), Alliance.RED))
                 .putPiece(new Elephant(new Coordinate(9, 2), Alliance.RED))
@@ -202,12 +213,14 @@ public class Board {
                 .putPiece(new Soldier(new Coordinate(6, 6), Alliance.RED))
                 .putPiece(new Soldier(new Coordinate(6, 8), Alliance.RED));
 
-        // RED moves first
         builder.setCurrTurn(Alliance.RED);
 
         return builder.build();
     }
 
+    /**
+     * Returns a collection of legal moves that can be made by the given collection of pieces.
+     */
     private Collection<Move> getLegalMoves(Collection<Piece> pieces) {
         List<Move> legalMoves = new ArrayList<>();
 
@@ -218,6 +231,10 @@ public class Board {
         return Collections.unmodifiableList(legalMoves);
     }
 
+    /**
+     * Returns the current status of this board.
+     * @return The current status of this board.
+     */
     public BoardStatus getStatus() {
         if (redPlayer.getActivePieces().size() <= MAX_PIECES_IN_ENDGAME
                 && blackPlayer.getActivePieces().size() <= MAX_PIECES_IN_ENDGAME) {
@@ -230,10 +247,18 @@ public class Board {
         return BoardStatus.OPENING;
     }
 
+    /**
+     * Checks if the game on this board is already over.
+     * @return true if the game is over, false otherwise.
+     */
     public boolean isGameOver() {
         return currPlayer.isInCheckmate();
     }
 
+    /**
+     * Checks if the game on this board is a draw.
+     * @return true if the game is a draw, false otherwise.
+     */
     public boolean isGameDraw() {
         if (getRedPieces().size() > 5 || getBlackPieces().size() > 5) {
             return false;
@@ -246,6 +271,11 @@ public class Board {
         return true;
     }
 
+    /**
+     * Checks if the given position is within bounds of the board.
+     * @param position The position to check.
+     * @return true if the given position is within bounds, false otherwise.
+     */
     public static boolean isWithinBounds(Coordinate position) {
         int row = position.getRow();
         int col = position.getCol();
@@ -253,6 +283,10 @@ public class Board {
         return (row >= 0 && row < NUM_ROWS) && (col >= 0 && col < NUM_COLS);
     }
 
+    /**
+     * Returns the mirrored version (about the middle column) of this board.
+     * @return The mirrored version of this board.
+     */
     public Board getMirrorBoard() {
         Builder builder = new Builder();
 
@@ -265,10 +299,18 @@ public class Board {
         return builder.build();
     }
 
+    /**
+     * Returns the point on this board with the given position.
+     * @param position The position of the point.
+     * @return The point on this board with the given position.
+     */
     public Point getPoint(Coordinate position) {
         return points.get(positionToIndex(position.getRow(), position.getCol()));
     }
 
+    /**
+     * Returns the index of a position based on its row and column.
+     */
     private static int positionToIndex(int row, int col) {
         return row * NUM_COLS + col;
     }
@@ -335,12 +377,18 @@ public class Board {
         return 31*toString().hashCode() + currPlayer.getAlliance().hashCode();
     }
 
+    /**
+     * Represents the current status of a board.
+     */
     public enum BoardStatus {
         OPENING,
         MIDDLE,
         END,
     }
 
+    /**
+     * A helper class for building a board.
+     */
     static class Builder {
 
         private Map<Coordinate, Piece> boardConfig;

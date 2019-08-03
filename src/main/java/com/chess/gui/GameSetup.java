@@ -39,8 +39,8 @@ public class GameSetup extends JDialog {
         // setup default settings
         redPlayerType = PlayerType.HUMAN;
         blackPlayerType = PlayerType.AI;
-        aiType = AIType.TIME;
-        searchTime = 10;
+        aiType = AIType.DEPTH;
+        searchTime = 30;
         searchDepth = 5;
 
         JPanel panel = new JPanel(new GridLayout(0, 1));

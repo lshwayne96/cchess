@@ -14,6 +14,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
+/**
+ * Represents an opening book.
+ */
 public class MoveBook {
 
     private static final Board INITIAL_BOARD = Board.initialiseBoard();
@@ -28,10 +31,19 @@ public class MoveBook {
         rand = new Random();
     }
 
+    /**
+     * Returns an instance of this move book.
+     * @return An instance of this move book.
+     */
     public static MoveBook getInstance() {
         return INSTANCE;
     }
 
+    /**
+     * Returns a random move in the book, if any, based on the given board.
+     * @param board The current board.
+     * @return A random move in the book, if any, based on the given board.
+     */
     public Optional<Move> getRandomMove(Board board) {
         List<Move> moves = movebook.get(board);
         if (moves == null) {
@@ -40,6 +52,9 @@ public class MoveBook {
         return Optional.of(moves.get(rand.nextInt(moves.size())));
     }
 
+    /**
+     * Reads the text file containing moves into a map.
+     */
     private static Map<Board, List<Move>> readMoveBook() {
         Map<Board, List<Move>> boardToMoves = new HashMap<>();
         Board board = INITIAL_BOARD;

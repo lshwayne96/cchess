@@ -8,6 +8,9 @@ import java.util.Optional;
 import static com.chess.engine.board.Board.*;
 import static com.chess.engine.pieces.Piece.*;
 
+/**
+ * Represents a player move made on the board.
+ */
 public class Move {
 
     private final Board board;
@@ -26,6 +29,10 @@ public class Move {
         this(board, movedPiece, destPosition, null);
     }
 
+    /**
+     * Executes this move on the current board.
+     * @return The new board after the move has been made.
+     */
     public Board execute() {
         Builder builder = new Builder();
 
@@ -43,6 +50,10 @@ public class Move {
         return builder.build();
     }
 
+    /**
+     * Returns the mirrored equivalent (about the middle column) of this move
+     * @return The mirrored equivalent of this move.
+     */
     public Move getMirroredMove() {
         int srcRow = movedPiece.getPosition().getRow();
         int srcCol = Board.NUM_COLS - 1 - movedPiece.getPosition().getCol();
@@ -55,6 +66,13 @@ public class Move {
         return getMove(board.getMirrorBoard(), mirroredSrcPosition, mirroredDestPosition).get();
     }
 
+    /**
+     * Returns a move, if any, corresponding to the given source and destination positions on the board.
+     * @param board The board to make a move on.
+     * @param srcPosition The source position.
+     * @param destPosition The destination position.
+     * @return A move, if any, corresponding to the given source and destination positions on the board.
+     */
     public static Optional<Move> getMove(Board board, Coordinate srcPosition, Coordinate destPosition) {
         for (Move move : board.getCurrPlayer().getLegalMoves()) {
             if (move.getMovedPiece().getPosition().equals(srcPosition)
@@ -66,13 +84,18 @@ public class Move {
         return Optional.empty();
     }
 
+    /**
+     * Returns a move, if any, corresponding to the given string notation.
+     * @param board The board to make a move on.
+     * @param str The string notation.
+     * @return A move, if any, corresponding to the given string notation.
+     */
     public static Optional<Move> stringToMove(Board board, String str) {
         if (str.length() != 6) {
             return Optional.empty();
         }
 
         Alliance alliance = board.getCurrPlayer().getAlliance();
-
         int formerRow = rankToRow(charToRank(str.charAt(1)), alliance);
         int formerCol = fileToCol(Character.getNumericValue(str.charAt(2)), alliance);
         int newRow = rankToRow(charToRank(str.charAt(4)), alliance);
@@ -84,30 +107,51 @@ public class Move {
         return getMove(board, srcPosition, destPosition);
     }
 
-    private static String getPieceAbbrev(PieceType type, Alliance alliance) {
-        return alliance.isRed() ? type.toString() : type.toString().toLowerCase();
+    /**
+     * Returns a string representation of a piece with the given type and alliance.
+     */
+    private static String getPieceAbbrev(PieceType pieceType, Alliance alliance) {
+        return alliance.isRed() ? pieceType.toString() : pieceType.toString().toLowerCase();
     }
 
+    /**
+     * Converts a column number to its corresponding file number based on the given alliance.
+     */
     private static int colToFile(int col, Alliance alliance) {
         return alliance.isRed() ? Board.NUM_COLS - col : col + 1;
     }
 
+    /**
+     * Converts a file number to its corresponding column number based on the given alliance.
+     */
     private static int fileToCol(int file, Alliance alliance) {
         return alliance.isRed() ? Board.NUM_COLS - file : file - 1;
     }
 
+    /**
+     * Converts a row number to its corresponding rank number based on the given alliance.
+     */
     private static int rowToRank(int row, Alliance alliance) {
         return alliance.isRed() ? Board.NUM_ROWS - row : row + 1;
     }
 
+    /**
+     * Converts rank number to its corresponding row number based on the given alliance.
+     */
     private static int rankToRow(int rank, Alliance alliance) {
         return alliance.isRed() ? Board.NUM_ROWS - rank : rank - 1;
     }
 
+    /**
+     * Returns a string representation of the given rank.
+     */
     private static String rankToString(int rank) {
         return rank < 10 ? Integer.toString(rank) : "X";
     }
 
+    /**
+     * Returns a rank number corresponding to the given character.
+     */
     private static int charToRank(char rank) {
         return rank == 'X' ? 10 : Character.getNumericValue(rank);
     }
@@ -125,7 +169,8 @@ public class Move {
     }
 
     /**
-     * [piece abbr][former rank][former file]-[new rank][new file]
+     * Returns a string notation representing this move.
+     * The notation follows the format: [piece abbr][former rank][former file]-[new rank][new file];
      * rank 10 is represented by "X"
      */
     @Override

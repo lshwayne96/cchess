@@ -52,6 +52,10 @@ public class Soldier extends Piece {
         return new Soldier(mirrorPosition, alliance);
     }
 
+    /**
+     * Checks if this soldier has crossed his side of the river.
+     * @return
+     */
     private boolean crossedRiver() {
         if (alliance.isRed()) {
             return position.getRow() < Board.RIVER_ROW_RED;

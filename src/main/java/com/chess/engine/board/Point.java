@@ -9,16 +9,23 @@ import java.util.Optional;
 
 public class Point {
 
+    /* A map containing all possible empty points on the board */
     private static final Map<Coordinate, Point> EMPTY_POINTS = getEmptyPoints();
 
-    private final Coordinate position;
-    private final Piece piece;
+    private final Coordinate position; // the position of this point on the board
+    private final Piece piece; // the piece (if any) on this point
 
     private Point(Coordinate position, Piece piece) {
         this.position = position;
         this.piece = piece;
     }
 
+    /**
+     * Returns an instance of a point having the given position and piece.
+     * @param position The position of the point.
+     * @param piece The piece on the point.
+     * @return An instance of a point having the given position and piece.
+     */
     static Point getInstance(Coordinate position, Piece piece) {
         if (piece == null) {
             return getInstance(position);
@@ -26,10 +33,16 @@ public class Point {
         return new Point(position, piece);
     }
 
+    /**
+     * Returns an instance of an empty point having the given position.
+     */
     private static Point getInstance(Coordinate position) {
         return EMPTY_POINTS.get(position);
     }
 
+    /**
+     * Returns a map containing all possible empty points on the board.
+     */
     private static Map<Coordinate, Point> getEmptyPoints() {
         final Map<Coordinate, Point> emptyPointMap = new HashMap<>();
 
@@ -43,6 +56,10 @@ public class Point {
         return Collections.unmodifiableMap(emptyPointMap);
     }
 
+    /**
+     * Checks if this point has no piece.
+     * @return true if this point has no piece, false otherwise.
+     */
     public boolean isEmpty() {
         return piece == null;
     }

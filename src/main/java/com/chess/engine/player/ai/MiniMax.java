@@ -18,7 +18,7 @@ import java.util.Map;
 import static com.chess.gui.Table.*;
 
 /**
- * MiniMax algorithm with Alpha-Beta pruning and Hashing of calculated board states
+ * Represents a MiniMax algorithm with Alpha-Beta pruning and Hashing of calculated board states.
  */
 public class MiniMax {
 
@@ -32,10 +32,21 @@ public class MiniMax {
         stateToValueMap = new HashMap<>();
     }
 
+    /**
+     * Returns an instance of this MiniMax.
+     * @return An instance of this MiniMax.
+     */
     public static MiniMax getInstance() {
         return INSTANCE;
     }
 
+    /**
+     * Returns the best move using fixed-depth search based on the given board and search depth.
+     * @param board The current board.
+     * @param searchDepth The depth of the search.
+     * @param bannedPiece The piece not to use for checking the opponent.
+     * @return The best move using fixed-depth search based on the given board and search depth.
+     */
     public Move fixedDepth(Board board, int searchDepth, Piece bannedPiece) {
         stateToValueMap.clear();
         Move bestMove = null;
@@ -70,6 +81,14 @@ public class MiniMax {
         return bestMove;
     }
 
+    /**
+     * Returns the best move using time-limited search based on the given board and end time.
+     * @param board The current board.
+     * @param bannedPiece The piece not to use for checking the opponent.
+     * @param fixedTimeAIPlayer The AI player to notify after the best move at each depth has been computed.
+     * @param endTime The time to stop searching.
+     * @return The best move using time-limited search based on the given board and end time.
+     */
     public Move iterativeDeepening(Board board, Piece bannedPiece,
                                    FixedTimeAIPlayer fixedTimeAIPlayer, long endTime) {
         PropertyChangeSupport support = new PropertyChangeSupport(this);
@@ -119,6 +138,9 @@ public class MiniMax {
         return bestMove;
     }
 
+    /**
+     * The algorithm for the minimising player.
+     */
     private int min(Board board, int depth, int a, int b) {
         if (depth == 0 || board.isGameOver() || board.isGameDraw()) {
             return evaluator.evaluate(board, depth);
@@ -144,6 +166,9 @@ public class MiniMax {
         return minValue;
     }
 
+    /**
+     * The algorithm for the maximising player.
+     */
     private int max(Board board, int depth, int a, int b) {
         if (depth == 0 || board.isGameOver() || board.isGameDraw()) {
             return evaluator.evaluate(board, depth);
@@ -169,6 +194,9 @@ public class MiniMax {
         return maxValue;
     }
 
+    /**
+     * Represents a state containing a board and the depth at which it was evaluated.
+     */
     private static class BoardState {
 
         private final Board board;
@@ -187,6 +215,7 @@ public class MiniMax {
             if (!(obj instanceof BoardState)) {
                 return false;
             }
+
             BoardState other = (BoardState) obj;
             return this.board.equals(other.board) && this.depth == other.depth;
         }
@@ -197,6 +226,9 @@ public class MiniMax {
         }
     }
 
+    /**
+     * A helper class for sorting moves to aid alpha-beta pruning.
+     */
     private static class MoveSorter {
 
         private static final Comparator<Move> MOVE_COMPARATOR = (m1, m2) -> {
@@ -237,11 +269,16 @@ public class MiniMax {
 
         private static List<Move> simpleSort(Collection<Move> moves) {
             List<Move> sortedMoves = new ArrayList<>(moves);
+
             sortedMoves.sort(MOVE_COMPARATOR);
+
             return Collections.unmodifiableList(sortedMoves);
         }
     }
 
+    /**
+     * Represents an entry containing a move and its value.
+     */
     private static class MoveEntry {
 
         private final Move move;

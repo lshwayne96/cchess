@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * A helper class for loading a saved game.
+ */
 public class LoadGameUtil {
 
     private List<Board> boardHistory;

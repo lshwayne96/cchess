@@ -29,9 +29,7 @@ public class Chariot extends Piece {
 
             while (Board.isWithinBounds(destPosition)) {
                 destPositions.add(destPosition);
-
                 if (board.getPoint(destPosition).getPiece().isPresent()) break;
-
                 destPosition = destPosition.add(vector);
             }
         }

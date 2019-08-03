@@ -60,6 +60,9 @@ public class Elephant extends Piece {
         return new Elephant(mirrorPosition, alliance);
     }
 
+    /**
+     * Checks if the given position is valid for this elephant.
+     */
     private boolean isValidPosition(Coordinate positionToTest) {
         if (alliance.isRed()) {
             return VALID_POSITIONS_RED.contains(positionToTest);

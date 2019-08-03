@@ -56,6 +56,9 @@ public class Advisor extends Piece {
         return new Advisor(mirrorPosition, alliance);
     }
 
+    /**
+     * Checks if the given position is valid for this advisor.
+     */
     private boolean isValidPosition(Coordinate positionToTest) {
         if (alliance.isRed()) {
             return VALID_POSITIONS_RED.contains(positionToTest);

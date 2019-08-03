@@ -62,6 +62,9 @@ public class General extends Piece {
         return new General(mirrorPosition, alliance);
     }
 
+    /**
+     * Checks if the given position is valid for this general.
+     */
     private boolean isValidPosition(Coordinate positionToTest) {
         int row = positionToTest.getRow();
         int col = positionToTest.getCol();

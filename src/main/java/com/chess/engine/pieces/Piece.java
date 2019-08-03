@@ -13,6 +13,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Represents a chess piece.
+ */
 public abstract class Piece {
 
     private final PieceType pieceType;
@@ -27,12 +30,31 @@ public abstract class Piece {
         hashCode = getHashCode();
     }
 
+    /**
+     * Returns a collection of positions reachable by this piece.
+     * @param board The board this piece is on.
+     * @return A collection of positions reachable by this piece.
+     */
     public abstract Collection<Coordinate> getDestPositions(Board board);
 
+    /**
+     * Moves this piece based on the given move and returns the new piece.
+     * @param move The move made on this piece.
+     * @return The new piece after the move is made.
+     */
     public abstract Piece movePiece(Move move);
 
+    /**
+     * Returns the mirrored version (about the middle column) of this piece.
+     * @return the mirrored version of this piece.
+     */
     public abstract Piece getMirrorPiece();
 
+    /**
+     * Returns a collection of legal moves that can be made by this piece on the given board.
+     * @param board The board this piece is on.
+     * @return a collection of legal moves that can be made by this piece on the given board.
+     */
     public Collection<Move> getLegalMoves(Board board) {
         List<Move> legalMoves = new ArrayList<>();
 
@@ -61,6 +83,11 @@ public abstract class Piece {
         return alliance;
     }
 
+    /**
+     * Returns the material value of this piece, given the current board status.
+     * @param boardStatus The current board status.
+     * @return The material value of this piece, given the current board status.
+     */
     public int getMaterialValue(BoardStatus boardStatus) {
         if (boardStatus.equals(BoardStatus.OPENING)) {
             return pieceType.openingValue;
@@ -71,6 +98,10 @@ public abstract class Piece {
         return pieceType.endValue;
     }
 
+    /**
+     * Returns the positional value of this piece.
+     * @return The positional value of this piece.
+     */
     public int getPositionValue() {
         return alliance.isRed() ? pieceType.positionValues[position.getRow()][position.getCol()]
                 : pieceType.positionValues[Board.NUM_ROWS - position.getRow() - 1][Board.NUM_COLS - position.getCol() - 1];
@@ -109,6 +140,9 @@ public abstract class Piece {
         return result;
     }
 
+    /**
+     * Represents the type of a piece.
+     */
     public enum PieceType {
 
         SOLDIER("S", true,

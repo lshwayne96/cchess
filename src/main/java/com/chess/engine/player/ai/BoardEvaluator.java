@@ -10,23 +10,37 @@ import java.util.Collection;
 import static com.chess.engine.board.Board.*;
 import static com.chess.engine.pieces.Piece.*;
 
+/**
+ * A helper class for evaluating a board.
+ */
 final class BoardEvaluator {
 
     private static final BoardEvaluator INSTANCE = new BoardEvaluator();
 
-    private BoardEvaluator() {
+    /**
+     * Returns an instance of this board evaluator.
+     * @return An instance of this board evaluator.
+     */
+    static BoardEvaluator getInstance() {
+        return INSTANCE;
     }
 
+    /**
+     * Returns the heuristic value of the given board at the current search depth.
+     * The higher the value, the better for the red player.
+     * @param board The current board.
+     * @param depth The current search depth.
+     * @return
+     */
     int evaluate(Board board, int depth) {
         return getPlayerScore(board, board.getRedPlayer(), depth)
                 - getPlayerScore(board, board.getBlackPlayer(), depth);
                 //+ getRelationScore(board);
     }
 
-    static BoardEvaluator getInstance() {
-        return INSTANCE;
-    }
-
+    /**
+     * Returns a heuristic value of a player based on the given board and search depth.
+     */
     private static int getPlayerScore(Board board, Player player, int depth) {
         int standardValue = getTotalPieceValue(board, player) + getTotalMobilityValue(player);
 
@@ -39,6 +53,9 @@ final class BoardEvaluator {
         return standardValue + checkmateValue;
     }
 
+    /**
+     * Returns the total value of all active pieces of the given player on the given board.
+     */
     private static int getTotalPieceValue(Board board, Player player) {
         int totalMaterialValue = 0;
         int totalPositionValue = 0;
@@ -94,6 +111,9 @@ final class BoardEvaluator {
         return totalMaterialValue + totalPositionValue + totalCohesionValue;
     }
 
+    /**
+     * Returns the total mobility value of the given player.
+     */
     private static int getTotalMobilityValue(Player player) {
         int totalMobilityValue = 0;
 
@@ -104,6 +124,10 @@ final class BoardEvaluator {
         return totalMobilityValue;
     }
 
+    /**
+     * Returns a complex relationship analysis score on the given board.
+     * The higher the score, the better for the red player.
+     */
     private static int getRelationScore(Board board) {
         int[] scores = new int[2];
         BoardStatus boardStatus = board.getStatus();
@@ -182,6 +206,9 @@ final class BoardEvaluator {
         return scores[0] - scores[1];
     }
 
+    /**
+     * Returns the checkmate value for the given player.
+     */
     private static int getCheckmateValue(Player player) {
         return player.getOpponent().isInCheckmate() ? PieceType.GENERAL.getDefaultValue() : 0;
     }

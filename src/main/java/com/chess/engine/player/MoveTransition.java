@@ -3,6 +3,9 @@ package com.chess.engine.player;
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Move;
 
+/**
+ * Represents a transition state while making a move on the board.
+ */
 public class MoveTransition {
 
     private final Board nextBoard;

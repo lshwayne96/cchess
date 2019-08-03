@@ -1,5 +1,8 @@
 package com.chess.engine.board;
 
+/**
+ * Represents a position on the board OR a movement vector.
+ */
 public class Coordinate {
 
     private final int row;
@@ -10,10 +13,20 @@ public class Coordinate {
         this.col = col;
     }
 
+    /**
+     * Adds the given movement vector to this position and returns the new position.
+     * @param vector The vector to add.
+     * @return The new position (not guaranteed to be within bounds of the board).
+     */
     public Coordinate add(Coordinate vector) {
         return new Coordinate(this.row + vector.row, this.col + vector.col);
     }
 
+    /**
+     * Scales this movement vector by the given constant factor and returns the scaled vector.
+     * @param factor The factor to scale by.
+     * @return The scaled vector.
+     */
     public Coordinate scale(int factor) {
         return new Coordinate(this.row * factor, this.col * factor);
     }
