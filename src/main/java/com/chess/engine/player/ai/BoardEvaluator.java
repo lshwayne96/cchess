@@ -34,8 +34,8 @@ final class BoardEvaluator {
      */
     int evaluate(Board board, int depth) {
         return getPlayerScore(board, board.getRedPlayer(), depth)
-                - getPlayerScore(board, board.getBlackPlayer(), depth);
-                //+ getRelationScore(board);
+                - getPlayerScore(board, board.getBlackPlayer(), depth)
+                + getRelationScore(board);
     }
 
     /**

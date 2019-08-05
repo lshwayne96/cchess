@@ -74,7 +74,7 @@ class GameSetup extends Dialog {
 
         Spinner searchDepthSpinner = new Spinner(MIN_DEPTH, MAX_DEPTH, searchDepth, 1);
         searchDepthSpinner.setEditable(true);
-        Spinner searchTimeSpinner = new Spinner(MIN_TIME, MAX_TIME, searchTime, 5);
+        Spinner searchTimeSpinner = new Spinner(MIN_TIME, MAX_TIME, searchTime, 10);
         searchTimeSpinner.setEditable(true);
 
         ButtonType cancel = new ButtonType("Cancel", ButtonData.CANCEL_CLOSE);
@@ -96,6 +96,7 @@ class GameSetup extends Dialog {
                 searchDepth = (int) searchDepthSpinner.getValue();
             } catch (NumberFormatException nfe) {
                 Alert alert = new Alert(AlertType.ERROR, "Depth must be an integer from 2 to 8");
+                alert.setTitle("Setup");
                 alert.showAndWait();
                 searchDepthSpinner.getEditor().textProperty().set(Integer.toString(searchDepth));
             }
@@ -103,7 +104,8 @@ class GameSetup extends Dialog {
                 Integer.parseInt(searchTimeSpinner.getEditor().textProperty().get());
                 searchTime = (int) searchTimeSpinner.getValue();
             } catch (NumberFormatException nfe) {
-                Alert alert = new Alert(AlertType.ERROR, "Time must be an integer");
+                Alert alert = new Alert(AlertType.ERROR, "Time must be an integer from 1 to 180");
+                alert.setTitle("Setup");
                 alert.showAndWait();
                 searchTimeSpinner.getEditor().textProperty().set(Integer.toString(searchTime));
             }

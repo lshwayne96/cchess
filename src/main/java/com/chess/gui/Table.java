@@ -136,10 +136,12 @@ public class Table extends BorderPane {
         newGame.setOnAction(e -> {
             if (movelog.isEmpty()) {
                 Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
+                alert.setTitle("New game");
                 alert.showAndWait();
                 return;
             }
             Alert alert = new Alert(AlertType.CONFIRMATION, "Start a new game?");
+            alert.setTitle("New game");
             alert.showAndWait().ifPresent(response -> {
                 if (response.equals(ButtonType.OK)) {
                     aiObserver.stopAI();
@@ -205,6 +207,7 @@ public class Table extends BorderPane {
     private void saveGame() {
         if (movelog.isEmpty()) {
             Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
+            alert.setTitle("Save game");
             alert.showAndWait();
             return;
         }
@@ -226,6 +229,7 @@ public class Table extends BorderPane {
             }
 
             Alert alert = new Alert(AlertType.INFORMATION, "Save success");
+            alert.setTitle("Save game");
             alert.showAndWait();
         }
     }
@@ -242,6 +246,7 @@ public class Table extends BorderPane {
             LoadGameUtil lgu = new LoadGameUtil(file);
             if (!lgu.isValidFile()) {
                 Alert alert = new Alert(AlertType.ERROR, "Invalid file");
+                alert.setTitle("Load game");
                 alert.showAndWait();
             } else {
                 aiObserver.stopAI();
@@ -263,6 +268,7 @@ public class Table extends BorderPane {
                 notifyAIObserver("load");
 
                 Alert alert = new Alert(AlertType.INFORMATION, "Load success");
+                alert.setTitle("Load game");
                 alert.showAndWait();
             }
         }
@@ -285,6 +291,7 @@ public class Table extends BorderPane {
             boardPane.drawBoard(board);
         } else {
             Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
+            alert.setTitle("Undo last move");
             alert.showAndWait();
         }
     }
@@ -298,6 +305,7 @@ public class Table extends BorderPane {
             undoLastMove();
         } else {
             Alert alert = new Alert(AlertType.INFORMATION, "No turns made");
+            alert.setTitle("Undo last turn");
             alert.showAndWait();
         }
     }
