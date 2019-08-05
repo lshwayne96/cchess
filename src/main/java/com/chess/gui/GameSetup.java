@@ -2,119 +2,153 @@ package com.chess.gui;
 
 import com.chess.engine.player.Player;
 import com.chess.gui.Table.PlayerType;
-
-import javax.swing.ButtonGroup;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JRadioButton;
-import javax.swing.JSpinner;
-import javax.swing.SpinnerModel;
-import javax.swing.SpinnerNumberModel;
-import java.awt.Container;
-import java.awt.GridLayout;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
+import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.ToggleGroup;
+import javafx.scene.layout.GridPane;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 
 import static com.chess.gui.Table.*;
+import static javafx.scene.control.Alert.*;
+import static javafx.scene.control.ButtonBar.*;
 
-public class GameSetup extends JDialog {
+/**
+ * A dialog for changing game settings.
+ */
+class GameSetup extends Dialog {
+
+    private static final String HUMAN_TEXT = "Human";
+    private static final String AI_TEXT = "AI";
+    private static final String FIXED_DEPTH_TEXT = "Fixed depth (levels)";
+    private static final String FIXED_TIME_TEXT = "Fixed time (seconds)";
+    private static final Font HEADER_FONT = Font.font("System", FontWeight.BOLD, Font.getDefault().getSize());
+    private static final int MIN_DEPTH = 2;
+    private static final int MAX_DEPTH = 8;
+    private static final int MIN_TIME = 1;
+    private static final int MAX_TIME = 180;
 
     private PlayerType redPlayerType;
     private PlayerType blackPlayerType;
     private AIType aiType;
     private int searchDepth;
     private int searchTime;
-    private JSpinner searchDepthSpinner;
-    private JSpinner searchTimeSpinner;
 
-    private static final String HUMAN_TEXT = "Human";
-    private static final String AI_TEXT = "AI";
-    private static final String FIXED_DEPTH_TEXT = "Fixed depth";
-    private static final String FIXED_TIME_TEXT = "Fixed time";
-
-    GameSetup(JFrame frame, boolean modal) {
-        super(frame, modal);
-
-        // setup default settings
+    GameSetup() {
+        // default settings
         redPlayerType = PlayerType.HUMAN;
         blackPlayerType = PlayerType.AI;
         aiType = AIType.DEPTH;
-        searchTime = 30;
         searchDepth = 5;
+        searchTime = 30;
 
-        JPanel panel = new JPanel(new GridLayout(0, 1));
-        JRadioButton redHumanButton = new JRadioButton(HUMAN_TEXT);
-        JRadioButton redAIButton = new JRadioButton(AI_TEXT);
-        JRadioButton blackHumanButton = new JRadioButton(HUMAN_TEXT);
-        JRadioButton blackAIButton = new JRadioButton(AI_TEXT);
-        JRadioButton fixedDepthAIButton = new JRadioButton(FIXED_DEPTH_TEXT);
-        JRadioButton fixedTimeAIButton = new JRadioButton(FIXED_TIME_TEXT);
+        DialogPane dialogPane = new DialogPane();
+        GridPane gridPane = new GridPane();
 
-        ButtonGroup redGroup = new ButtonGroup();
-        redGroup.add(redHumanButton);
-        redGroup.add(redAIButton);
+        RadioButton redHumanButton = new RadioButton(HUMAN_TEXT);
+        RadioButton redAIButton = new RadioButton(AI_TEXT);
+        ToggleGroup redGroup = new ToggleGroup();
+        redHumanButton.setToggleGroup(redGroup);
+        redAIButton.setToggleGroup(redGroup);
         redHumanButton.setSelected(true);
 
-        ButtonGroup blackGroup = new ButtonGroup();
-        blackGroup.add(blackHumanButton);
-        blackGroup.add(blackAIButton);
+        RadioButton blackHumanButton = new RadioButton(HUMAN_TEXT);
+        RadioButton blackAIButton = new RadioButton(AI_TEXT);
+        ToggleGroup blackGroup = new ToggleGroup();
+        blackHumanButton.setToggleGroup(blackGroup);
+        blackAIButton.setToggleGroup(blackGroup);
         blackAIButton.setSelected(true);
 
-        ButtonGroup aiGroup = new ButtonGroup();
-        aiGroup.add(fixedDepthAIButton);
-        aiGroup.add(fixedTimeAIButton);
+        RadioButton fixedDepthAIButton = new RadioButton(FIXED_DEPTH_TEXT);
+        RadioButton fixedTimeAIButton = new RadioButton(FIXED_TIME_TEXT);
+        ToggleGroup aiGroup = new ToggleGroup();
+        fixedDepthAIButton.setToggleGroup(aiGroup);
+        fixedTimeAIButton.setToggleGroup(aiGroup);
         fixedDepthAIButton.setSelected(true);
 
-        getContentPane().add(panel);
-        panel.add(new JLabel("Red"));
-        panel.add(redHumanButton);
-        panel.add(redAIButton);
-        panel.add(new JLabel("Black"));
-        panel.add(blackHumanButton);
-        panel.add(blackAIButton);
-        panel.add(new JLabel("AI type"));
-        panel.add(fixedDepthAIButton);
-        panel.add(fixedTimeAIButton);
+        Spinner searchDepthSpinner = new Spinner(MIN_DEPTH, MAX_DEPTH, searchDepth, 1);
+        searchDepthSpinner.setEditable(true);
+        Spinner searchTimeSpinner = new Spinner(MIN_TIME, MAX_TIME, searchTime, 5);
+        searchTimeSpinner.setEditable(true);
 
-        panel.add(new JLabel("AI Settings"));
-        searchDepthSpinner = addLabeledSpinner(panel, "Depth limit (levels)",
-                new SpinnerNumberModel(searchDepth, 2, 8, 1));
-        searchTimeSpinner = addLabeledSpinner(panel, "Time limit (seconds)",
-                new SpinnerNumberModel(searchTime, 1, 180, 1));
-
-        JButton cancelButton = new JButton("Cancel");
-        JButton okButton = new JButton("OK");
-
-        okButton.addActionListener(e -> {
+        ButtonType cancel = new ButtonType("Cancel", ButtonData.CANCEL_CLOSE);
+        ButtonType ok = new ButtonType("OK", ButtonData.OK_DONE);
+        dialogPane.getButtonTypes().addAll(ok, cancel);
+        Button cancelButton = (Button) dialogPane.lookupButton(cancel);
+        cancelButton.setOnAction(e -> {
+            searchDepthSpinner.getEditor().textProperty().set(Integer.toString(searchDepth));
+            searchTimeSpinner.getEditor().textProperty().set(Integer.toString(searchTime));
+        });
+        Button okButton = (Button) dialogPane.lookupButton(ok);
+        okButton.setOnAction(e -> {
             redPlayerType = redAIButton.isSelected() ? PlayerType.AI : PlayerType.HUMAN;
             blackPlayerType = blackAIButton.isSelected() ? PlayerType.AI : PlayerType.HUMAN;
             aiType = fixedTimeAIButton.isSelected() ? AIType.TIME : AIType.DEPTH;
-            searchDepth = (int) searchDepthSpinner.getValue();
-            searchTime = (int) searchTimeSpinner.getValue();
 
-            setVisible(false);
+            try {
+                Integer.parseInt(searchDepthSpinner.getEditor().textProperty().get());
+                searchDepth = (int) searchDepthSpinner.getValue();
+            } catch (NumberFormatException nfe) {
+                Alert alert = new Alert(AlertType.ERROR, "Depth must be an integer from 2 to 8");
+                alert.showAndWait();
+                searchDepthSpinner.getEditor().textProperty().set(Integer.toString(searchDepth));
+            }
+            try {
+                Integer.parseInt(searchTimeSpinner.getEditor().textProperty().get());
+                searchTime = (int) searchTimeSpinner.getValue();
+            } catch (NumberFormatException nfe) {
+                Alert alert = new Alert(AlertType.ERROR, "Time must be an integer");
+                alert.showAndWait();
+                searchTimeSpinner.getEditor().textProperty().set(Integer.toString(searchTime));
+            }
+
+            hide();
         });
-        cancelButton.addActionListener(e -> setVisible(false));
 
-        panel.add(cancelButton);
-        panel.add(okButton);
+        Label redLabel = new Label("RED");
+        redLabel.setFont(HEADER_FONT);
+        gridPane.add(redLabel, 0, 0);
+        gridPane.add(redHumanButton, 0, 1);
+        gridPane.add(redAIButton, 0, 2);
+        Label blackLabel = new Label("BLACK");
+        blackLabel.setFont(HEADER_FONT);
+        gridPane.add(blackLabel, 0, 3);
+        gridPane.add(blackHumanButton, 0, 4);
+        gridPane.add(blackAIButton, 0, 5);
+        Label aiLabel = new Label("AI type");
+        aiLabel.setFont(HEADER_FONT);
+        gridPane.add(aiLabel, 0, 6);
+        gridPane.add(fixedDepthAIButton, 0, 7);
+        gridPane.add(searchDepthSpinner, 0, 8);
+        gridPane.add(fixedTimeAIButton, 0, 9);
+        gridPane.add(searchTimeSpinner, 0, 10);
+        dialogPane.setContent(gridPane);
 
-        setLocationRelativeTo(frame);
-        setLocation(frame.getLocation());
-        pack();
-        setVisible(false);
+        setTitle("Setup");
+        setDialogPane(dialogPane);
+        setResizable(false);
+        hide();
     }
 
-    void promptUser() {
-        setVisible(true);
-        repaint();
-    }
-
+    /**
+     * Checks if the given player is an AI.
+     * @param player The player to check.
+     * @return true if the player is an AI, false otherwise.
+     */
     boolean isAIPlayer(Player player) {
         return player.getAlliance().isRed() ? redPlayerType.isAI() : blackPlayerType.isAI();
     }
 
+    /**
+     * Checks if the current AI is fixed-time.
+     * @return true if the current AI is fixed-time, false if fixed-depth.
+     */
     boolean isAITimeLimited() {
         return aiType.isTimeLimited();
     }
@@ -125,15 +159,5 @@ public class GameSetup extends JDialog {
 
     int getSearchTime() {
         return searchTime;
-    }
-
-    private static JSpinner addLabeledSpinner(Container container, String string, SpinnerModel model) {
-        JLabel label = new JLabel(string);
-        container.add(label);
-        JSpinner spinner = new JSpinner(model);
-        label.setLabelFor(spinner);
-        container.add(spinner);
-
-        return spinner;
     }
 }

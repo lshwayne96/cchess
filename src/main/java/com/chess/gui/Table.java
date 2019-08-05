@@ -1,5 +1,6 @@
 package com.chess.gui;
 
+import com.chess.CChess;
 import com.chess.engine.LoadGameUtil;
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Coordinate;
@@ -9,37 +10,39 @@ import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.MoveTransition;
 import com.chess.engine.player.ai.MiniMax;
 import com.chess.engine.player.ai.MoveBook;
+import javafx.application.Platform;
+import javafx.concurrent.Task;
+import javafx.event.EventHandler;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundImage;
+import javafx.scene.layout.BackgroundRepeat;
+import javafx.scene.layout.Border;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.BorderStroke;
+import javafx.scene.layout.BorderStrokeStyle;
+import javafx.scene.layout.BorderWidths;
+import javafx.scene.layout.CornerRadii;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.stage.FileChooser;
 
-import javax.imageio.ImageIO;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JLayeredPane;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
-import javax.swing.WindowConstants;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.GridLayout;
-import java.awt.Image;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -53,164 +56,164 @@ import java.util.TimerTask;
 import java.util.concurrent.ExecutionException;
 
 import static com.chess.engine.pieces.Piece.*;
-import static javax.swing.SwingUtilities.isLeftMouseButton;
-import static javax.swing.SwingUtilities.isRightMouseButton;
+import static javafx.scene.control.Alert.*;
 
-public class Table {
+public class Table extends BorderPane {
 
-    private static final Dimension BOARD_PANEL_DIMENSION = new Dimension(540, 600);
-    private static final Dimension POINT_PANEL_DIMENSION = new Dimension(60, 60);
+    private static final int BOARD_WIDTH = 540;
+    private static final int BOARD_HEIGHT = 600;
+    private static final int POINT_WIDTH = 60;
     private static final String GRAPHICS_MISC_PATH = "/graphics/misc/";
     private static final String GRAPHICS_PIECES_PATH = "/graphics/pieces/";
-    private static final ImageIcon GAME_ICON = getGameIcon();
-    private static final ImageIcon BOARD_ICON = getBoardIcon();
-    private static final ImageIcon HIGHLIGHT_ICON = getHighlightIcon();
-    private static final Color HIGHLIGHT_BORDER_COLOR = Color.WHITE;
-    static final Map<String, ImageIcon> PIECE_ICON_MAP = getPieceIconMap();
+    private static final Image BOARD_IMAGE = new Image(Table.class.getResourceAsStream("/graphics/board.png"));
+    private static final Image HIGHLIGHT_LEGALS_IMAGE =
+            new Image(Table.class.getResourceAsStream(GRAPHICS_MISC_PATH + "dot.png"));
+    private static final Border HIGHLIGHT_LAST_MOVE_BORDER =
+            new Border(new BorderStroke(Color.WHITE, BorderStrokeStyle.DASHED, CornerRadii.EMPTY, new BorderWidths(1.8)));
+    private static final Border HIGHLIGHT_SELECTED_PIECE_BORDER =
+            new Border(new BorderStroke(Color.WHITE, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, new BorderWidths(2.5)));
+    static final Map<String, Image> PIECE_IMAGE_MAP = getPieceImageMap();
     private static final Table TABLE_INSTANCE = new Table();
 
-    private final JFrame gameFrame;
-    private final BoardPanel boardPanel;
-    private final MoveHistoryPanel moveHistoryPanel;
-    private final InfoPanel infoPanel;
+    private final BoardPane boardPane;
+    private final MoveHistoryPane moveHistoryPane;
+    private final InfoPane infoPane;
     private final MoveLog movelog;
     private final List<Board> boardHistory;
     private final GameSetup gameSetup;
     private final AIObserver aiObserver;
-    private final PropertyChangeSupport support;
+    private final PropertyChangeSupport propertyChangeSupport;
     private Board board;
-    private BoardDirection boardDirection;
     private Point sourcePoint;
     private Point destPoint;
-    private Piece humanMovedPiece;
+    private Piece selectedPiece;
 
     private Table() {
-        gameFrame = new JFrame("CChess");
-        gameFrame.setIconImage(GAME_ICON.getImage());
-
         board = Board.initialiseBoard();
-        boardDirection = BoardDirection.NORMAL;
-        boardPanel = new BoardPanel(BOARD_ICON.getImage());
-        moveHistoryPanel = new MoveHistoryPanel();
-        infoPanel = new InfoPanel();
-        infoPanel.updateStatusPanel(board);
+
+        boardPane = new BoardPane();
+        moveHistoryPane = new MoveHistoryPane();
+        infoPane = new InfoPane();
+        infoPane.updateStatusPane(board);
         movelog = new MoveLog();
         boardHistory = new ArrayList<>();
         boardHistory.add(board);
-        gameSetup = new GameSetup(gameFrame, true);
+        gameSetup = new GameSetup();
         aiObserver = new AIObserver();
-        support = new PropertyChangeSupport(this);
-        support.addPropertyChangeListener(aiObserver);
+        propertyChangeSupport = new PropertyChangeSupport(this);
+        propertyChangeSupport.addPropertyChangeListener(aiObserver);
 
-        JMenuBar tableMenuBar = createMenuBar();
-        gameFrame.setJMenuBar(tableMenuBar);
-        gameFrame.setLayout(new BorderLayout());
-
-        JPanel wrapperPanel = new JPanel();
-        wrapperPanel.add(boardPanel);
-        gameFrame.add(wrapperPanel, BorderLayout.CENTER);
-        gameFrame.add(moveHistoryPanel, BorderLayout.EAST);
-        gameFrame.add(infoPanel, BorderLayout.WEST);
-
-        gameFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        gameFrame.setResizable(false);
-        gameFrame.setVisible(true);
-        gameFrame.pack();
+        setTop(createMenuBar());
+        setCenter(boardPane);
+        setRight(moveHistoryPane);
+        setLeft(infoPane);
     }
 
+    /**
+     * Returns an instance of this table.
+     * @return An instance of this table.
+     */
     public static Table getInstance() {
         return TABLE_INSTANCE;
     }
 
-    private JMenuBar createMenuBar() {
-        JMenuBar tableMenuBar = new JMenuBar();
-
-        tableMenuBar.add(createGameMenu());
-        tableMenuBar.add(createOptionsMenu());
-
-        return tableMenuBar;
+    /**
+     * Creates and returns a menu bar for this table.
+     */
+    private MenuBar createMenuBar() {
+        MenuBar menuBar = new MenuBar();
+        menuBar.getMenus().addAll(createGameMenu(), createOptionsMenu());
+        return menuBar;
     }
 
-    private JMenu createGameMenu() {
-        JMenu gameMenu = new JMenu("Game");
+    /**
+     * Creates and returns a game menu for the menu bar.
+     */
+    private Menu createGameMenu() {
+        Menu gameMenu = new Menu("Game");
 
-        JMenuItem newGame = new JMenuItem("New game");
-        newGame.addActionListener(e -> {
-            if (movelog.isEmpty()) return;
-            int option = JOptionPane.showConfirmDialog(gameFrame, "Start a new game?",
-                    "", JOptionPane.YES_NO_OPTION);
-            if (option == JOptionPane.YES_OPTION) {
-                aiObserver.stopAI();
-                undoAllMoves();
-                support.firePropertyChange("newgame", null, null);
+        MenuItem newGame = new MenuItem("New game");
+        newGame.setOnAction(e -> {
+            if (movelog.isEmpty()) {
+                Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
+                alert.showAndWait();
+                return;
             }
+            Alert alert = new Alert(AlertType.CONFIRMATION, "Start a new game?");
+            alert.showAndWait().ifPresent(response -> {
+                if (response.equals(ButtonType.OK)) {
+                    aiObserver.stopAI();
+                    undoAllMoves();
+                    notifyAIObserver("newgame");
+                }
+            });
         });
-        gameMenu.add(newGame);
-        gameMenu.addSeparator();
 
-        JMenuItem saveGame = new JMenuItem("Save game");
-        saveGame.addActionListener(e -> saveGame());
-        gameMenu.add(saveGame);
+        MenuItem saveGame = new MenuItem("Save game...");
+        saveGame.setOnAction(e -> saveGame());
 
-        JMenuItem loadGame = new JMenuItem("Load game");
-        loadGame.addActionListener(e -> loadGame());
-        gameMenu.add(loadGame);
-        gameMenu.addSeparator();
+        MenuItem loadGame = new MenuItem("Load game...");
+        loadGame.setOnAction(e -> loadGame());
 
-        JMenuItem exit = new JMenuItem("Exit");
-        exit.addActionListener(e -> System.exit(0));
-        gameMenu.add(exit);
+        MenuItem exit = new MenuItem("Exit");
+        exit.setOnAction(e -> System.exit(0));
+
+        gameMenu.getItems().addAll(newGame, new SeparatorMenuItem(), saveGame, loadGame, new SeparatorMenuItem(), exit);
 
         return gameMenu;
     }
 
-    private JMenu createOptionsMenu() {
-        JMenu optionsMenu = new JMenu("Options");
+    /**
+     * Creates and returns an options menu for the menu bar.
+     */
+    private Menu createOptionsMenu() {
+        Menu optionsMenu = new Menu("Options");
 
-        JMenuItem undoTurn = new JMenuItem("Undo last turn");
-        undoTurn.addActionListener(e -> {
+        MenuItem undoTurn = new MenuItem("Undo last turn");
+        undoTurn.setOnAction(e -> {
             aiObserver.stopAI();
             undoLastTurn();
-            support.firePropertyChange("undoturn", null, null);
+            notifyAIObserver("undoturn");
         });
-        optionsMenu.add(undoTurn);
 
-        JMenuItem undoMove = new JMenuItem("Undo last move");
-        undoMove.addActionListener(e -> {
+        MenuItem undoMove = new MenuItem("Undo last move");
+        undoMove.setOnAction(e -> {
             aiObserver.stopAI();
             undoLastMove();
-            support.firePropertyChange("undomove", null, null);
+            notifyAIObserver("undomove");
         });
-        optionsMenu.add(undoMove);
-        optionsMenu.addSeparator();
 
-        JMenuItem setupMenuItem = new JMenuItem("Setup...");
-        setupMenuItem.addActionListener(e -> {
-            gameSetup.promptUser();
-            setupUpdate();
+        MenuItem setup = new MenuItem("Setup...");
+        setup.setOnAction(e -> {
+            aiObserver.stopAI();
+            gameSetup.showAndWait();
+            notifyAIObserver("setup");
         });
-        optionsMenu.add(setupMenuItem);
-        optionsMenu.addSeparator();
 
-        JMenuItem flipMenuItem = new JMenuItem("Flip board");
-        flipMenuItem.addActionListener(e -> flipBoard());
-        optionsMenu.add(flipMenuItem);
+        MenuItem flipBoard = new MenuItem("Flip board");
+        flipBoard.setOnAction(e -> boardPane.flipBoard());
+
+        optionsMenu.getItems().addAll(undoTurn, undoMove, new SeparatorMenuItem(),
+                setup, new SeparatorMenuItem(), flipBoard);
 
         return optionsMenu;
     }
 
+    /**
+     * Saves the current game in-progress into a loadable text file.
+     */
     private void saveGame() {
         if (movelog.isEmpty()) {
-            JOptionPane.showMessageDialog(gameFrame, "No moves made");
+            Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
+            alert.showAndWait();
             return;
         }
 
-        JFileChooser fc = new JFileChooser();
-        fc.setDialogTitle("Save game");
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Save game");
+        File file = fc.showSaveDialog(CChess.stage);
 
-        int val = fc.showSaveDialog(gameFrame);
-        if (val == JFileChooser.APPROVE_OPTION) {
-            File file = fc.getSelectedFile();
+        if (file != null) {
             try {
                 PrintWriter pw = new PrintWriter(file);
                 for (Move move : movelog.getMoves()) {
@@ -221,43 +224,53 @@ public class Table {
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
-            JOptionPane.showMessageDialog(gameFrame, "Save success");
+
+            Alert alert = new Alert(AlertType.INFORMATION, "Save success");
+            alert.showAndWait();
         }
     }
 
+    /**
+     * Loads a text file to restore a previously saved game.
+     */
     private void loadGame() {
-        JFileChooser fc = new JFileChooser() {
-            @Override
-            public void approveSelection() {
-                File file = getSelectedFile();
-                LoadGameUtil lgu = new LoadGameUtil(file);
-                if (!lgu.isValidFile()) {
-                    JOptionPane.showMessageDialog(gameFrame, "Invalid file");
-                } else {
-                    aiObserver.stopAI();
-                    List<Board> boards = lgu.getBoardHistory();
-                    boardHistory.clear();
-                    boardHistory.addAll(boards);
-                    board = boardHistory.get(boardHistory.size() - 1);
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Load game");
+        File file = fc.showOpenDialog(CChess.stage);
 
-                    movelog.clear();
-                    for (Move move : lgu.getMoves()) {
-                        movelog.addMove(move);
-                    }
-                    moveHistoryPanel.update(movelog);
-                    infoPanel.updateCapturedPanel(movelog);
-                    infoPanel.updateStatusPanel(board);
-                    boardPanel.drawBoard(board);
+        if (file != null) {
+            LoadGameUtil lgu = new LoadGameUtil(file);
+            if (!lgu.isValidFile()) {
+                Alert alert = new Alert(AlertType.ERROR, "Invalid file");
+                alert.showAndWait();
+            } else {
+                aiObserver.stopAI();
 
-                    JOptionPane.showMessageDialog(gameFrame, "Load success");
+                List<Board> boards = lgu.getBoardHistory();
+                boardHistory.clear();
+                boardHistory.addAll(boards);
+                board = boardHistory.get(boardHistory.size() - 1);
+
+                movelog.clear();
+                for (Move move : lgu.getMoves()) {
+                    movelog.addMove(move);
                 }
-            }
-        };
-        fc.setDialogTitle("Load game");
+                moveHistoryPane.update(movelog);
+                infoPane.updateCapturedPanes(movelog);
+                infoPane.updateStatusPane(board);
+                boardPane.drawBoard(board);
 
-        fc.showOpenDialog(gameFrame);
+                notifyAIObserver("load");
+
+                Alert alert = new Alert(AlertType.INFORMATION, "Load success");
+                alert.showAndWait();
+            }
+        }
     }
 
+    /**
+     * Undoes the last move of either player.
+     */
     private void undoLastMove() {
         if (!movelog.isEmpty()) {
             clearSelections();
@@ -266,141 +279,107 @@ public class Table {
             boardHistory.remove(boardHistory.size() - 1);
             board = boardHistory.get(boardHistory.size() - 1);
 
-            moveHistoryPanel.update(movelog);
-            infoPanel.updateCapturedPanel(movelog);
-            infoPanel.updateStatusPanel(board);
-            boardPanel.drawBoard(board);
+            moveHistoryPane.update(movelog);
+            infoPane.updateCapturedPanes(movelog);
+            infoPane.updateStatusPane(board);
+            boardPane.drawBoard(board);
+        } else {
+            Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
+            alert.showAndWait();
         }
     }
 
+    /**
+     * Undoes two consecutive moves.
+     */
     private void undoLastTurn() {
         if (movelog.getSize() > 1) {
             undoLastMove();
             undoLastMove();
+        } else {
+            Alert alert = new Alert(AlertType.INFORMATION, "No turns made");
+            alert.showAndWait();
         }
     }
 
+    /**
+     * Undoes all moves made.
+     */
     private void undoAllMoves() {
         while (!movelog.isEmpty()) {
             undoLastMove();
         }
     }
 
-    private void flipBoard() {
-        boardDirection = boardDirection.opposite();
-        boardPanel.drawBoard(board);
-        infoPanel.setDirection(boardDirection);
-    }
-
-    private void moveMadeUpdate() {
-        support.firePropertyChange("movemade", null, null);
-    }
-
-    private void setupUpdate() {
-        aiObserver.stopAI();
-        support.firePropertyChange("setupupdate", null, null);
-    }
-
+    /**
+     * Clears all mouse selections made by the human player.
+     */
     private void clearSelections() {
         sourcePoint = null;
         destPoint = null;
-        humanMovedPiece = null;
+        selectedPiece = null;
     }
 
-    private static ImageIcon getGameIcon() {
-        try {
-            BufferedImage image = ImageIO.read(Table.class.getResource("/graphics/icon.png"));
-            return new ImageIcon(image);
-        } catch (IOException e) {
-            e.printStackTrace();
+    /**
+     * Notifies the AI observer with the given property name.
+     */
+    private void notifyAIObserver(String propertyName) {
+        propertyChangeSupport.firePropertyChange(propertyName, null, null);
+    }
+
+    /**
+     * Returns a mapping from a string representing a piece to its corresponding image.
+     */
+    private static Map<String, Image> getPieceImageMap() {
+        Map<String, Image> pieceImageMap = new HashMap<>();
+
+        for (PieceType pieceType : PieceType.values()) {
+            String name = ("R" + pieceType.toString()).toLowerCase();
+            Image image = new Image(Table.class.getResourceAsStream(GRAPHICS_PIECES_PATH + name + ".png"));
+            pieceImageMap.put(name, image);
+
+            name = ("B" + pieceType.toString()).toLowerCase();
+            image = new Image(Table.class.getResourceAsStream(GRAPHICS_PIECES_PATH + name + ".png"));
+            pieceImageMap.put(name, image);
         }
 
-        return null;
+        return pieceImageMap;
     }
 
-    private static ImageIcon getBoardIcon() {
-        try {
-            BufferedImage image = ImageIO.read(Table.class.getResource("/graphics/board.png"));
-            return new ImageIcon(image);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-
-    private static ImageIcon getHighlightIcon() {
-        try {
-            BufferedImage image = ImageIO.read(Table.class.getResource(GRAPHICS_MISC_PATH + "green_dot.png"));
-            return new ImageIcon(image);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-
-    private static Map<String, ImageIcon> getPieceIconMap() {
-        Map<String, ImageIcon> stringToIconMap = new HashMap<>();
-
-        for (PieceType type : PieceType.values()) {
-            try {
-                String name = ("R" + type.toString()).toLowerCase();
-                BufferedImage image
-                        = ImageIO.read(Table.class.getResource(GRAPHICS_PIECES_PATH + name + ".png"));
-                stringToIconMap.put(name, new ImageIcon(image));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            try {
-                String name = ("B" + type.toString()).toLowerCase();
-                BufferedImage image
-                        = ImageIO.read(Table.class.getResource(GRAPHICS_PIECES_PATH + name + ".png"));
-                stringToIconMap.put(name, new ImageIcon(image));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        return stringToIconMap;
-    }
-
-    private static Color getHighlightBorderColor(Piece piece) {
-        return piece.getAlliance().isRed() ? Color.RED : Color.BLACK;
-    }
-
-    public static class MoveLog {
+    /**
+     * Helper class for storing all moves made.
+     */
+    static class MoveLog {
 
         private final List<Move> moves;
 
-        MoveLog() {
+        private MoveLog() {
             this.moves = new ArrayList<>();
         }
 
-        public List<Move> getMoves() {
+        List<Move> getMoves() {
             return moves;
         }
 
-        public int getSize() {
+        int getSize() {
             return moves.size();
         }
 
-        public boolean isEmpty() {
+        boolean isEmpty() {
             return moves.isEmpty();
         }
 
-        public void addMove(Move move) {
+        void addMove(Move move) {
             moves.add(move);
         }
 
-        public void removeLastMove() {
+        void removeLastMove() {
             if (!moves.isEmpty()) {
                 moves.remove(moves.size() - 1);
             }
         }
 
-        public Move getLastMove() {
+        Move getLastMove() {
             if (!moves.isEmpty()) {
                 return moves.get(moves.size() - 1);
             }
@@ -408,65 +387,76 @@ public class Table {
             return null;
         }
 
-        public void clear() {
+        void clear() {
             moves.clear();
         }
     }
 
-    private class BoardPanel extends JPanel {
+    /**
+     * A pane for displaying the game board.
+     */
+    private class BoardPane extends GridPane {
 
-        final List<PointPanel> pointPanels;
-        final Image background;
+        private final List<PointPane> pointPanes;
+        private BoardDirection boardDirection;
 
-        BoardPanel(Image background) {
-            super(new GridLayout(Board.NUM_ROWS, Board.NUM_COLS));
-            pointPanels = new ArrayList<>();
-            this.background = background;
+        private BoardPane() {
+            pointPanes = new ArrayList<>();
+            boardDirection = BoardDirection.NORMAL;
 
             for (int row = 0; row < Board.NUM_ROWS; row++) {
                 for (int col = 0; col < Board.NUM_COLS; col++) {
-                    PointPanel pointPanel
-                            = new PointPanel(this, new Coordinate(row, col));
-                    pointPanels.add(pointPanel);
-                    add(pointPanel);
+                    PointPane pointPane = new PointPane(new Coordinate(row, col));
+                    pointPanes.add(pointPane);
+                    add(pointPane, col, row);
                 }
             }
 
-            setPreferredSize(BOARD_PANEL_DIMENSION);
-            setMaximumSize(BOARD_PANEL_DIMENSION);
-            setMinimumSize(BOARD_PANEL_DIMENSION);
-
-            validate();
+            BackgroundImage boardImage = new BackgroundImage(BOARD_IMAGE, BackgroundRepeat.NO_REPEAT,
+                    BackgroundRepeat.NO_REPEAT, null, null);
+            setBackground(new Background(boardImage));
+            setPrefSize(BOARD_WIDTH, BOARD_HEIGHT);
+            setMinSize(BOARD_WIDTH, BOARD_HEIGHT);
+            setMaxSize(BOARD_WIDTH, BOARD_HEIGHT);
+            setGridLinesVisible(false);
         }
 
-        @Override
-        public void paintComponent(Graphics g) {
-            g.drawImage(background, 0, 0, null);
-        }
-
+        /**
+         * Redraws this board pane given the board.
+         * @param board The current board.
+         */
         private void drawBoard(Board board) {
-            removeAll();
+            getChildren().clear();
 
-            for (PointPanel pointPanel : boardDirection.traverse(pointPanels)) {
-                pointPanel.drawPoint(board);
-                add(pointPanel);
+            for (PointPane pointPane : pointPanes) {
+                pointPane.drawPoint(board);
+                if (boardDirection.isNormal()) {
+                    add(pointPane, pointPane.position.getCol(), pointPane.position.getRow());
+                } else {
+                    add(pointPane, Board.NUM_COLS - pointPane.position.getCol(),
+                            Board.NUM_ROWS - pointPane.position.getRow());
+                }
             }
+        }
 
-            validate();
-            repaint();
+        /**
+         * Flips the current board.
+         */
+        private void flipBoard() {
+            boardDirection = boardDirection.opposite();
+            drawBoard(board);
+            infoPane.setDirection(boardDirection);
         }
     }
 
+    /**
+     * Represents the direction of the board.
+     */
     public enum BoardDirection {
         NORMAL {
             @Override
             boolean isNormal() {
                 return true;
-            }
-
-            @Override
-            List<PointPanel> traverse(List<PointPanel> pointPanels) {
-                return pointPanels;
             }
 
             @Override
@@ -481,13 +471,6 @@ public class Table {
             }
 
             @Override
-            List<PointPanel> traverse(List<PointPanel> pointPanels) {
-                List<PointPanel> copy = new ArrayList<>(pointPanels);
-                Collections.reverse(copy);
-                return copy;
-            }
-
-            @Override
             BoardDirection opposite() {
                 return NORMAL;
             }
@@ -495,136 +478,129 @@ public class Table {
 
         abstract boolean isNormal();
 
-        abstract List<PointPanel> traverse(List<PointPanel> pointPanels);
-
         abstract BoardDirection opposite();
     }
 
-    private class PointPanel extends JLayeredPane {
+    /**
+     * A pane for displaying a point on the board.
+     */
+    private class PointPane extends StackPane {
 
         private final Coordinate position;
 
-        PointPanel(BoardPanel boardPanel, Coordinate position) {
-            super();
+        PointPane(Coordinate position) {
             this.position = position;
 
-            setSize(POINT_PANEL_DIMENSION);
+            setPrefSize(POINT_WIDTH, POINT_WIDTH);
+            setMinSize(POINT_WIDTH, POINT_WIDTH);
+            setMaxSize(POINT_WIDTH, POINT_WIDTH);
+            setOnMouseClicked(getMouseEventHandler());
+
             assignPointPieceIcon(board);
-
-            addMouseListener(new MouseListener() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    if (isRightMouseButton(e)) {
-                        clearSelections();
-                    } else if (isLeftMouseButton(e)) {
-                        if (sourcePoint == null) {
-                            sourcePoint = board.getPoint(position);
-                            Optional<Piece> selectedPiece = sourcePoint.getPiece();
-                            if (selectedPiece.isPresent()
-                                    && selectedPiece.get().getAlliance() == board.getCurrPlayer().getAlliance()
-                                    && !gameSetup.isAIPlayer(board.getCurrPlayer())) {
-                                humanMovedPiece = selectedPiece.get();
-                            } else {
-                                sourcePoint = null;
-                            }
-                        } else {
-                            destPoint = board.getPoint(position);
-                            Optional<Move> move = Move.getMove(board, sourcePoint.getPosition(),
-                                    destPoint.getPosition());
-                            if (!move.isPresent()) return;
-
-                            MoveTransition transition = board.getCurrPlayer().makeMove(move.get());
-                            if (transition.getMoveStatus().isDone()) {
-                                board = transition.getNextBoard();
-                                boardHistory.add(board);
-                                movelog.addMove(transition.getMove());
-
-                                clearSelections();
-                                SwingUtilities.invokeLater(() -> {
-                                    moveHistoryPanel.update(movelog);
-                                    infoPanel.updateCapturedPanel(movelog);
-                                    infoPanel.updateStatusPanel(board);
-                                    moveMadeUpdate();
-                                });
-                            }
-                        }
-                    }
-
-                    SwingUtilities.invokeLater(() -> boardPanel.drawBoard(board));
-                }
-
-                @Override
-                public void mousePressed(MouseEvent e) {
-
-                }
-
-                @Override
-                public void mouseReleased(MouseEvent e) {
-
-                }
-
-                @Override
-                public void mouseEntered(MouseEvent e) {
-
-                }
-
-                @Override
-                public void mouseExited(MouseEvent e) {
-
-                }
-            });
-
-            validate();
         }
 
+        /**
+         * Returns the mouse event handler for this point pane.
+         */
+        private EventHandler<MouseEvent> getMouseEventHandler() {
+            return event -> {
+                if (event.getButton().equals(MouseButton.SECONDARY)) {
+                    clearSelections();
+                } else if (event.getButton().equals(MouseButton.PRIMARY)) {
+                    if (sourcePoint == null) {
+                        sourcePoint = board.getPoint(position);
+                        Optional<Piece> selectedPiece = sourcePoint.getPiece();
+                        if (selectedPiece.isPresent()
+                                && selectedPiece.get().getAlliance() == board.getCurrPlayer().getAlliance()
+                                && !gameSetup.isAIPlayer(board.getCurrPlayer())) {
+                            Table.this.selectedPiece = selectedPiece.get();
+                        } else {
+                            sourcePoint = null;
+                        }
+                    } else {
+                        destPoint = board.getPoint(position);
+                        Optional<Move> move = Move.getMove(board, sourcePoint.getPosition(),
+                                destPoint.getPosition());
+                        if (!move.isPresent()) return;
+
+                        MoveTransition transition = board.getCurrPlayer().makeMove(move.get());
+                        if (transition.getMoveStatus().isDone()) {
+                            board = transition.getNextBoard();
+                            boardHistory.add(board);
+                            movelog.addMove(transition.getMove());
+
+                            clearSelections();
+                            Platform.runLater(() -> {
+                                moveHistoryPane.update(movelog);
+                                infoPane.updateCapturedPanes(movelog);
+                                infoPane.updateStatusPane(board);
+                                notifyAIObserver("movemade");
+                            });
+                        }
+                    }
+                }
+                Platform.runLater(() -> boardPane.drawBoard(board));
+            };
+        }
+
+        /**
+         * Redraws this point pane given the board.
+         * @param board The current board.
+         */
         private void drawPoint(Board board) {
             assignPointPieceIcon(board);
             highlightLastMoveAndSelectedPiece();
             highlightPossibleMoves(board);
-
-            validate();
-            repaint();
         }
 
+        /**
+         * Assigns an image to this point pane given the current piece (if any) on it.
+         * @param board The current board.
+         */
         private void assignPointPieceIcon(Board board) {
-            removeAll();
+            getChildren().clear();
 
             Point point = board.getPoint(position);
             Optional<Piece> destPiece = point.getPiece();
             destPiece.ifPresent(p -> {
                 String name = (p.getAlliance().toString().substring(0, 1) + p.getPieceType().toString()).toLowerCase();
-                ImageIcon icon = PIECE_ICON_MAP.get(name);
-                JLabel label = new JLabel(icon);
-                add(label, PALETTE_LAYER);
-
-                int offset = (int) (POINT_PANEL_DIMENSION.getWidth() - icon.getIconWidth()) / 2;
-                label.setBounds(offset, offset, icon.getIconWidth(), icon.getIconHeight());
+                Label label = new Label();
+                label.setGraphic(new ImageView(PIECE_IMAGE_MAP.get(name)));
+                getChildren().add(label);
             });
         }
 
+        /**
+         * Highlights (using a border) this point pane if it contains the selected piece
+         * OR it was part of the previous move.
+         */
         private void highlightLastMoveAndSelectedPiece() {
             Move lastMove = movelog.getLastMove();
 
             if (lastMove != null) {
                 Piece lastMovedPiece = lastMove.getMovedPiece();
                 if (lastMovedPiece.getPosition().equals(position)) {
-                    setBorder(BorderFactory.createDashedBorder(HIGHLIGHT_BORDER_COLOR, 2, 2, 2, true));
+                    setBorder(HIGHLIGHT_LAST_MOVE_BORDER);
                     return;
                 }
                 if (lastMove.getDestPosition().equals(position)) {
-                    setBorder(BorderFactory.createDashedBorder(HIGHLIGHT_BORDER_COLOR, 2, 2, 2, true));
+                    setBorder(HIGHLIGHT_LAST_MOVE_BORDER);
                     return;
                 }
             }
 
-            if (humanMovedPiece != null && humanMovedPiece.getPosition().equals(position)) {
-                setBorder(BorderFactory.createLineBorder(HIGHLIGHT_BORDER_COLOR, 2, true));
+            if (selectedPiece != null && selectedPiece.getPosition().equals(position)) {
+                setBorder(HIGHLIGHT_SELECTED_PIECE_BORDER);
                 return;
             }
 
             setBorder(null);
         }
 
+        /**
+         * Highlights (using a dot) this point pane if it is one of the legal destinations of the selected piece.
+         * @param board The current board.
+         */
         private void highlightPossibleMoves(Board board) {
             for (Move move : pieceLegalMoves(board)) {
                 // check for suicidal move
@@ -635,23 +611,27 @@ public class Table {
 
                 // legal AND non-suicidal move
                 if (move.getDestPosition().equals(position)) {
-                    JLabel label = new JLabel(HIGHLIGHT_ICON);
-                    add(label, MODAL_LAYER);
-
-                    int offset = (int) (POINT_PANEL_DIMENSION.getWidth() - HIGHLIGHT_ICON.getIconWidth()) / 2;
-                    label.setBounds(offset, offset, HIGHLIGHT_ICON.getIconWidth(), HIGHLIGHT_ICON.getIconHeight());
+                    Label label = new Label();
+                    label.setGraphic(new ImageView(HIGHLIGHT_LEGALS_IMAGE));
+                    getChildren().add(label);
                 }
             }
         }
 
+        /**
+         * Returns a collection of legal moves of the selected piece.
+         */
         private Collection<Move> pieceLegalMoves(Board board) {
-            if (humanMovedPiece != null) {
-                return humanMovedPiece.getLegalMoves(board);
+            if (selectedPiece != null) {
+                return selectedPiece.getLegalMoves(board);
             }
             return Collections.emptyList();
         }
     }
 
+    /**
+     * Helper class for player communication involving AI.
+     */
     private static class AIObserver implements PropertyChangeListener {
 
         private static final MoveBook movebook = MoveBook.getInstance();
@@ -672,25 +652,36 @@ public class Table {
                 }
                 if (getInstance().gameSetup.isAITimeLimited()) {
                     fixedTimeAIPlayer = new FixedTimeAIPlayer();
-                    fixedTimeAIPlayer.execute();
+                    Thread th = new Thread(fixedTimeAIPlayer);
+                    th.setDaemon(true);
+                    th.start();
                 } else {
                     fixedDepthAIPlayer = new FixedDepthAIPlayer();
-                    fixedDepthAIPlayer.execute();
+                    Thread th = new Thread(fixedDepthAIPlayer);
+                    th.setDaemon(true);
+                    th.start();
                 }
             }
         }
 
+        /**
+         * Executes the given move on the board.
+         * @param move
+         */
         private static void makeMove(Move move) {
             getInstance().board = getInstance().board.getCurrPlayer().makeMove(move).getNextBoard();
             getInstance().boardHistory.add(getInstance().board);
             getInstance().movelog.addMove(move);
-            getInstance().boardPanel.drawBoard(getInstance().board);
-            getInstance().moveHistoryPanel.update(getInstance().movelog);
-            getInstance().infoPanel.updateCapturedPanel(getInstance().movelog);
-            getInstance().infoPanel.updateStatusPanel(getInstance().board);
-            getInstance().moveMadeUpdate();
+            getInstance().boardPane.drawBoard(getInstance().board);
+            getInstance().moveHistoryPane.update(getInstance().movelog);
+            getInstance().infoPane.updateCapturedPanes(getInstance().movelog);
+            getInstance().infoPane.updateStatusPane(getInstance().board);
+            getInstance().notifyAIObserver("movemade");
         }
 
+        /**
+         * Terminates all running AI (if any).
+         */
         private void stopAI() {
             if (fixedDepthAIPlayer != null) {
                 fixedDepthAIPlayer.cancel(true);
@@ -702,11 +693,14 @@ public class Table {
         }
     }
 
-    private abstract static class AIPlayer extends SwingWorker<Move, String> {
+    /**
+     * Represents an AI player.
+     */
+    private abstract static class AIPlayer extends Task<Move> {
 
         private static final int MAX_CONSEC_CHECKS = 3;
 
-        Piece bannedPiece;
+        Piece bannedPiece; // the piece not to use for checking the opponent
 
         private AIPlayer() {
             bannedPiece = getBannedPiece();
@@ -738,33 +732,38 @@ public class Table {
         }
     }
 
+    /**
+     * Represents a fixed-depth AI player.
+     */
     private static class FixedDepthAIPlayer extends AIPlayer {
 
         private int searchDepth;
         private long startTime;
-        private long endTime;
 
         @Override
         public void done() {
             if (isCancelled()) return;
             try {
                 Move bestMove = get();
-                AIObserver.makeMove(bestMove);
-                endTime = System.currentTimeMillis();
-                System.out.println(bestMove.toString() + " | " + (endTime - startTime)/1000 + "s | " + "depth " + searchDepth);
+                Platform.runLater(() -> AIObserver.makeMove(bestMove));
+                System.out.println(bestMove.toString() + " | "
+                        + (System.currentTimeMillis() - startTime)/1000 + "s | " + "depth " + searchDepth);
             } catch (InterruptedException | ExecutionException e) {
                 e.printStackTrace();
             }
         }
 
         @Override
-        protected Move doInBackground() {
+        protected Move call() {
             startTime = System.currentTimeMillis();
             searchDepth = getInstance().gameSetup.getSearchDepth();
             return MiniMax.getInstance().fixedDepth(getInstance().board, searchDepth, bannedPiece);
         }
     }
 
+    /**
+     * Represents a fixed-time AI player.
+     */
     public static class FixedTimeAIPlayer extends AIPlayer implements PropertyChangeListener {
 
         private final Timer timer;
@@ -778,12 +777,12 @@ public class Table {
         }
 
         @Override
-        protected Move doInBackground() throws Exception {
+        protected Move call() {
             currTask = getTimerTask();
-            searchTime = getInstance().gameSetup.getSearchTime() * 1000;
-            timer.schedule(currTask, searchTime);
+            searchTime = getInstance().gameSetup.getSearchTime();
+            timer.schedule(currTask, searchTime * 1000);
             return MiniMax.getInstance().iterativeDeepening(getInstance().board, bannedPiece, this,
-                    System.currentTimeMillis() + searchTime);
+                    System.currentTimeMillis() + searchTime*1000);
         }
 
         @Override
@@ -792,11 +791,15 @@ public class Table {
             currDepth = (int) evt.getOldValue();
         }
 
+        /**
+         * Returns a timer task for forcing a move when time is up.
+         * @return
+         */
         private TimerTask getTimerTask() {
             return new TimerTask() {
                 @Override
                 public void run() {
-                    AIObserver.makeMove(currBestMove);
+                    Platform.runLater(() -> AIObserver.makeMove(currBestMove));
                     System.out.println(currBestMove.toString() + " | "
                             + searchTime + "s | " + "depth " + currDepth);
                     FixedTimeAIPlayer.this.cancel(true);
@@ -804,6 +807,9 @@ public class Table {
             };
         }
 
+        /**
+         * Cancels the current timer task.
+         */
         void cancelTimer() {
             if (currTask != null) {
                 currTask.cancel();
@@ -811,6 +817,9 @@ public class Table {
         }
     }
 
+    /**
+     * Represents a human or AI player type.
+     */
     public enum PlayerType {
         HUMAN {
             @Override
@@ -828,6 +837,9 @@ public class Table {
         abstract boolean isAI();
     }
 
+    /**
+     * Represents a time- or depth-fixed AI player type.
+     */
     public enum AIType {
         TIME {
             @Override
