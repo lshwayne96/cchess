@@ -146,9 +146,9 @@ public abstract class Piece {
     public enum PieceType {
 
         SOLDIER("S", true,
-                100, 200, 300, 30, Board.POSITION_VALUES_SOLDIER),
+                100, 175, 250, 30, Board.POSITION_VALUES_SOLDIER),
         ADVISOR("A", false,
-                150, 200, 250, 2, Board.POSITION_VALUES_ADVISOR),
+                200, 225, 250, 2, Board.POSITION_VALUES_ADVISOR),
         ELEPHANT("E", false,
                 200, 250, 300, 2, Board.POSITION_VALUES_ELEPHANT),
         HORSE("H", true,

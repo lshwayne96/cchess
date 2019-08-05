@@ -87,25 +87,29 @@ final class BoardEvaluator {
             }
         }
 
-        // cannon+horse might be better than cannon+cannon or horse+horse
-        if (cannonCount > 0 && horseCount > 0) {
-            totalCohesionValue += 100 * (2 - oppChariotCount);
+        if (boardStatus.equals(BoardStatus.END)) {
+            // cannon+horse might be better than cannon+cannon or horse+horse in endgame
+            if (cannonCount > 0 && horseCount > 0) {
+                totalCohesionValue += 75 * (2 - oppChariotCount);
+            }
+            // lack of elephant might be weak to cannon in endgame
+            if (oppCannonCount == 1 && elephantCount == 0) {
+                totalCohesionValue -= 100;
+            } else if (oppCannonCount == 1 && elephantCount == 1) {
+                totalCohesionValue -= 50;
+            } else if (oppCannonCount == 2 && elephantCount == 0) {
+                totalCohesionValue -= 200;
+            } else if (oppCannonCount == 2 && elephantCount == 1) {
+                totalCohesionValue -= 100;
+            }
         }
-        // lack of elephant might be weak to cannon
-        if (oppCannonCount == 1 && elephantCount == 0) {
-            totalCohesionValue -= 100;
-        } else if (oppCannonCount == 1 && elephantCount == 1) {
-            totalCohesionValue -= 50;
-        } else if (oppCannonCount == 2 && elephantCount == 0) {
-            totalCohesionValue -= 200;
-        } else if (oppCannonCount == 2 && elephantCount == 1) {
-            totalCohesionValue -= 100;
-        }
-        // lack of advisor might be weak to double chariot
-        if (oppChariotCount == 2 && advisorCount == 0) {
-            totalCohesionValue -= 400;
-        } else if (oppChariotCount == 2 && advisorCount == 1) {
-            totalCohesionValue -= 300;
+        // lack of advisor might be weak to double chariot after opening
+        if (!boardStatus.equals(BoardStatus.OPENING)) {
+            if (oppChariotCount == 2 && advisorCount == 0) {
+                totalCohesionValue -= 500;
+            } else if (oppChariotCount == 2 && advisorCount == 1) {
+                totalCohesionValue -= 300;
+            }
         }
 
         return totalMaterialValue + totalPositionValue + totalCohesionValue;
