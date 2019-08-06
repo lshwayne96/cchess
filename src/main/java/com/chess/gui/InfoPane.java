@@ -129,8 +129,10 @@ class InfoPane extends BorderPane {
     private static class StatusPane extends GridPane {
 
         private static final int STATUS_PANE_HEIGHT = 100;
-        private static final Font TOP_FONT = Font.font("System", FontWeight.MEDIUM, Font.getDefault().getSize() + 3);
-        private static final Font BOTTOM_FONT = Font.font("System", FontWeight.BOLD, Font.getDefault().getSize() + 3);
+        private static final Font TOP_FONT =
+                Font.font("System", FontWeight.MEDIUM, Font.getDefault().getSize() + 3);
+        private static final Font BOTTOM_FONT =
+                Font.font("System", FontWeight.BOLD, Font.getDefault().getSize() + 3);
         private static final Label CHECK_LABEL = getCheckLabel();
         private static final Label CHECKMATE_LABEL = getCheckmateLabel();
         private static final Label DRAW_LABEL = getDrawLabel();
@@ -182,7 +184,8 @@ class InfoPane extends BorderPane {
             getChildren().clear();
 
             if (board.isGameOver()) {
-                Label gameOverLabel = new Label(board.getCurrPlayer().getOpponent().getAlliance().toString() + " wins");
+                Label gameOverLabel =
+                        new Label(board.getCurrPlayer().getOpponent().getAlliance().toString() + " wins");
                 gameOverLabel.setFont(TOP_FONT);
                 gameOverLabel.setAlignment(Pos.CENTER);
                 gameOverLabel.setPrefSize(INFO_PANE_WIDTH, STATUS_PANE_HEIGHT / 2);

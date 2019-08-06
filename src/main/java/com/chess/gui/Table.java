@@ -38,12 +38,16 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 
+import java.awt.Desktop;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -72,33 +76,39 @@ public class Table extends BorderPane {
             new Border(new BorderStroke(Color.WHITE, BorderStrokeStyle.DASHED, CornerRadii.EMPTY, new BorderWidths(1.8)));
     private static final Border HIGHLIGHT_SELECTED_PIECE_BORDER =
             new Border(new BorderStroke(Color.WHITE, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, new BorderWidths(2.5)));
+    private static final String WIKI_XIANGQI = "https://en.wikipedia.org/wiki/Xiangqi";
     static final Map<String, Image> PIECE_IMAGE_MAP = getPieceImageMap();
     private static final Table TABLE_INSTANCE = new Table();
 
     private final BoardPane boardPane;
     private final MoveHistoryPane moveHistoryPane;
     private final InfoPane infoPane;
-    private final MoveLog movelog;
+    private final MoveLog fullMoveLog;
     private final List<Board> boardHistory;
     private final GameSetup gameSetup;
+    private final HelpWindow helpWindow;
     private final AIObserver aiObserver;
     private final PropertyChangeSupport propertyChangeSupport;
-    private Board board;
+    private Board currBoard;
     private Point sourcePoint;
     private Point destPoint;
     private Piece selectedPiece;
+    private MoveLog partialMoveLog;
+    private boolean inReplayMode;
 
     private Table() {
-        board = Board.initialiseBoard();
+        currBoard = Board.initialiseBoard();
+        inReplayMode = false;
 
         boardPane = new BoardPane();
         moveHistoryPane = new MoveHistoryPane();
         infoPane = new InfoPane();
-        infoPane.updateStatusPane(board);
-        movelog = new MoveLog();
+        infoPane.updateStatusPane(currBoard);
+        fullMoveLog = new MoveLog();
         boardHistory = new ArrayList<>();
-        boardHistory.add(board);
+        boardHistory.add(currBoard);
         gameSetup = new GameSetup();
+        helpWindow = new HelpWindow();
         aiObserver = new AIObserver();
         propertyChangeSupport = new PropertyChangeSupport(this);
         propertyChangeSupport.addPropertyChangeListener(aiObserver);
@@ -122,7 +132,7 @@ public class Table extends BorderPane {
      */
     private MenuBar createMenuBar() {
         MenuBar menuBar = new MenuBar();
-        menuBar.getMenus().addAll(createGameMenu(), createOptionsMenu());
+        menuBar.getMenus().addAll(createGameMenu(), createOptionsMenu(), createHelpMenu());
         return menuBar;
     }
 
@@ -134,7 +144,7 @@ public class Table extends BorderPane {
 
         MenuItem newGame = new MenuItem("New game");
         newGame.setOnAction(e -> {
-            if (movelog.isEmpty()) {
+            if (fullMoveLog.isEmpty()) {
                 Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
                 alert.setTitle("New game");
                 alert.showAndWait();
@@ -145,6 +155,7 @@ public class Table extends BorderPane {
             alert.showAndWait().ifPresent(response -> {
                 if (response.equals(ButtonType.OK)) {
                     aiObserver.stopAI();
+                    exitReplayMode();
                     undoAllMoves();
                     notifyAIObserver("newgame");
                 }
@@ -174,6 +185,7 @@ public class Table extends BorderPane {
         MenuItem undoTurn = new MenuItem("Undo last turn");
         undoTurn.setOnAction(e -> {
             aiObserver.stopAI();
+            exitReplayMode();
             undoLastTurn();
             notifyAIObserver("undoturn");
         });
@@ -181,6 +193,7 @@ public class Table extends BorderPane {
         MenuItem undoMove = new MenuItem("Undo last move");
         undoMove.setOnAction(e -> {
             aiObserver.stopAI();
+            exitReplayMode();
             undoLastMove();
             notifyAIObserver("undomove");
         });
@@ -201,11 +214,31 @@ public class Table extends BorderPane {
         return optionsMenu;
     }
 
+    private Menu createHelpMenu() {
+        Menu helpMenu = new Menu("Help");
+
+        MenuItem rules = new MenuItem("Rules (Wikipedia)");
+        rules.setOnAction(e -> {
+            try {
+                Desktop.getDesktop().browse(new URL(WIKI_XIANGQI).toURI());
+            } catch (IOException | URISyntaxException ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        MenuItem controls = new MenuItem("Controls...");
+        controls.setOnAction(e -> helpWindow.showAndWait());
+
+        helpMenu.getItems().addAll(rules, controls);
+
+        return helpMenu;
+    }
+
     /**
      * Saves the current game in-progress into a loadable text file.
      */
     private void saveGame() {
-        if (movelog.isEmpty()) {
+        if (fullMoveLog.isEmpty()) {
             Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
             alert.setTitle("Save game");
             alert.showAndWait();
@@ -219,7 +252,7 @@ public class Table extends BorderPane {
         if (file != null) {
             try {
                 PrintWriter pw = new PrintWriter(file);
-                for (Move move : movelog.getMoves()) {
+                for (Move move : fullMoveLog.getMoves()) {
                     pw.append(move.toString()).append("\n");
                 }
                 pw.flush();
@@ -250,20 +283,21 @@ public class Table extends BorderPane {
                 alert.showAndWait();
             } else {
                 aiObserver.stopAI();
+                exitReplayMode();
 
                 List<Board> boards = lgu.getBoardHistory();
                 boardHistory.clear();
                 boardHistory.addAll(boards);
-                board = boardHistory.get(boardHistory.size() - 1);
+                currBoard = boardHistory.get(boardHistory.size() - 1);
 
-                movelog.clear();
+                fullMoveLog.clear();
                 for (Move move : lgu.getMoves()) {
-                    movelog.addMove(move);
+                    fullMoveLog.addMove(move);
                 }
-                moveHistoryPane.update(movelog);
-                infoPane.updateCapturedPanes(movelog);
-                infoPane.updateStatusPane(board);
-                boardPane.drawBoard(board);
+                moveHistoryPane.update(fullMoveLog);
+                infoPane.updateCapturedPanes(fullMoveLog);
+                infoPane.updateStatusPane(currBoard);
+                boardPane.drawBoard(currBoard);
 
                 notifyAIObserver("load");
 
@@ -278,17 +312,17 @@ public class Table extends BorderPane {
      * Undoes the last move of either player.
      */
     private void undoLastMove() {
-        if (!movelog.isEmpty()) {
+        if (!fullMoveLog.isEmpty()) {
             clearSelections();
 
-            movelog.removeLastMove();
+            fullMoveLog.removeLastMove();
             boardHistory.remove(boardHistory.size() - 1);
-            board = boardHistory.get(boardHistory.size() - 1);
+            currBoard = boardHistory.get(boardHistory.size() - 1);
 
-            moveHistoryPane.update(movelog);
-            infoPane.updateCapturedPanes(movelog);
-            infoPane.updateStatusPane(board);
-            boardPane.drawBoard(board);
+            moveHistoryPane.update(fullMoveLog);
+            infoPane.updateCapturedPanes(fullMoveLog);
+            infoPane.updateStatusPane(currBoard);
+            boardPane.drawBoard(currBoard);
         } else {
             Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
             alert.setTitle("Undo last move");
@@ -300,7 +334,7 @@ public class Table extends BorderPane {
      * Undoes two consecutive moves.
      */
     private void undoLastTurn() {
-        if (movelog.getSize() > 1) {
+        if (fullMoveLog.getSize() > 1) {
             undoLastMove();
             undoLastMove();
         } else {
@@ -314,7 +348,7 @@ public class Table extends BorderPane {
      * Undoes all moves made.
      */
     private void undoAllMoves() {
-        while (!movelog.isEmpty()) {
+        while (!fullMoveLog.isEmpty()) {
             undoLastMove();
         }
     }
@@ -333,6 +367,41 @@ public class Table extends BorderPane {
      */
     private void notifyAIObserver(String propertyName) {
         propertyChangeSupport.firePropertyChange(propertyName, null, null);
+    }
+
+    /**
+     * Exits replay mode if currently in it.
+     */
+    private void exitReplayMode() {
+        if (inReplayMode) {
+            jumpToMove(-1);
+        }
+    }
+
+    /**
+     * Exits replay mode if moveIndex = -1; else enters replay mode at the given moveIndex.
+     * @param moveIndex The index of the move in the full movelog.
+     */
+    void jumpToMove(int moveIndex) {
+        if (moveIndex < -1 || moveIndex >= fullMoveLog.getSize()) return;
+        if (moveIndex == -1) {
+            inReplayMode = false;
+            partialMoveLog = null;
+            currBoard = boardHistory.get(boardHistory.size() - 1);
+            boardPane.drawBoard(currBoard);
+            infoPane.updateStatusPane(currBoard);
+            infoPane.updateCapturedPanes(fullMoveLog);
+            notifyAIObserver("exitreplay");
+        } else {
+            aiObserver.stopAI();
+            inReplayMode = true;
+            partialMoveLog = fullMoveLog.getPartialLog(moveIndex);
+            clearSelections();
+            currBoard = boardHistory.get(moveIndex + 1);
+            boardPane.drawBoard(currBoard);
+            infoPane.updateStatusPane(currBoard);
+            infoPane.updateCapturedPanes(partialMoveLog);
+        }
     }
 
     /**
@@ -395,6 +464,14 @@ public class Table extends BorderPane {
             return null;
         }
 
+        MoveLog getPartialLog(int moveIndex) {
+            MoveLog partialLog = new MoveLog();
+            for (int i = 0; i < moveIndex + 1; i++) {
+                partialLog.addMove(moves.get(i));
+            }
+            return partialLog;
+        }
+
         void clear() {
             moves.clear();
         }
@@ -452,7 +529,7 @@ public class Table extends BorderPane {
          */
         private void flipBoard() {
             boardDirection = boardDirection.opposite();
-            drawBoard(board);
+            drawBoard(currBoard);
             infoPane.setDirection(boardDirection);
         }
     }
@@ -504,7 +581,7 @@ public class Table extends BorderPane {
             setMaxSize(POINT_WIDTH, POINT_WIDTH);
             setOnMouseClicked(getMouseEventHandler());
 
-            assignPointPieceIcon(board);
+            assignPointPieceIcon(currBoard);
         }
 
         /**
@@ -512,42 +589,43 @@ public class Table extends BorderPane {
          */
         private EventHandler<MouseEvent> getMouseEventHandler() {
             return event -> {
+                if (inReplayMode) return;
                 if (event.getButton().equals(MouseButton.SECONDARY)) {
                     clearSelections();
                 } else if (event.getButton().equals(MouseButton.PRIMARY)) {
                     if (sourcePoint == null) {
-                        sourcePoint = board.getPoint(position);
+                        sourcePoint = currBoard.getPoint(position);
                         Optional<Piece> selectedPiece = sourcePoint.getPiece();
                         if (selectedPiece.isPresent()
-                                && selectedPiece.get().getAlliance() == board.getCurrPlayer().getAlliance()
-                                && !gameSetup.isAIPlayer(board.getCurrPlayer())) {
+                                && selectedPiece.get().getAlliance() == currBoard.getCurrPlayer().getAlliance()
+                                && !gameSetup.isAIPlayer(currBoard.getCurrPlayer())) {
                             Table.this.selectedPiece = selectedPiece.get();
                         } else {
                             sourcePoint = null;
                         }
                     } else {
-                        destPoint = board.getPoint(position);
-                        Optional<Move> move = Move.getMove(board, sourcePoint.getPosition(),
+                        destPoint = currBoard.getPoint(position);
+                        Optional<Move> move = Move.getMove(currBoard, sourcePoint.getPosition(),
                                 destPoint.getPosition());
                         if (!move.isPresent()) return;
 
-                        MoveTransition transition = board.getCurrPlayer().makeMove(move.get());
+                        MoveTransition transition = currBoard.getCurrPlayer().makeMove(move.get());
                         if (transition.getMoveStatus().isDone()) {
-                            board = transition.getNextBoard();
-                            boardHistory.add(board);
-                            movelog.addMove(transition.getMove());
+                            currBoard = transition.getNextBoard();
+                            boardHistory.add(currBoard);
+                            fullMoveLog.addMove(transition.getMove());
 
                             clearSelections();
                             Platform.runLater(() -> {
-                                moveHistoryPane.update(movelog);
-                                infoPane.updateCapturedPanes(movelog);
-                                infoPane.updateStatusPane(board);
+                                moveHistoryPane.update(fullMoveLog);
+                                infoPane.updateCapturedPanes(fullMoveLog);
+                                infoPane.updateStatusPane(currBoard);
                                 notifyAIObserver("movemade");
                             });
                         }
                     }
                 }
-                Platform.runLater(() -> boardPane.drawBoard(board));
+                Platform.runLater(() -> boardPane.drawBoard(currBoard));
             };
         }
 
@@ -583,7 +661,12 @@ public class Table extends BorderPane {
          * OR it was part of the previous move.
          */
         private void highlightLastMoveAndSelectedPiece() {
-            Move lastMove = movelog.getLastMove();
+            Move lastMove;
+            if (inReplayMode) {
+                lastMove = partialMoveLog.getLastMove();
+            } else {
+                lastMove = fullMoveLog.getLastMove();
+            }
 
             if (lastMove != null) {
                 Piece lastMovedPiece = lastMove.getMovedPiece();
@@ -649,9 +732,10 @@ public class Table extends BorderPane {
 
         @Override
         public void propertyChange(PropertyChangeEvent evt) {
-            if (getInstance().gameSetup.isAIPlayer(getInstance().board.getCurrPlayer())
-                    && !getInstance().board.getCurrPlayer().isInCheckmate()) {
-                Board board = getInstance().board;
+            if (!Table.getInstance().inReplayMode
+                    && getInstance().gameSetup.isAIPlayer(getInstance().currBoard.getCurrPlayer())
+                    && !getInstance().currBoard.getCurrPlayer().isInCheckmate()) {
+                Board board = getInstance().currBoard;
                 Optional<Move> move = movebook.getRandomMove(board);
                 if (move.isPresent()) {
                     makeMove(move.get());
@@ -677,13 +761,13 @@ public class Table extends BorderPane {
          * @param move
          */
         private static void makeMove(Move move) {
-            getInstance().board = getInstance().board.getCurrPlayer().makeMove(move).getNextBoard();
-            getInstance().boardHistory.add(getInstance().board);
-            getInstance().movelog.addMove(move);
-            getInstance().boardPane.drawBoard(getInstance().board);
-            getInstance().moveHistoryPane.update(getInstance().movelog);
-            getInstance().infoPane.updateCapturedPanes(getInstance().movelog);
-            getInstance().infoPane.updateStatusPane(getInstance().board);
+            getInstance().currBoard = getInstance().currBoard.getCurrPlayer().makeMove(move).getNextBoard();
+            getInstance().boardHistory.add(getInstance().currBoard);
+            getInstance().fullMoveLog.addMove(move);
+            getInstance().boardPane.drawBoard(getInstance().currBoard);
+            getInstance().moveHistoryPane.update(getInstance().fullMoveLog);
+            getInstance().infoPane.updateCapturedPanes(getInstance().fullMoveLog);
+            getInstance().infoPane.updateStatusPane(getInstance().currBoard);
             getInstance().notifyAIObserver("movemade");
         }
 
@@ -716,7 +800,7 @@ public class Table extends BorderPane {
 
         private Piece getBannedPiece() {
             List<Board> boardHistory = getInstance().boardHistory;
-            List<Move> moveHistory = getInstance().movelog.getMoves();
+            List<Move> moveHistory = getInstance().fullMoveLog.getMoves();
             if (moveHistory.size() < MAX_CONSEC_CHECKS * 2) return null;
 
             for (int i = 0; i < MAX_CONSEC_CHECKS; i++) {
@@ -765,7 +849,7 @@ public class Table extends BorderPane {
         protected Move call() {
             startTime = System.currentTimeMillis();
             searchDepth = getInstance().gameSetup.getSearchDepth();
-            return MiniMax.getInstance().fixedDepth(getInstance().board, searchDepth, bannedPiece);
+            return MiniMax.getInstance().fixedDepth(getInstance().currBoard, searchDepth, bannedPiece);
         }
     }
 
@@ -789,7 +873,7 @@ public class Table extends BorderPane {
             currTask = getTimerTask();
             searchTime = getInstance().gameSetup.getSearchTime();
             timer.schedule(currTask, searchTime * 1000);
-            return MiniMax.getInstance().iterativeDeepening(getInstance().board, bannedPiece, this,
+            return MiniMax.getInstance().iterativeDeepening(getInstance().currBoard, bannedPiece, this,
                     System.currentTimeMillis() + searchTime*1000);
         }
 

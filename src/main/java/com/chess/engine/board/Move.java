@@ -203,7 +203,9 @@ public class Move {
         Move other = (Move) obj;
         return this.movedPiece.equals(other.movedPiece)
                 && this.destPosition.equals(other.destPosition)
-                && this.getCapturedPiece().equals(other.getCapturedPiece());
+                && this.getCapturedPiece().equals(other.getCapturedPiece())
+                && this.board.getRedPieces().size() == other.board.getRedPieces().size()
+                && this.board.getBlackPieces().size() == other.board.getBlackPieces().size();
     }
 
     @Override
