@@ -873,7 +873,7 @@ public class Table extends BorderPane {
             currTask = getTimerTask();
             searchTime = getInstance().gameSetup.getSearchTime();
             timer.schedule(currTask, searchTime * 1000);
-            return MiniMax.getInstance().iterativeDeepening(getInstance().currBoard, bannedPiece, this,
+            return MiniMax.getInstance().fixedTime(getInstance().currBoard, bannedPiece, this,
                     System.currentTimeMillis() + searchTime*1000);
         }
 

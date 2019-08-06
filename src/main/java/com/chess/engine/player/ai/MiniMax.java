@@ -89,8 +89,8 @@ public class MiniMax {
      * @param endTime The time to stop searching.
      * @return The best move using time-limited search based on the given board and end time.
      */
-    public Move iterativeDeepening(Board board, Piece bannedPiece,
-                                   FixedTimeAIPlayer fixedTimeAIPlayer, long endTime) {
+    public Move fixedTime(Board board, Piece bannedPiece,
+                          FixedTimeAIPlayer fixedTimeAIPlayer, long endTime) {
         PropertyChangeSupport support = new PropertyChangeSupport(this);
         support.addPropertyChangeListener(fixedTimeAIPlayer);
         stateToValueMap.clear();
