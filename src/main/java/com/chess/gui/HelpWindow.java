@@ -1,11 +1,15 @@
 package com.chess.gui;
 
+import javafx.scene.Node;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A dialog for displaying game controls.
@@ -15,9 +19,12 @@ class HelpWindow extends Dialog {
     HelpWindow() {
         DialogPane dialogPane = new DialogPane();
         GridPane gridPane = new GridPane();
+        List<Node> nodes = new ArrayList<>();
 
+        Label playHeader = GuiUtil.getHeader("Play mode");
         Label lmbLabel = new Label("LMB - Select piece to move / Choose destination for selected piece");
         Label rmbLabel = new Label("RMB - Cancel piece selection");
+        Label replayHeader = GuiUtil.getHeader("Replay mode");
         Label zLabel = new Label("Z - Toggle replay mode");
         Label aLabel = new Label("A - Go to previous move");
         Label dLabel = new Label("D - Go to next move");
@@ -27,15 +34,22 @@ class HelpWindow extends Dialog {
         Label eLabel = new Label("E - Go to last move");
         ButtonType close = new ButtonType("Close", ButtonBar.ButtonData.CANCEL_CLOSE);
 
-        gridPane.add(lmbLabel, 0, 0);
-        gridPane.add(rmbLabel, 0, 1);
-        gridPane.add(zLabel, 0, 2);
-        gridPane.add(aLabel, 0, 3);
-        gridPane.add(dLabel, 0, 4);
-        gridPane.add(wLabel, 0, 5);
-        gridPane.add(sLabel, 0, 6);
-        gridPane.add(qLabel, 0, 7);
-        gridPane.add(eLabel, 0, 8);
+        nodes.add(playHeader);
+        nodes.add(lmbLabel);
+        nodes.add(rmbLabel);
+        nodes.add(GuiUtil.getSeparator());
+        nodes.add(replayHeader);
+        nodes.add(zLabel);
+        nodes.add(aLabel);
+        nodes.add(dLabel);
+        nodes.add(wLabel);
+        nodes.add(sLabel);
+        nodes.add(qLabel);
+        nodes.add(eLabel);
+
+        for (int i = 0; i < nodes.size(); i++) {
+            gridPane.add(nodes.get(i), 0, i);
+        }
         dialogPane.setContent(gridPane);
         dialogPane.getButtonTypes().add(close);
 

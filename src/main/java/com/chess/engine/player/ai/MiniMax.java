@@ -18,7 +18,7 @@ import java.util.Map;
 import static com.chess.gui.Table.*;
 
 /**
- * Represents a MiniMax algorithm with Alpha-Beta pruning and Hashing of calculated board states.
+ * Represents a MiniMax algorithm with alpha-beta pruning and hashing of calculated board states.
  */
 public class MiniMax {
 
@@ -232,12 +232,16 @@ public class MiniMax {
     private static class MoveSorter {
 
         private static final Comparator<Move> MOVE_COMPARATOR = (m1, m2) -> {
-            boolean m1isAttack = m1.getCapturedPiece().isPresent();
-            boolean m2isAttack = m2.getCapturedPiece().isPresent();
-            if (m1isAttack != m2isAttack) {
-                return Boolean.compare(m2isAttack, m1isAttack);
+            int cpValue1 = m1.getCapturedPiece().isPresent()
+                    ? m1.getCapturedPiece().get().getPieceType().getDefaultValue() : 0;
+            int cpValue2 = m2.getCapturedPiece().isPresent()
+                    ? m2.getCapturedPiece().get().getPieceType().getDefaultValue() : 0;
+
+            if (cpValue1 != cpValue2) {
+                return cpValue2 - cpValue1;
             }
-            return m2.getMovedPiece().getPieceType().getDefaultValue() - m1.getMovedPiece().getPieceType().getDefaultValue();
+            return m2.getMovedPiece().getPieceType().getDefaultValue()
+                    - m1.getMovedPiece().getPieceType().getDefaultValue();
         };
         private static final Comparator<MoveEntry> MOVE_ENTRY_COMPARATOR_RED = (e1, e2) -> {
             if (e1.value != e2.value) {
@@ -252,6 +256,9 @@ public class MiniMax {
             return MOVE_COMPARATOR.compare(e1.move, e2.move);
         };
 
+        /**
+         * Sorts the given list of move entries according their calculated values and alliance.
+         */
         private static List<Move> valueSort(Alliance alliance, List<MoveEntry> moveEntries) {
             List<Move> sortedMoves = new ArrayList<>();
 
@@ -267,6 +274,9 @@ public class MiniMax {
             return Collections.unmodifiableList(sortedMoves);
         }
 
+        /**
+         * Sorts the given collection of moves according to their captured piece values, otherwise moved piece values.
+         */
         private static List<Move> simpleSort(Collection<Move> moves) {
             List<Move> sortedMoves = new ArrayList<>(moves);
 

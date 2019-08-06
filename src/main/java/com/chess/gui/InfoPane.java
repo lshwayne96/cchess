@@ -130,9 +130,9 @@ class InfoPane extends BorderPane {
 
         private static final int STATUS_PANE_HEIGHT = 100;
         private static final Font TOP_FONT =
-                Font.font("System", FontWeight.MEDIUM, Font.getDefault().getSize() + 3);
+                Font.font("System", FontWeight.MEDIUM, Font.getDefault().getSize() + 4);
         private static final Font BOTTOM_FONT =
-                Font.font("System", FontWeight.BOLD, Font.getDefault().getSize() + 3);
+                Font.font("System", FontWeight.BOLD, Font.getDefault().getSize() + 4);
         private static final Label CHECK_LABEL = getCheckLabel();
         private static final Label CHECKMATE_LABEL = getCheckmateLabel();
         private static final Label DRAW_LABEL = getDrawLabel();
@@ -190,7 +190,8 @@ class InfoPane extends BorderPane {
                 gameOverLabel.setAlignment(Pos.CENTER);
                 gameOverLabel.setPrefSize(INFO_PANE_WIDTH, STATUS_PANE_HEIGHT / 2);
                 add(gameOverLabel, 0, 0);
-                add(CHECKMATE_LABEL, 0, 1);
+                add(GuiUtil.getSeparator(), 0, 1);
+                add(CHECKMATE_LABEL, 0, 2);
                 return;
             }
 
@@ -199,10 +200,11 @@ class InfoPane extends BorderPane {
             moveLabel.setAlignment(Pos.CENTER);
             moveLabel.setPrefSize(INFO_PANE_WIDTH, STATUS_PANE_HEIGHT / 2);
             add(moveLabel, 0, 0);
+            add(GuiUtil.getSeparator(), 0, 1);
             if (board.isGameDraw()) {
-                add(DRAW_LABEL, 0, 1);
+                add(DRAW_LABEL, 0, 2);
             } else if (board.getCurrPlayer().isInCheck()) {
-                add(CHECK_LABEL, 0, 1);
+                add(CHECK_LABEL, 0, 2);
             }
         }
     }

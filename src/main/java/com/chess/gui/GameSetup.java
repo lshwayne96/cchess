@@ -2,6 +2,7 @@ package com.chess.gui;
 
 import com.chess.engine.player.Player;
 import com.chess.gui.Table.PlayerType;
+import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
@@ -12,8 +13,9 @@ import javafx.scene.control.RadioButton;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.chess.gui.Table.*;
 import static javafx.scene.control.Alert.*;
@@ -28,7 +30,6 @@ class GameSetup extends Dialog {
     private static final String AI_TEXT = "AI";
     private static final String FIXED_DEPTH_TEXT = "Fixed depth (levels)";
     private static final String FIXED_TIME_TEXT = "Fixed time (seconds)";
-    private static final Font HEADER_FONT = Font.font("System", FontWeight.BOLD, Font.getDefault().getSize());
     private static final int MIN_DEPTH = 2;
     private static final int MAX_DEPTH = 8;
     private static final int MIN_TIME = 1;
@@ -50,6 +51,11 @@ class GameSetup extends Dialog {
 
         DialogPane dialogPane = new DialogPane();
         GridPane gridPane = new GridPane();
+        List<Node> nodes = new ArrayList<>();
+
+        Label redHeader = GuiUtil.getHeader("RED player");
+        Label blackHeader = GuiUtil.getHeader("BLACK player");
+        Label aiHeader = GuiUtil.getHeader("AI settings");
 
         RadioButton redHumanButton = new RadioButton(HUMAN_TEXT);
         RadioButton redAIButton = new RadioButton(AI_TEXT);
@@ -113,23 +119,22 @@ class GameSetup extends Dialog {
             hide();
         });
 
-        Label redLabel = new Label("RED");
-        redLabel.setFont(HEADER_FONT);
-        gridPane.add(redLabel, 0, 0);
-        gridPane.add(redHumanButton, 0, 1);
-        gridPane.add(redAIButton, 0, 2);
-        Label blackLabel = new Label("BLACK");
-        blackLabel.setFont(HEADER_FONT);
-        gridPane.add(blackLabel, 0, 3);
-        gridPane.add(blackHumanButton, 0, 4);
-        gridPane.add(blackAIButton, 0, 5);
-        Label aiLabel = new Label("AI type");
-        aiLabel.setFont(HEADER_FONT);
-        gridPane.add(aiLabel, 0, 6);
-        gridPane.add(fixedDepthAIButton, 0, 7);
-        gridPane.add(searchDepthSpinner, 0, 8);
-        gridPane.add(fixedTimeAIButton, 0, 9);
-        gridPane.add(searchTimeSpinner, 0, 10);
+        nodes.add(redHeader);
+        nodes.add(redHumanButton);
+        nodes.add(redAIButton);
+        nodes.add(blackHeader);
+        nodes.add(blackHumanButton);
+        nodes.add(blackAIButton);
+        nodes.add(GuiUtil.getSeparator());
+        nodes.add(aiHeader);
+        nodes.add(fixedDepthAIButton);
+        nodes.add(searchDepthSpinner);
+        nodes.add(fixedTimeAIButton);
+        nodes.add(searchTimeSpinner);
+
+        for (int i = 0; i < nodes.size(); i++) {
+            gridPane.add(nodes.get(i), 0, i);
+        }
         dialogPane.setContent(gridPane);
 
         setTitle("Setup");

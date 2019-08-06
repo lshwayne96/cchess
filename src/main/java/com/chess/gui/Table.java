@@ -142,16 +142,16 @@ public class Table extends BorderPane {
     private Menu createGameMenu() {
         Menu gameMenu = new Menu("Game");
 
-        MenuItem newGame = new MenuItem("New game");
+        MenuItem newGame = new MenuItem("New");
         newGame.setOnAction(e -> {
             if (fullMoveLog.isEmpty()) {
                 Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
-                alert.setTitle("New game");
+                alert.setTitle("New");
                 alert.showAndWait();
                 return;
             }
             Alert alert = new Alert(AlertType.CONFIRMATION, "Start a new game?");
-            alert.setTitle("New game");
+            alert.setTitle("New");
             alert.showAndWait().ifPresent(response -> {
                 if (response.equals(ButtonType.OK)) {
                     aiObserver.stopAI();
@@ -162,10 +162,10 @@ public class Table extends BorderPane {
             });
         });
 
-        MenuItem saveGame = new MenuItem("Save game...");
+        MenuItem saveGame = new MenuItem("Save...");
         saveGame.setOnAction(e -> saveGame());
 
-        MenuItem loadGame = new MenuItem("Load game...");
+        MenuItem loadGame = new MenuItem("Load...");
         loadGame.setOnAction(e -> loadGame());
 
         MenuItem exit = new MenuItem("Exit");
@@ -182,7 +182,7 @@ public class Table extends BorderPane {
     private Menu createOptionsMenu() {
         Menu optionsMenu = new Menu("Options");
 
-        MenuItem undoTurn = new MenuItem("Undo last turn");
+        MenuItem undoTurn = new MenuItem("Undo turn");
         undoTurn.setOnAction(e -> {
             aiObserver.stopAI();
             exitReplayMode();
@@ -190,7 +190,7 @@ public class Table extends BorderPane {
             notifyAIObserver("undoturn");
         });
 
-        MenuItem undoMove = new MenuItem("Undo last move");
+        MenuItem undoMove = new MenuItem("Undo move");
         undoMove.setOnAction(e -> {
             aiObserver.stopAI();
             exitReplayMode();
@@ -217,7 +217,7 @@ public class Table extends BorderPane {
     private Menu createHelpMenu() {
         Menu helpMenu = new Menu("Help");
 
-        MenuItem rules = new MenuItem("Rules (Wikipedia)");
+        MenuItem rules = new MenuItem("Rules...");
         rules.setOnAction(e -> {
             try {
                 Desktop.getDesktop().browse(new URL(WIKI_XIANGQI).toURI());
@@ -240,13 +240,13 @@ public class Table extends BorderPane {
     private void saveGame() {
         if (fullMoveLog.isEmpty()) {
             Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
-            alert.setTitle("Save game");
+            alert.setTitle("Save");
             alert.showAndWait();
             return;
         }
 
         FileChooser fc = new FileChooser();
-        fc.setTitle("Save game");
+        fc.setTitle("Save");
         File file = fc.showSaveDialog(CChess.stage);
 
         if (file != null) {
@@ -262,7 +262,7 @@ public class Table extends BorderPane {
             }
 
             Alert alert = new Alert(AlertType.INFORMATION, "Save success");
-            alert.setTitle("Save game");
+            alert.setTitle("Save");
             alert.showAndWait();
         }
     }
@@ -272,14 +272,14 @@ public class Table extends BorderPane {
      */
     private void loadGame() {
         FileChooser fc = new FileChooser();
-        fc.setTitle("Load game");
+        fc.setTitle("Load");
         File file = fc.showOpenDialog(CChess.stage);
 
         if (file != null) {
             LoadGameUtil lgu = new LoadGameUtil(file);
             if (!lgu.isValidFile()) {
                 Alert alert = new Alert(AlertType.ERROR, "Invalid file");
-                alert.setTitle("Load game");
+                alert.setTitle("Load");
                 alert.showAndWait();
             } else {
                 aiObserver.stopAI();
@@ -302,7 +302,7 @@ public class Table extends BorderPane {
                 notifyAIObserver("load");
 
                 Alert alert = new Alert(AlertType.INFORMATION, "Load success");
-                alert.setTitle("Load game");
+                alert.setTitle("Load");
                 alert.showAndWait();
             }
         }
