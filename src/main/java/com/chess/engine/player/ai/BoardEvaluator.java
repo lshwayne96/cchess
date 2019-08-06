@@ -108,7 +108,7 @@ final class BoardEvaluator {
             if (oppChariotCount == 2 && advisorCount == 0) {
                 totalCohesionValue -= 500;
             } else if (oppChariotCount == 2 && advisorCount == 1) {
-                totalCohesionValue -= 300;
+                totalCohesionValue -= 250;
             }
         }
 
