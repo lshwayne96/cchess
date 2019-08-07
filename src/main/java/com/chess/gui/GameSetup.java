@@ -88,6 +88,21 @@ class GameSetup extends Dialog {
         dialogPane.getButtonTypes().addAll(ok, cancel);
         Button cancelButton = (Button) dialogPane.lookupButton(cancel);
         cancelButton.setOnAction(e -> {
+            if (redPlayerType.isAI()) {
+                redAIButton.setSelected(true);
+            } else {
+                redHumanButton.setSelected(true);
+            }
+            if (blackPlayerType.isAI()) {
+                blackAIButton.setSelected(true);
+            } else {
+                blackHumanButton.setSelected(true);
+            }
+            if (isAITimeLimited()) {
+                fixedTimeAIButton.setSelected(true);
+            } else {
+                fixedDepthAIButton.setSelected(true);
+            }
             searchDepthSpinner.getEditor().textProperty().set(Integer.toString(searchDepth));
             searchTimeSpinner.getEditor().textProperty().set(Integer.toString(searchTime));
         });
