@@ -67,11 +67,9 @@ public class Table extends BorderPane {
     private static final int BOARD_WIDTH = 540;
     private static final int BOARD_HEIGHT = 600;
     private static final int POINT_WIDTH = 60;
-    private static final String GRAPHICS_MISC_PATH = "/graphics/misc/";
-    private static final String GRAPHICS_PIECES_PATH = "/graphics/pieces/";
     private static final Image BOARD_IMAGE = new Image(Table.class.getResourceAsStream("/graphics/board.png"));
     private static final Image HIGHLIGHT_LEGALS_IMAGE =
-            new Image(Table.class.getResourceAsStream(GRAPHICS_MISC_PATH + "dot.png"));
+            new Image(Table.class.getResourceAsStream(GuiUtil.GRAPHICS_MISC_PATH + "dot.png"));
     private static final Border HIGHLIGHT_LAST_MOVE_BORDER =
             new Border(new BorderStroke(Color.WHITE, BorderStrokeStyle.DASHED, CornerRadii.EMPTY, new BorderWidths(1.8)));
     private static final Border HIGHLIGHT_SELECTED_PIECE_BORDER =
@@ -374,6 +372,7 @@ public class Table extends BorderPane {
      */
     private void exitReplayMode() {
         if (inReplayMode) {
+            moveHistoryPane.disableReplay();
             jumpToMove(-1);
         }
     }
@@ -412,11 +411,11 @@ public class Table extends BorderPane {
 
         for (PieceType pieceType : PieceType.values()) {
             String name = ("R" + pieceType.toString()).toLowerCase();
-            Image image = new Image(Table.class.getResourceAsStream(GRAPHICS_PIECES_PATH + name + ".png"));
+            Image image = new Image(Table.class.getResourceAsStream(GuiUtil.GRAPHICS_PIECES_PATH + name + ".png"));
             pieceImageMap.put(name, image);
 
             name = ("B" + pieceType.toString()).toLowerCase();
-            image = new Image(Table.class.getResourceAsStream(GRAPHICS_PIECES_PATH + name + ".png"));
+            image = new Image(Table.class.getResourceAsStream(GuiUtil.GRAPHICS_PIECES_PATH + name + ".png"));
             pieceImageMap.put(name, image);
         }
 

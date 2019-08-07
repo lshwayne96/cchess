@@ -22,16 +22,19 @@ class HelpWindow extends Dialog {
         List<Node> nodes = new ArrayList<>();
 
         Label playHeader = GuiUtil.getHeader("Play mode");
-        Label lmbLabel = new Label("LMB - Select piece to move / Choose destination for selected piece");
-        Label rmbLabel = new Label("RMB - Cancel piece selection");
+        Label lmbLabel = new Label("\u2022 LMB \u2014 Select piece to move | Choose destination for selected piece");
+        Label rmbLabel = new Label("\u2022 RMB \u2014 Cancel piece selection");
         Label replayHeader = GuiUtil.getHeader("Replay mode");
-        Label zLabel = new Label("Z - Toggle replay mode");
-        Label aLabel = new Label("A - Go to previous move");
-        Label dLabel = new Label("D - Go to next move");
-        Label wLabel = new Label("W - Go to previous turn");
-        Label sLabel = new Label("S - Go to next turn");
-        Label qLabel = new Label("Q - Go to first move");
-        Label eLabel = new Label("E - Go to last move");
+        Label prevLabel = new Label("\u2022 Left single arrow \u2014 Go to previous move");
+        Label nextLabel = new Label("\u2022 Right single arrow \u2014 Go to next move");
+        Label startLabel = new Label("\u2022 Left double arrow \u2014 Go to first move");
+        Label endLabel = new Label("\u2022 Right double arrow \u2014 Go to last move");
+        Label noteHeader = GuiUtil.getHeader("Notes");
+        Label note1 = new Label("\u2022 Use the REPLAY button to toggle between Play and Replay mode");
+        Label note2 = new Label("\u2022 While in Replay mode, all controls from Play mode are disabled (and vice versa)");
+        Label note3 = new Label("\u2022 Starting/loading a new game or undoing a turn/move will automatically exit Replay mode");
+        Label note4 = new Label("\u2022 Entering Setup will stop any thinking AI");
+
         ButtonType close = new ButtonType("Close", ButtonBar.ButtonData.CANCEL_CLOSE);
 
         nodes.add(playHeader);
@@ -39,13 +42,16 @@ class HelpWindow extends Dialog {
         nodes.add(rmbLabel);
         nodes.add(GuiUtil.getSeparator());
         nodes.add(replayHeader);
-        nodes.add(zLabel);
-        nodes.add(aLabel);
-        nodes.add(dLabel);
-        nodes.add(wLabel);
-        nodes.add(sLabel);
-        nodes.add(qLabel);
-        nodes.add(eLabel);
+        nodes.add(prevLabel);
+        nodes.add(nextLabel);
+        nodes.add(startLabel);
+        nodes.add(endLabel);
+        nodes.add(GuiUtil.getSeparator());
+        nodes.add(noteHeader);
+        nodes.add(note1);
+        nodes.add(note2);
+        nodes.add(note3);
+        nodes.add(note4);
 
         for (int i = 0; i < nodes.size(); i++) {
             gridPane.add(nodes.get(i), 0, i);

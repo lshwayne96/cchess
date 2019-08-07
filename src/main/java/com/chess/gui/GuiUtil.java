@@ -8,6 +8,9 @@ import javafx.scene.text.FontWeight;
 
 class GuiUtil {
 
+    static final String GRAPHICS_MISC_PATH = "/graphics/misc/";
+    static final String GRAPHICS_PIECES_PATH = "/graphics/pieces/";
+
     private static final Font HEADER_FONT = Font.font("System", FontWeight.BOLD, Font.getDefault().getSize() + 2);
 
     static Label getHeader(String header) {

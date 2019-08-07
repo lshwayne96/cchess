@@ -6,13 +6,17 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TablePosition;
 import javafx.scene.control.TableView;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.input.KeyCode;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
 
 import java.util.ArrayList;
 
@@ -26,7 +30,16 @@ class MoveHistoryPane extends BorderPane {
     private static final int HISTORY_PANE_WIDTH = 120;
     private static final int HISTORY_PANE_HEIGHT = 600;
     private static final Label EMPTY_TABLE_MESSAGE = new Label("No moves made");
+    private static final Image PREV_MOVE =
+            new Image(MoveHistoryPane.class.getResourceAsStream(GuiUtil.GRAPHICS_MISC_PATH + "prev.png"));
+    private static final Image NEXT_MOVE =
+            new Image(MoveHistoryPane.class.getResourceAsStream(GuiUtil.GRAPHICS_MISC_PATH + "next.png"));
+    private static final Image START_MOVE =
+            new Image(MoveHistoryPane.class.getResourceAsStream(GuiUtil.GRAPHICS_MISC_PATH + "start.png"));
+    private static final Image END_MOVE =
+            new Image(MoveHistoryPane.class.getResourceAsStream(GuiUtil.GRAPHICS_MISC_PATH + "end.png"));
 
+    private final ReplayPane replayPane;
     private final TableView<Turn> turnTableView;
     private final ObservableList<Turn> turnList;
 
@@ -50,6 +63,7 @@ class MoveHistoryPane extends BorderPane {
         turnTableView.setPrefHeight(HISTORY_PANE_HEIGHT);
         turnTableView.setPlaceholder(EMPTY_TABLE_MESSAGE);
 
+        replayPane = new ReplayPane();
         ObservableList selectedCells = turnTableView.getSelectionModel().getSelectedCells();
         selectedCells.addListener((ListChangeListener) c -> {
             if (selectedCells.isEmpty()) {
@@ -60,63 +74,8 @@ class MoveHistoryPane extends BorderPane {
             int moveIndex = tablePosition.getRow()*2 + tablePosition.getColumn();
             getInstance().jumpToMove(moveIndex);
         });
-        turnTableView.setOnKeyPressed(e -> {
-            if (selectedCells.isEmpty()) { // enter replay mode
-                if (e.getCode().equals(KeyCode.Z) && !turnList.isEmpty()) {
-                    turnTableView.getSelectionModel().clearAndSelect(0, redMoveCol);
-                }
-                return;
-            }
-            TablePosition tablePosition = (TablePosition) selectedCells.get(0);
-            switch (e.getCode()) {
-                case Z: // exit replay mode
-                    turnTableView.getSelectionModel().clearSelection();
-                    break;
-                case A: // go to previous move (if any)
-                    if (tablePosition.getTableColumn().equals(blackMoveCol)) {
-                        turnTableView.getSelectionModel().clearAndSelect(tablePosition.getRow(), redMoveCol);
-                    } else if (tablePosition.getTableColumn().equals(redMoveCol) && tablePosition.getRow() > 0) {
-                        turnTableView.getSelectionModel().clearAndSelect(tablePosition.getRow() - 1, blackMoveCol);
-                    }
-                    break;
-                case D: // go to next move (if any)
-                    Turn currTurn = turnList.get(tablePosition.getRow());
-                    if (tablePosition.getTableColumn().equals(redMoveCol) && currTurn.getBlackMove() != null) {
-                        turnTableView.getSelectionModel().clearAndSelect(tablePosition.getRow(), blackMoveCol);
-                    } else if (tablePosition.getTableColumn().equals(blackMoveCol)
-                            && tablePosition.getRow() < turnList.size() - 1) {
-                        turnTableView.getSelectionModel().clearAndSelect(tablePosition.getRow() + 1, redMoveCol);
-                    }
-                    break;
-                case W: // go to previous turn
-                    if (tablePosition.getRow() > 0) {
-                        turnTableView.getSelectionModel()
-                                .clearAndSelect(tablePosition.getRow() - 1, tablePosition.getTableColumn());
-                    }
-                    break;
-                case S: // go to next turn
-                    if (tablePosition.getRow() < turnList.size() - 1) {
-                        if (tablePosition.getTableColumn().equals(redMoveCol)
-                            || (tablePosition.getTableColumn().equals(blackMoveCol)
-                                && turnList.get(tablePosition.getRow() + 1).getBlackMove() != null))
-                        turnTableView.getSelectionModel()
-                                .clearAndSelect(tablePosition.getRow() + 1, tablePosition.getTableColumn());
-                    }
-                    break;
-                case Q: // go to first move
-                    turnTableView.getSelectionModel().clearAndSelect(0, redMoveCol);
-                    break;
-                case E: // go to last move
-                    Turn lastTurn = turnList.get(turnList.size() - 1);
-                    if (lastTurn.getBlackMove() != null) {
-                        turnTableView.getSelectionModel().clearAndSelect(turnList.size() - 1, blackMoveCol);
-                    } else {
-                        turnTableView.getSelectionModel().clearAndSelect(turnList.size() - 1, redMoveCol);
-                    }
-            }
-            e.consume();
-        });
 
+        setTop(replayPane);
         setCenter(turnTableView);
         setVisible(true);
     }
@@ -141,6 +100,100 @@ class MoveHistoryPane extends BorderPane {
             } else {
                 currTurn.setBlackMove(move.toString());
             }
+        }
+
+        turnTableView.scrollTo(turnList.size() - 1);
+    }
+
+    private class ReplayPane extends GridPane {
+
+        private final ToggleButton toggleReplay;
+        private final Button prevMove;
+        private final Button nextMove;
+        private final Button startMove;
+        private final Button endMove;
+
+        private ReplayPane() {
+            toggleReplay = new ToggleButton("REPLAY");
+            toggleReplay.setOnAction(e -> {
+                if (toggleReplay.isSelected()) {
+                    if (!turnList.isEmpty()) {
+                        disableReplayButtons(false);
+                        turnTableView.getSelectionModel().clearAndSelect(0, turnTableView.getColumns().get(0));
+                    } else {
+                        toggleReplay.setSelected(false);
+                    }
+                } else {
+                    disableReplayButtons(true);
+                    turnTableView.getSelectionModel().clearSelection();
+                }
+            });
+            toggleReplay.setSelected(false);
+            toggleReplay.setPrefWidth(HISTORY_PANE_WIDTH);
+
+            GridPane navigationPane = new GridPane();
+            prevMove = new Button("", new ImageView(PREV_MOVE));
+            nextMove = new Button("", new ImageView(NEXT_MOVE));
+            startMove = new Button("", new ImageView(START_MOVE));
+            endMove = new Button("", new ImageView(END_MOVE));
+
+            TableColumn<Turn, ?> redMoveCol = turnTableView.getColumns().get(0);
+            TableColumn<Turn, ?> blackMoveCol = turnTableView.getColumns().get(1);
+            ObservableList selectedCells = turnTableView.getSelectionModel().getSelectedCells();
+            prevMove.setOnAction(e -> {
+                TablePosition tablePosition = (TablePosition) selectedCells.get(0);
+                if (tablePosition.getTableColumn().equals(blackMoveCol)) {
+                    turnTableView.getSelectionModel().clearAndSelect(tablePosition.getRow(), redMoveCol);
+                } else if (tablePosition.getTableColumn().equals(redMoveCol) && tablePosition.getRow() > 0) {
+                    turnTableView.getSelectionModel().clearAndSelect(tablePosition.getRow() - 1, blackMoveCol);
+                }
+            });
+            nextMove.setOnAction(e -> {
+                TablePosition tablePosition = (TablePosition) selectedCells.get(0);
+                Turn currTurn = turnList.get(tablePosition.getRow());
+                if (tablePosition.getTableColumn().equals(redMoveCol) && currTurn.getBlackMove() != null) {
+                    turnTableView.getSelectionModel().clearAndSelect(tablePosition.getRow(), blackMoveCol);
+                } else if (tablePosition.getTableColumn().equals(blackMoveCol)
+                        && tablePosition.getRow() < turnList.size() - 1) {
+                    turnTableView.getSelectionModel().clearAndSelect(tablePosition.getRow() + 1, redMoveCol);
+                }
+            });
+            startMove.setOnAction(e -> {
+                turnTableView.getSelectionModel().clearAndSelect(0, redMoveCol);
+            });
+            endMove.setOnAction(e -> {
+                Turn lastTurn = turnList.get(turnList.size() - 1);
+                if (lastTurn.getBlackMove() != null) {
+                    turnTableView.getSelectionModel().clearAndSelect(turnList.size() - 1, blackMoveCol);
+                } else {
+                    turnTableView.getSelectionModel().clearAndSelect(turnList.size() - 1, redMoveCol);
+                }
+            });
+            disableReplayButtons(true);
+            prevMove.setPrefWidth(HISTORY_PANE_WIDTH / 2);
+            nextMove.setPrefWidth(HISTORY_PANE_WIDTH / 2);
+            startMove.setPrefWidth(HISTORY_PANE_WIDTH / 2);
+            endMove.setPrefWidth(HISTORY_PANE_WIDTH / 2);
+            navigationPane.add(prevMove, 0, 0);
+            navigationPane.add(nextMove, 1, 0);
+            navigationPane.add(startMove, 0, 1);
+            navigationPane.add(endMove, 1, 1);
+
+            add(toggleReplay, 0, 0);
+            add(navigationPane, 0, 1);
+        }
+
+        private void disableReplayButtons(boolean disabled) {
+            nextMove.setDisable(disabled);
+            prevMove.setDisable(disabled);
+            startMove.setDisable(disabled);
+            endMove.setDisable(disabled);
+        }
+    }
+
+    void disableReplay() {
+        if (replayPane.toggleReplay.isSelected()) {
+            replayPane.toggleReplay.fire();
         }
     }
 
