@@ -920,8 +920,8 @@ public class Table extends BorderPane {
         @Override
         protected Move call() {
             task = getTimerTask();
-            timer.schedule(task, searchTime * 1000);
             searchTime = getInstance().gameSetup.getSearchTime();
+            timer.schedule(task, searchTime * 1000);
             return MiniMax.getInstance().fixedTime(getInstance().currBoard, bannedPiece, this,
                     System.currentTimeMillis() + searchTime*1000);
         }
