@@ -70,6 +70,9 @@ class MoveHistoryPane extends BorderPane {
                 Table.getInstance().jumpToMove(-1, true);
                 return;
             }
+            if (!replayPane.toggleReplay.isSelected()) {
+                replayPane.toggleReplay.fire();
+            }
             TablePosition tablePosition = (TablePosition) selectedCells.get(0);
             int moveIndex = tablePosition.getRow()*2 + tablePosition.getColumn();
             Table.getInstance().jumpToMove(moveIndex, true);
@@ -121,8 +124,10 @@ class MoveHistoryPane extends BorderPane {
                 if (toggleReplay.isSelected()) {
                     if (!turnList.isEmpty()) {
                         disableReplayButtons(false);
-                        turnTableView.getSelectionModel().select(0, turnTableView.getColumns().get(0));
-                        turnTableView.scrollTo(0);
+                        if (turnTableView.getSelectionModel().getSelectedCells().isEmpty()) {
+                            turnTableView.getSelectionModel().select(0, turnTableView.getColumns().get(0));
+                            turnTableView.scrollTo(0);
+                        }
                     } else {
                         toggleReplay.setSelected(false);
                     }

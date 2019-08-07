@@ -30,10 +30,11 @@ class HelpWindow extends Dialog {
         Label startLabel = new Label("\u2022 Left double arrow \u2014 Go to first move");
         Label endLabel = new Label("\u2022 Right double arrow \u2014 Go to last move");
         Label noteHeader = GuiUtil.getHeader("Notes");
-        Label note1 = new Label("\u2022 Use the REPLAY button to toggle between Play and Replay mode");
-        Label note2 = new Label("\u2022 While in Replay mode, all controls from Play mode are disabled (and vice versa)");
-        Label note3 = new Label("\u2022 Starting/loading a new game or undoing a turn/move will automatically exit Replay mode");
-        Label note4 = new Label("\u2022 Entering Setup will stop any thinking AI");
+        Label note1 = new Label("\u2022 Click the REPLAY button to toggle between Play and Replay mode");
+        Label note2 = new Label("\u2022 Replay mode can also be activated by clicking on a move in the move history");
+        Label note3 = new Label("\u2022 While in Replay mode, all controls from Play mode are disabled (and vice versa)");
+        Label note4 = new Label("\u2022 Starting/loading a new game or undoing a turn/move will automatically exit Replay mode");
+        Label note5 = new Label("\u2022 Entering Setup will stop any thinking AI");
 
         ButtonType close = new ButtonType("Close", ButtonBar.ButtonData.CANCEL_CLOSE);
 
@@ -52,6 +53,7 @@ class HelpWindow extends Dialog {
         nodes.add(note2);
         nodes.add(note3);
         nodes.add(note4);
+        nodes.add(note5);
 
         for (int i = 0; i < nodes.size(); i++) {
             gridPane.add(nodes.get(i), 0, i);

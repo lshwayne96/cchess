@@ -55,6 +55,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Stack;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutionException;
@@ -210,6 +211,7 @@ public class Table extends BorderPane {
 
         MenuItem setup = new MenuItem("Setup...");
         setup.setOnAction(e -> {
+            clearSelections();
             aiObserver.stopAI();
             gameSetup.showAndWait();
             notifyAIObserver("setup");
@@ -660,7 +662,7 @@ public class Table extends BorderPane {
          */
         private void highlightLastMoveAndSelectedPiece() {
             Move lastMove;
-            if (moveHistoryPane.isInReplayMode()) { //TODO: fix null pointer
+            if (moveHistoryPane.isInReplayMode()) {
                 lastMove = partialMovelog.getLastMove();
             } else {
                 lastMove = fullMovelog.getLastMove();
@@ -725,8 +727,11 @@ public class Table extends BorderPane {
 
         private static final MoveBook movebook = MoveBook.getInstance();
 
-        private FixedDepthAIPlayer fixedDepthAIPlayer;
-        private FixedTimeAIPlayer fixedTimeAIPlayer;
+        private final Stack<AIPlayer> aiPlayers;
+
+        private AIObserver() {
+            aiPlayers = new Stack<>();
+        }
 
         @Override
         public void propertyChange(PropertyChangeEvent evt) {
@@ -740,23 +745,19 @@ public class Table extends BorderPane {
                     System.out.println(move.get() + " [movebook]");
                     return;
                 }
-                if (getInstance().gameSetup.isAITimeLimited()) {
-                    fixedTimeAIPlayer = new FixedTimeAIPlayer();
-                    Thread th = new Thread(fixedTimeAIPlayer);
-                    th.setDaemon(true);
-                    th.start();
-                } else {
-                    fixedDepthAIPlayer = new FixedDepthAIPlayer();
-                    Thread th = new Thread(fixedDepthAIPlayer);
-                    th.setDaemon(true);
-                    th.start();
-                }
+
+                AIPlayer aiPlayer = getInstance().gameSetup.isAITimeLimited()
+                                ? new FixedTimeAIPlayer() : new FixedDepthAIPlayer();
+                aiPlayers.push(aiPlayer);
+                Thread th = new Thread(aiPlayer);
+                th.setDaemon(true);
+                th.start();
             }
         }
 
         /**
          * Executes the given move on the board.
-         * @param move
+         * @param move The move to make.
          */
         private static void makeMove(Move move) {
             getInstance().currBoard = getInstance().currBoard.getCurrPlayer().makeMove(move).getNextBoard();
@@ -772,12 +773,9 @@ public class Table extends BorderPane {
          * Terminates all running AI (if any).
          */
         private void stopAI() {
-            if (fixedDepthAIPlayer != null) {
-                fixedDepthAIPlayer.cancel(true);
-            }
-            if (fixedTimeAIPlayer != null) {
-                fixedTimeAIPlayer.cancelTimer();
-                fixedTimeAIPlayer.cancel(true);
+            while (!aiPlayers.isEmpty()) {
+                AIPlayer aiPlayer = aiPlayers.pop();
+                aiPlayer.stop();
             }
         }
     }
@@ -819,6 +817,8 @@ public class Table extends BorderPane {
             // check limit reached
             return movedPiece;
         }
+
+        abstract void stop();
     }
 
     /**
@@ -847,6 +847,11 @@ public class Table extends BorderPane {
             startTime = System.currentTimeMillis();
             searchDepth = getInstance().gameSetup.getSearchDepth();
             return MiniMax.getInstance().fixedDepth(getInstance().currBoard, searchDepth, bannedPiece);
+        }
+
+        @Override
+        void stop() {
+            cancel(true);
         }
     }
 
@@ -880,9 +885,16 @@ public class Table extends BorderPane {
             currDepth = (int) evt.getOldValue();
         }
 
+        @Override
+        void stop() {
+            if (currTask != null) {
+                currTask.cancel();
+            }
+            cancel(true);
+        }
+
         /**
          * Returns a timer task for forcing a move when time is up.
-         * @return
          */
         private TimerTask getTimerTask() {
             return new TimerTask() {
@@ -894,15 +906,6 @@ public class Table extends BorderPane {
                     FixedTimeAIPlayer.this.cancel(true);
                 }
             };
-        }
-
-        /**
-         * Cancels the current timer task.
-         */
-        void cancelTimer() {
-            if (currTask != null) {
-                currTask.cancel();
-            }
         }
     }
 
