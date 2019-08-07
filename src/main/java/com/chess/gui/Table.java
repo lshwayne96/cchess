@@ -71,9 +71,11 @@ public class Table extends BorderPane {
     private static final Image HIGHLIGHT_LEGALS_IMAGE =
             new Image(Table.class.getResourceAsStream(GuiUtil.GRAPHICS_MISC_PATH + "dot.png"));
     private static final Border HIGHLIGHT_LAST_MOVE_BORDER =
-            new Border(new BorderStroke(Color.WHITE, BorderStrokeStyle.DASHED, CornerRadii.EMPTY, new BorderWidths(1.8)));
+            new Border(new BorderStroke(Color.WHITE, BorderStrokeStyle.DASHED,
+                    new CornerRadii(POINT_WIDTH / 2), new BorderWidths(2)));
     private static final Border HIGHLIGHT_SELECTED_PIECE_BORDER =
-            new Border(new BorderStroke(Color.WHITE, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, new BorderWidths(2.5)));
+            new Border(new BorderStroke(Color.WHITE, BorderStrokeStyle.SOLID,
+                    new CornerRadii(POINT_WIDTH / 2), new BorderWidths(2)));
     private static final String WIKI_XIANGQI = "https://en.wikipedia.org/wiki/Xiangqi";
     static final Map<String, Image> PIECE_IMAGE_MAP = getPieceImageMap();
     private static final Table TABLE_INSTANCE = new Table();

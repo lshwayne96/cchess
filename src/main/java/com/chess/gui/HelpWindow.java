@@ -22,7 +22,7 @@ class HelpWindow extends Dialog {
         List<Node> nodes = new ArrayList<>();
 
         Label playHeader = GuiUtil.getHeader("Play mode");
-        Label lmbLabel = new Label("\u2022 LMB \u2014 Select piece to move | Choose destination for selected piece");
+        Label lmbLabel = new Label("\u2022 LMB \u2014 Select piece to move | Choose destination (green dot) for selected piece");
         Label rmbLabel = new Label("\u2022 RMB \u2014 Cancel piece selection");
         Label replayHeader = GuiUtil.getHeader("Replay mode");
         Label prevLabel = new Label("\u2022 Left single arrow \u2014 Go to previous move");
