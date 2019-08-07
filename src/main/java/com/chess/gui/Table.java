@@ -726,10 +726,14 @@ public class Table extends BorderPane {
     private static class AIObserver implements PropertyChangeListener {
 
         private static final MoveBook movebook = MoveBook.getInstance();
+        private static final int MIN_TIME = 1000;
 
+        private final Timer timer;
         private final Stack<AIPlayer> aiPlayers;
+        private TimerTask task;
 
         private AIObserver() {
+            timer = new Timer("Movebook Timer");
             aiPlayers = new Stack<>();
         }
 
@@ -741,8 +745,8 @@ public class Table extends BorderPane {
                 Board board = getInstance().currBoard;
                 Optional<Move> move = movebook.getRandomMove(board);
                 if (move.isPresent()) {
-                    makeMove(move.get());
-                    System.out.println(move.get() + " [movebook]");
+                    task = getTimerTask(move.get());
+                    timer.schedule(task, MIN_TIME);
                     return;
                 }
 
@@ -757,7 +761,6 @@ public class Table extends BorderPane {
 
         /**
          * Executes the given move on the board.
-         * @param move The move to make.
          */
         private static void makeMove(Move move) {
             getInstance().currBoard = getInstance().currBoard.getCurrPlayer().makeMove(move).getNextBoard();
@@ -770,9 +773,25 @@ public class Table extends BorderPane {
         }
 
         /**
+         * Returns a timer task for a move in the movebook.
+         */
+        private TimerTask getTimerTask(Move move) {
+            return new TimerTask() {
+                @Override
+                public void run() {
+                    Platform.runLater(() -> makeMove(move));
+                    System.out.println(move + " [movebook]");
+                }
+            };
+        }
+
+        /**
          * Terminates all running AI (if any).
          */
         private void stopAI() {
+            if (task != null) {
+                task.cancel();
+            }
             while (!aiPlayers.isEmpty()) {
                 AIPlayer aiPlayer = aiPlayers.pop();
                 aiPlayer.stop();
@@ -783,16 +802,22 @@ public class Table extends BorderPane {
     /**
      * Represents an AI player.
      */
-    private abstract static class AIPlayer extends Task<Move> {
+    private static abstract class AIPlayer extends Task<Move> {
 
         private static final int MAX_CONSEC_CHECKS = 3;
 
-        Piece bannedPiece; // the piece not to use for checking the opponent
+        final Timer timer;
+        TimerTask task;
+        Piece bannedPiece;
 
         private AIPlayer() {
+            timer = new Timer("AI Timer");
             bannedPiece = getBannedPiece();
         }
 
+        /**
+         * Returns the piece not to use for checking the opponent.
+         */
         private Piece getBannedPiece() {
             List<Board> boardHistory = getInstance().boardHistory;
             List<Move> moveHistory = getInstance().fullMovelog.getMoves();
@@ -814,11 +839,18 @@ public class Table extends BorderPane {
                 movedPiece = board.getPoint(move.getDestPosition()).getPiece().get();
             }
 
-            // check limit reached
             return movedPiece;
         }
 
-        abstract void stop();
+        /**
+         * Stops this AI player and its timer task.
+         */
+        private void stop() {
+            if (task != null) {
+                task.cancel();
+            }
+            cancel(true);
+        }
     }
 
     /**
@@ -826,6 +858,7 @@ public class Table extends BorderPane {
      */
     private static class FixedDepthAIPlayer extends AIPlayer {
 
+        private Move bestMove;
         private int searchDepth;
         private long startTime;
 
@@ -833,10 +866,10 @@ public class Table extends BorderPane {
         public void done() {
             if (isCancelled()) return;
             try {
-                Move bestMove = get();
-                Platform.runLater(() -> AIObserver.makeMove(bestMove));
-                System.out.println(bestMove.toString() + " | "
-                        + (System.currentTimeMillis() - startTime)/1000 + "s | " + "depth " + searchDepth);
+                bestMove = get();
+                if (System.currentTimeMillis() > startTime + AIObserver.MIN_TIME) {
+                    move();
+                }
             } catch (InterruptedException | ExecutionException e) {
                 e.printStackTrace();
             }
@@ -844,14 +877,34 @@ public class Table extends BorderPane {
 
         @Override
         protected Move call() {
+            task = getTimerTask();
+            timer.schedule(task, AIObserver.MIN_TIME);
             startTime = System.currentTimeMillis();
             searchDepth = getInstance().gameSetup.getSearchDepth();
             return MiniMax.getInstance().fixedDepth(getInstance().currBoard, searchDepth, bannedPiece);
         }
 
-        @Override
-        void stop() {
-            cancel(true);
+        /**
+         * Executes the move.
+         */
+        private void move() {
+            Platform.runLater(() -> AIObserver.makeMove(bestMove));
+            System.out.println(bestMove.toString() + " | "
+                    + (System.currentTimeMillis() - startTime)/1000 + "s | " + "depth " + searchDepth);
+        }
+
+        /**
+         * Returns a timer task for keeping a minimum time before AI moves.
+         */
+        private TimerTask getTimerTask() {
+            return new TimerTask() {
+                @Override
+                public void run() {
+                    if (bestMove != null) {
+                        move();
+                    }
+                }
+            };
         }
     }
 
@@ -860,21 +913,15 @@ public class Table extends BorderPane {
      */
     public static class FixedTimeAIPlayer extends AIPlayer implements PropertyChangeListener {
 
-        private final Timer timer;
         private Move currBestMove;
         private int currDepth;
-        private TimerTask currTask;
         private int searchTime;
-
-        private FixedTimeAIPlayer() {
-            timer = new Timer("AI Timer");
-        }
 
         @Override
         protected Move call() {
-            currTask = getTimerTask();
+            task = getTimerTask();
+            timer.schedule(task, searchTime * 1000);
             searchTime = getInstance().gameSetup.getSearchTime();
-            timer.schedule(currTask, searchTime * 1000);
             return MiniMax.getInstance().fixedTime(getInstance().currBoard, bannedPiece, this,
                     System.currentTimeMillis() + searchTime*1000);
         }
@@ -883,14 +930,6 @@ public class Table extends BorderPane {
         public void propertyChange(PropertyChangeEvent evt) {
             currBestMove = (Move) evt.getNewValue();
             currDepth = (int) evt.getOldValue();
-        }
-
-        @Override
-        void stop() {
-            if (currTask != null) {
-                currTask.cancel();
-            }
-            cancel(true);
         }
 
         /**
