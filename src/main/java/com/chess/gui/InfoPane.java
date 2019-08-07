@@ -52,19 +52,13 @@ class InfoPane extends BorderPane {
     }
 
     /**
-     * Updates both captured panes based on the given movelog.
+     * Updates the status and captured panes based on the given board and movelog.
+     * @param board The current board.
      * @param movelog The current movelog.
      */
-    void updateCapturedPanes(MoveLog movelog) {
+    void update(Board board, MoveLog movelog) {
         redCapturedPane.update(movelog);
         blackCapturedPane.update(movelog);
-    }
-
-    /**
-     * Updates the status pane based on the given board.
-     * @param board The current board.
-     */
-    void updateStatusPane(Board board) {
         statusPane.update(board);
     }
 

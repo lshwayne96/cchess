@@ -67,12 +67,12 @@ class MoveHistoryPane extends BorderPane {
         ObservableList selectedCells = turnTableView.getSelectionModel().getSelectedCells();
         selectedCells.addListener((ListChangeListener) c -> {
             if (selectedCells.isEmpty()) {
-                getInstance().jumpToMove(-1);
+                Table.getInstance().jumpToMove(-1, true);
                 return;
             }
             TablePosition tablePosition = (TablePosition) selectedCells.get(0);
             int moveIndex = tablePosition.getRow()*2 + tablePosition.getColumn();
-            getInstance().jumpToMove(moveIndex);
+            Table.getInstance().jumpToMove(moveIndex, true);
         });
 
         setTop(replayPane);
@@ -105,8 +105,10 @@ class MoveHistoryPane extends BorderPane {
         turnTableView.scrollTo(turnList.size() - 1);
     }
 
+    /**
+     * A pane for navigating replays.
+     */
     private class ReplayPane extends GridPane {
-
         private final ToggleButton toggleReplay;
         private final Button prevMove;
         private final Button nextMove;
@@ -119,7 +121,8 @@ class MoveHistoryPane extends BorderPane {
                 if (toggleReplay.isSelected()) {
                     if (!turnList.isEmpty()) {
                         disableReplayButtons(false);
-                        turnTableView.getSelectionModel().clearAndSelect(0, turnTableView.getColumns().get(0));
+                        turnTableView.getSelectionModel().select(0, turnTableView.getColumns().get(0));
+                        turnTableView.scrollTo(0);
                     } else {
                         toggleReplay.setSelected(false);
                     }
@@ -147,6 +150,7 @@ class MoveHistoryPane extends BorderPane {
                 } else if (tablePosition.getTableColumn().equals(redMoveCol) && tablePosition.getRow() > 0) {
                     turnTableView.getSelectionModel().clearAndSelect(tablePosition.getRow() - 1, blackMoveCol);
                 }
+                turnTableView.scrollTo(turnTableView.getSelectionModel().getSelectedIndex());
             });
             nextMove.setOnAction(e -> {
                 TablePosition tablePosition = (TablePosition) selectedCells.get(0);
@@ -157,9 +161,11 @@ class MoveHistoryPane extends BorderPane {
                         && tablePosition.getRow() < turnList.size() - 1) {
                     turnTableView.getSelectionModel().clearAndSelect(tablePosition.getRow() + 1, redMoveCol);
                 }
+                turnTableView.scrollTo(turnTableView.getSelectionModel().getSelectedIndex());
             });
             startMove.setOnAction(e -> {
                 turnTableView.getSelectionModel().clearAndSelect(0, redMoveCol);
+                turnTableView.scrollTo(turnTableView.getSelectionModel().getSelectedIndex());
             });
             endMove.setOnAction(e -> {
                 Turn lastTurn = turnList.get(turnList.size() - 1);
@@ -168,6 +174,7 @@ class MoveHistoryPane extends BorderPane {
                 } else {
                     turnTableView.getSelectionModel().clearAndSelect(turnList.size() - 1, redMoveCol);
                 }
+                turnTableView.scrollTo(turnTableView.getSelectionModel().getSelectedIndex());
             });
             disableReplayButtons(true);
             prevMove.setPrefWidth(HISTORY_PANE_WIDTH / 2);
@@ -183,6 +190,9 @@ class MoveHistoryPane extends BorderPane {
             add(navigationPane, 0, 1);
         }
 
+        /**
+         * Disables/enables all replay buttons.
+         */
         private void disableReplayButtons(boolean disabled) {
             nextMove.setDisable(disabled);
             prevMove.setDisable(disabled);
@@ -191,10 +201,21 @@ class MoveHistoryPane extends BorderPane {
         }
     }
 
+    /**
+     * Disables replay mode.
+     */
     void disableReplay() {
         if (replayPane.toggleReplay.isSelected()) {
             replayPane.toggleReplay.fire();
         }
+    }
+
+    /**
+     * Checks if the game is in replay mode.
+     * @return true if the game is in replay mode, false otherwise.
+     */
+    boolean isInReplayMode() {
+        return replayPane.toggleReplay.isSelected();
     }
 
     /**

@@ -83,7 +83,7 @@ public class Table extends BorderPane {
     private final BoardPane boardPane;
     private final MoveHistoryPane moveHistoryPane;
     private final InfoPane infoPane;
-    private final MoveLog fullMoveLog;
+    private final MoveLog fullMovelog;
     private final List<Board> boardHistory;
     private final GameSetup gameSetup;
     private final HelpWindow helpWindow;
@@ -93,18 +93,16 @@ public class Table extends BorderPane {
     private Point sourcePoint;
     private Point destPoint;
     private Piece selectedPiece;
-    private MoveLog partialMoveLog;
-    private boolean inReplayMode;
+    private MoveLog partialMovelog;
 
     private Table() {
         currBoard = Board.initialiseBoard();
-        inReplayMode = false;
 
         boardPane = new BoardPane();
         moveHistoryPane = new MoveHistoryPane();
         infoPane = new InfoPane();
-        infoPane.updateStatusPane(currBoard);
-        fullMoveLog = new MoveLog();
+        fullMovelog = new MoveLog();
+        infoPane.update(currBoard, fullMovelog);
         boardHistory = new ArrayList<>();
         boardHistory.add(currBoard);
         gameSetup = new GameSetup();
@@ -144,7 +142,7 @@ public class Table extends BorderPane {
 
         MenuItem newGame = new MenuItem("New");
         newGame.setOnAction(e -> {
-            if (fullMoveLog.isEmpty()) {
+            if (fullMovelog.isEmpty()) {
                 Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
                 alert.setTitle("New");
                 alert.showAndWait();
@@ -156,7 +154,7 @@ public class Table extends BorderPane {
                 if (response.equals(ButtonType.OK)) {
                     aiObserver.stopAI();
                     exitReplayMode();
-                    undoAllMoves();
+                    restart();
                     notifyAIObserver("newgame");
                 }
             });
@@ -174,6 +172,18 @@ public class Table extends BorderPane {
         gameMenu.getItems().addAll(newGame, new SeparatorMenuItem(), saveGame, loadGame, new SeparatorMenuItem(), exit);
 
         return gameMenu;
+    }
+
+    private void restart() {
+        clearSelections();
+        currBoard = Board.initialiseBoard();
+        boardHistory.clear();
+        boardHistory.add(currBoard);
+        fullMovelog.clear();
+
+        boardPane.drawBoard(currBoard);
+        moveHistoryPane.update(fullMovelog);
+        infoPane.update(currBoard, fullMovelog);
     }
 
     /**
@@ -238,7 +248,7 @@ public class Table extends BorderPane {
      * Saves the current game in-progress into a loadable text file.
      */
     private void saveGame() {
-        if (fullMoveLog.isEmpty()) {
+        if (fullMovelog.isEmpty()) {
             Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
             alert.setTitle("Save");
             alert.showAndWait();
@@ -252,7 +262,7 @@ public class Table extends BorderPane {
         if (file != null) {
             try {
                 PrintWriter pw = new PrintWriter(file);
-                for (Move move : fullMoveLog.getMoves()) {
+                for (Move move : fullMovelog.getMoves()) {
                     pw.append(move.toString()).append("\n");
                 }
                 pw.flush();
@@ -290,13 +300,12 @@ public class Table extends BorderPane {
                 boardHistory.addAll(boards);
                 currBoard = boardHistory.get(boardHistory.size() - 1);
 
-                fullMoveLog.clear();
+                fullMovelog.clear();
                 for (Move move : lgu.getMoves()) {
-                    fullMoveLog.addMove(move);
+                    fullMovelog.addMove(move);
                 }
-                moveHistoryPane.update(fullMoveLog);
-                infoPane.updateCapturedPanes(fullMoveLog);
-                infoPane.updateStatusPane(currBoard);
+                moveHistoryPane.update(fullMovelog);
+                infoPane.update(currBoard, fullMovelog);
                 boardPane.drawBoard(currBoard);
 
                 notifyAIObserver("load");
@@ -312,16 +321,15 @@ public class Table extends BorderPane {
      * Undoes the last move of either player.
      */
     private void undoLastMove() {
-        if (!fullMoveLog.isEmpty()) {
+        if (!fullMovelog.isEmpty()) {
             clearSelections();
 
-            fullMoveLog.removeLastMove();
+            fullMovelog.removeLastMove();
             boardHistory.remove(boardHistory.size() - 1);
             currBoard = boardHistory.get(boardHistory.size() - 1);
 
-            moveHistoryPane.update(fullMoveLog);
-            infoPane.updateCapturedPanes(fullMoveLog);
-            infoPane.updateStatusPane(currBoard);
+            moveHistoryPane.update(fullMovelog);
+            infoPane.update(currBoard, fullMovelog);
             boardPane.drawBoard(currBoard);
         } else {
             Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
@@ -334,22 +342,13 @@ public class Table extends BorderPane {
      * Undoes two consecutive moves.
      */
     private void undoLastTurn() {
-        if (fullMoveLog.getSize() > 1) {
+        if (fullMovelog.getSize() > 1) {
             undoLastMove();
             undoLastMove();
         } else {
             Alert alert = new Alert(AlertType.INFORMATION, "No turns made");
             alert.setTitle("Undo last turn");
             alert.showAndWait();
-        }
-    }
-
-    /**
-     * Undoes all moves made.
-     */
-    private void undoAllMoves() {
-        while (!fullMoveLog.isEmpty()) {
-            undoLastMove();
         }
     }
 
@@ -373,35 +372,34 @@ public class Table extends BorderPane {
      * Exits replay mode if currently in it.
      */
     private void exitReplayMode() {
-        if (inReplayMode) {
+        if (moveHistoryPane.isInReplayMode()) {
             moveHistoryPane.disableReplay();
-            jumpToMove(-1);
+            jumpToMove(-1, false);
         }
     }
 
     /**
      * Exits replay mode if moveIndex = -1; else enters replay mode at the given moveIndex.
      * @param moveIndex The index of the move in the full movelog.
+     * @param notifyAI Whether to notify the AI observer.
      */
-    void jumpToMove(int moveIndex) {
-        if (moveIndex < -1 || moveIndex >= fullMoveLog.getSize()) return;
+    void jumpToMove(int moveIndex, boolean notifyAI) {
+        if (moveIndex < -1 || moveIndex >= fullMovelog.getSize()) return;
         if (moveIndex == -1) {
-            inReplayMode = false;
-            partialMoveLog = null;
+            partialMovelog = null;
             currBoard = boardHistory.get(boardHistory.size() - 1);
             boardPane.drawBoard(currBoard);
-            infoPane.updateStatusPane(currBoard);
-            infoPane.updateCapturedPanes(fullMoveLog);
-            notifyAIObserver("exitreplay");
+            infoPane.update(currBoard, fullMovelog);
+            if (notifyAI) {
+                Table.getInstance().notifyAIObserver("exitreplay");
+            }
         } else {
             aiObserver.stopAI();
-            inReplayMode = true;
-            partialMoveLog = fullMoveLog.getPartialLog(moveIndex);
+            partialMovelog = fullMovelog.getPartialLog(moveIndex);
             clearSelections();
             currBoard = boardHistory.get(moveIndex + 1);
             boardPane.drawBoard(currBoard);
-            infoPane.updateStatusPane(currBoard);
-            infoPane.updateCapturedPanes(partialMoveLog);
+            infoPane.update(currBoard, partialMovelog);
         }
     }
 
@@ -590,7 +588,7 @@ public class Table extends BorderPane {
          */
         private EventHandler<MouseEvent> getMouseEventHandler() {
             return event -> {
-                if (inReplayMode) return;
+                if (moveHistoryPane.isInReplayMode()) return;
                 if (event.getButton().equals(MouseButton.SECONDARY)) {
                     clearSelections();
                 } else if (event.getButton().equals(MouseButton.PRIMARY)) {
@@ -614,13 +612,12 @@ public class Table extends BorderPane {
                         if (transition.getMoveStatus().isDone()) {
                             currBoard = transition.getNextBoard();
                             boardHistory.add(currBoard);
-                            fullMoveLog.addMove(transition.getMove());
+                            fullMovelog.addMove(transition.getMove());
 
                             clearSelections();
                             Platform.runLater(() -> {
-                                moveHistoryPane.update(fullMoveLog);
-                                infoPane.updateCapturedPanes(fullMoveLog);
-                                infoPane.updateStatusPane(currBoard);
+                                moveHistoryPane.update(fullMovelog);
+                                infoPane.update(currBoard, fullMovelog);
                                 notifyAIObserver("movemade");
                             });
                         }
@@ -663,10 +660,10 @@ public class Table extends BorderPane {
          */
         private void highlightLastMoveAndSelectedPiece() {
             Move lastMove;
-            if (inReplayMode) {
-                lastMove = partialMoveLog.getLastMove();
+            if (moveHistoryPane.isInReplayMode()) { //TODO: fix null pointer
+                lastMove = partialMovelog.getLastMove();
             } else {
-                lastMove = fullMoveLog.getLastMove();
+                lastMove = fullMovelog.getLastMove();
             }
 
             if (lastMove != null) {
@@ -733,7 +730,7 @@ public class Table extends BorderPane {
 
         @Override
         public void propertyChange(PropertyChangeEvent evt) {
-            if (!Table.getInstance().inReplayMode
+            if (!Table.getInstance().moveHistoryPane.isInReplayMode()
                     && getInstance().gameSetup.isAIPlayer(getInstance().currBoard.getCurrPlayer())
                     && !getInstance().currBoard.getCurrPlayer().isInCheckmate()) {
                 Board board = getInstance().currBoard;
@@ -764,11 +761,10 @@ public class Table extends BorderPane {
         private static void makeMove(Move move) {
             getInstance().currBoard = getInstance().currBoard.getCurrPlayer().makeMove(move).getNextBoard();
             getInstance().boardHistory.add(getInstance().currBoard);
-            getInstance().fullMoveLog.addMove(move);
+            getInstance().fullMovelog.addMove(move);
             getInstance().boardPane.drawBoard(getInstance().currBoard);
-            getInstance().moveHistoryPane.update(getInstance().fullMoveLog);
-            getInstance().infoPane.updateCapturedPanes(getInstance().fullMoveLog);
-            getInstance().infoPane.updateStatusPane(getInstance().currBoard);
+            getInstance().moveHistoryPane.update(getInstance().fullMovelog);
+            getInstance().infoPane.update(getInstance().currBoard, getInstance().fullMovelog);
             getInstance().notifyAIObserver("movemade");
         }
 
@@ -801,7 +797,7 @@ public class Table extends BorderPane {
 
         private Piece getBannedPiece() {
             List<Board> boardHistory = getInstance().boardHistory;
-            List<Move> moveHistory = getInstance().fullMoveLog.getMoves();
+            List<Move> moveHistory = getInstance().fullMovelog.getMoves();
             if (moveHistory.size() < MAX_CONSEC_CHECKS * 2) return null;
 
             for (int i = 0; i < MAX_CONSEC_CHECKS; i++) {
