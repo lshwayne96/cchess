@@ -85,13 +85,13 @@ public class Table extends BorderPane {
     private final BoardPane boardPane;
     private final MoveHistoryPane moveHistoryPane;
     private final InfoPane infoPane;
-    private final MoveLog fullMovelog;
-    private final List<Board> boardHistory;
     private final GameSetup gameSetup;
     private final HelpWindow helpWindow;
     private final AIObserver aiObserver;
     private final PropertyChangeSupport propertyChangeSupport;
     private Board currBoard;
+    private List<Board> boardHistory;
+    private MoveLog fullMovelog;
     private MoveLog partialMovelog;
     private Point sourcePoint;
     private Point destPoint;
@@ -181,7 +181,7 @@ public class Table extends BorderPane {
     private void restart() {
         clearSelections();
         currBoard = Board.initialiseBoard();
-        boardHistory.clear();
+        boardHistory = new ArrayList<>();
         boardHistory.add(currBoard);
         fullMovelog.clear();
 
@@ -196,7 +196,7 @@ public class Table extends BorderPane {
     private Menu createOptionsMenu() {
         Menu optionsMenu = new Menu("Options");
 
-        MenuItem undoTurn = new MenuItem("Undo turn");
+        MenuItem undoTurn = new MenuItem("Undo last turn");
         undoTurn.setOnAction(e -> {
             aiObserver.stopAI();
             exitReplayMode();
@@ -204,12 +204,31 @@ public class Table extends BorderPane {
             notifyAIObserver("undoturn");
         });
 
-        MenuItem undoMove = new MenuItem("Undo move");
+        MenuItem undoMove = new MenuItem("Undo last move");
         undoMove.setOnAction(e -> {
             aiObserver.stopAI();
             exitReplayMode();
             undoLastMove();
             notifyAIObserver("undomove");
+        });
+
+        MenuItem playFromMove = new MenuItem("Play from selected move");
+        playFromMove.setOnAction(e -> {
+            if (!moveHistoryPane.isInReplayMode()) {
+                Alert alert = new Alert(AlertType.INFORMATION, "Not in replay mode");
+                alert.setTitle("Play from selected move");
+                alert.showAndWait();
+                return;
+            }
+
+            Alert alert = new Alert(AlertType.CONFIRMATION, "Subsequent moves will be deleted. Continue?");
+            alert.setTitle("Play from selected move");
+            alert.showAndWait().ifPresent(response -> {
+                if (response.equals(ButtonType.OK)) {
+                    playFromSelectedMove();
+                    notifyAIObserver("playfrommove");
+                }
+            });
         });
 
         MenuItem setup = new MenuItem("Setup...");
@@ -220,7 +239,7 @@ public class Table extends BorderPane {
             notifyAIObserver("setup");
         });
 
-        optionsMenu.getItems().addAll(undoTurn, undoMove, new SeparatorMenuItem(), setup);
+        optionsMenu.getItems().addAll(undoTurn, undoMove, playFromMove, new SeparatorMenuItem(), setup);
 
         return optionsMenu;
     }
@@ -314,7 +333,7 @@ public class Table extends BorderPane {
                 exitReplayMode();
 
                 List<Board> boards = lgu.getBoardHistory();
-                boardHistory.clear();
+                boardHistory = new ArrayList<>();
                 boardHistory.addAll(boards);
                 currBoard = boardHistory.get(boardHistory.size() - 1);
 
@@ -371,19 +390,17 @@ public class Table extends BorderPane {
     }
 
     /**
-     * Clears all mouse selections made by the human player.
+     * Enters play mode from the selected move in replay mode.
      */
-    private void clearSelections() {
-        sourcePoint = null;
-        destPoint = null;
-        selectedPiece = null;
-    }
+    private void playFromSelectedMove() {
+        if (!moveHistoryPane.isInReplayMode()) return;
 
-    /**
-     * Notifies the AI observer with the given property name.
-     */
-    private void notifyAIObserver(String propertyName) {
-        propertyChangeSupport.firePropertyChange(propertyName, null, null);
+        fullMovelog = partialMovelog;
+        while (boardHistory.size() > fullMovelog.getSize() + 1) {
+            boardHistory.remove(boardHistory.size() - 1);
+        }
+        exitReplayMode();
+        moveHistoryPane.update(fullMovelog);
     }
 
     /**
@@ -421,6 +438,26 @@ public class Table extends BorderPane {
         }
     }
 
+    /**
+     * Clears all mouse selections made by the human player.
+     */
+    private void clearSelections() {
+        sourcePoint = null;
+        destPoint = null;
+        selectedPiece = null;
+    }
+
+    /**
+     * Notifies the AI observer with the given property name.
+     */
+    private void notifyAIObserver(String propertyName) {
+        propertyChangeSupport.firePropertyChange(propertyName, null, null);
+    }
+
+    /**
+     * Checks if the current AI's moves are randomised.
+     * @return true if the current AI's moves are randomised, false otherwise.
+     */
     public boolean isAIRandomised() {
         return gameSetup.isAIRandomised();
     }

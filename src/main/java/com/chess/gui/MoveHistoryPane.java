@@ -69,7 +69,9 @@ class MoveHistoryPane extends BorderPane {
         ObservableList selectedCells = turnTableView.getSelectionModel().getSelectedCells();
         selectedCells.addListener((ListChangeListener) c -> {
             if (selectedCells.isEmpty()) {
-                Table.getInstance().jumpToMove(-1, true);
+                if (!turnList.isEmpty()) {
+                    Table.getInstance().jumpToMove(-1, true);
+                }
                 return;
             }
             if (!replayPane.toggleReplay.isSelected()) {

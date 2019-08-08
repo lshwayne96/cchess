@@ -68,60 +68,68 @@ final class BoardEvaluator {
     private static int getTotalPieceValue(Board board, Player player) {
         int totalMaterialValue = 0;
         int totalPositionValue = 0;
-        int totalCohesionValue = 0;
+        int totalMiscValue = 0;
         BoardStatus boardStatus = board.getStatus();
 
-        int cannonCount = 0, horseCount = 0, elephantCount = 0, advisorCount = 0;
+        int chariotCount = 0, cannonCount = 0, horseCount = 0;
         for (Piece piece : player.getActivePieces()) {
             totalMaterialValue += piece.getMaterialValue(boardStatus);
             totalPositionValue += piece.getPositionValue();
-
-            if (piece.getPieceType().equals(PieceType.CANNON)) {
-                cannonCount++;
-            } else if (piece.getPieceType().equals(PieceType.HORSE)) {
-                horseCount++;
-            } else if (piece.getPieceType().equals(PieceType.ELEPHANT)) {
-                elephantCount++;
-            } else if (piece.getPieceType().equals(PieceType.ADVISOR)) {
-                advisorCount++;
+            switch (piece.getPieceType()) {
+                case CHARIOT:
+                    chariotCount++;
+                    break;
+                case CANNON:
+                    cannonCount++;
+                    break;
+                case HORSE:
+                    horseCount++;
+                    break;
+                default:
+                    break;
             }
         }
-
-        int oppChariotCount = 0, oppCannonCount = 0;
+        int oppChariotCount = 0,  oppElephantCount = 0, oppAdvisorCount = 0;
         for (Piece piece : player.getOpponent().getActivePieces()) {
-            if (piece.getPieceType().equals(PieceType.CHARIOT)) {
-                oppChariotCount++;
-            } else if (piece.getPieceType().equals(PieceType.CANNON)) {
-                oppCannonCount++;
+            switch (piece.getPieceType()) {
+                case CHARIOT:
+                    oppChariotCount++;
+                    break;
+                case ELEPHANT:
+                    oppElephantCount++;
+                    break;
+                case ADVISOR:
+                    oppAdvisorCount++;
+                    break;
+                default:
+                    break;
             }
         }
 
+        // compare number of chariots
+        totalMiscValue += 100 * (chariotCount - oppChariotCount);
         if (boardStatus.equals(BoardStatus.END)) {
-            // cannon+horse might be better than cannon+cannon or horse+horse in endgame
+            // cannon+horse might be better than cannon+cannon or horse+horse
             if (cannonCount > 0 && horseCount > 0) {
-                totalCohesionValue += 75 * (2 - oppChariotCount);
+                totalMiscValue += 50;
             }
-            // lack of elephant might be weak to cannon in endgame
-            if (oppCannonCount == 1 && elephantCount == 0) {
-                totalCohesionValue -= 100;
-            } else if (oppCannonCount == 1 && elephantCount == 1) {
-                totalCohesionValue -= 50;
-            } else if (oppCannonCount == 2 && elephantCount == 0) {
-                totalCohesionValue -= 200;
-            } else if (oppCannonCount == 2 && elephantCount == 1) {
-                totalCohesionValue -= 100;
+            // cannon might be strong against lack of elephants
+            if (oppElephantCount == 0) {
+                totalMiscValue += 75 * cannonCount;
             }
         }
-        // lack of advisor might be weak to double chariot after opening
         if (!boardStatus.equals(BoardStatus.OPENING)) {
-            if (oppChariotCount == 2 && advisorCount == 0) {
-                totalCohesionValue -= 500;
-            } else if (oppChariotCount == 2 && advisorCount == 1) {
-                totalCohesionValue -= 250;
+            // double chariots might be strong against lack of advisors
+            if (chariotCount == 2) {
+                if (oppAdvisorCount == 1) {
+                    totalMiscValue += (350 - 100 * oppChariotCount);
+                } else if (oppAdvisorCount == 0) {
+                    totalMiscValue += (500 - 100 * oppChariotCount);
+                }
             }
         }
 
-        return totalMaterialValue + totalPositionValue + totalCohesionValue;
+        return totalMaterialValue + totalPositionValue + totalMiscValue;
     }
 
     /**
