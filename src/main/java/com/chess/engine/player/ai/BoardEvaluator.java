@@ -4,8 +4,10 @@ import com.chess.engine.board.Board;
 import com.chess.engine.board.Move;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.Player;
+import com.chess.gui.Table;
 
 import java.util.Collection;
+import java.util.Random;
 
 import static com.chess.engine.board.Board.*;
 import static com.chess.engine.pieces.Piece.*;
@@ -16,6 +18,12 @@ import static com.chess.engine.pieces.Piece.*;
 final class BoardEvaluator {
 
     private static final BoardEvaluator INSTANCE = new BoardEvaluator();
+
+    private final Random rand;
+
+    private BoardEvaluator() {
+        rand = new Random();
+    }
 
     /**
      * Returns an instance of this board evaluator.
@@ -30,12 +38,13 @@ final class BoardEvaluator {
      * The higher the value, the better for the red player.
      * @param board The current board.
      * @param depth The current search depth.
-     * @return
+     * @return The heuristic value of the given board at the current search depth.
      */
     int evaluate(Board board, int depth) {
         return getPlayerScore(board, board.getRedPlayer(), depth)
                 - getPlayerScore(board, board.getBlackPlayer(), depth)
-                + getRelationScore(board);
+                + getRelationScore(board)
+                + (Table.getInstance().isAIRandomised() ? rand.nextInt(5) : 0);
     }
 
     /**

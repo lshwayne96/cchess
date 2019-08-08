@@ -2,6 +2,7 @@ package com.chess;
 
 import com.chess.gui.Table;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
@@ -21,7 +22,10 @@ public class CChess extends Application  {
 
         stage.setTitle("CChess");
         stage.getIcons().add(new Image(CChess.class.getResourceAsStream("/graphics/icon.png")));
-
+        stage.setOnCloseRequest(e -> {
+            Platform.exit();
+            System.exit(0);
+        });
         stage.setScene(tableScene);
         stage.sizeToScene();
         stage.setResizable(false);

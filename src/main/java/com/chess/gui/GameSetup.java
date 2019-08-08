@@ -6,6 +6,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
@@ -30,8 +31,8 @@ class GameSetup extends Dialog {
     private static final String AI_TEXT = "AI";
     private static final String FIXED_DEPTH_TEXT = "Fixed depth (levels)";
     private static final String FIXED_TIME_TEXT = "Fixed time (seconds)";
-    private static final int MIN_DEPTH = 1;
-    private static final int MAX_DEPTH = 8;
+    private static final int MIN_DEPTH = 3;
+    private static final int MAX_DEPTH = 7;
     private static final int MIN_TIME = 1;
     private static final int MAX_TIME = 180;
 
@@ -40,6 +41,7 @@ class GameSetup extends Dialog {
     private AIType aiType;
     private int searchDepth;
     private int searchTime;
+    private boolean isAIRandomised;
 
     GameSetup() {
         // default settings
@@ -48,6 +50,7 @@ class GameSetup extends Dialog {
         aiType = AIType.DEPTH;
         searchDepth = 5;
         searchTime = 30;
+        isAIRandomised = false;
 
         DialogPane dialogPane = new DialogPane();
         GridPane gridPane = new GridPane();
@@ -83,6 +86,10 @@ class GameSetup extends Dialog {
         Spinner searchTimeSpinner = new Spinner(MIN_TIME, MAX_TIME, searchTime, 10);
         searchTimeSpinner.setEditable(true);
 
+        CheckBox randomiseAICheckbox = new CheckBox("Randomise moves");
+        randomiseAICheckbox.setAllowIndeterminate(false);
+        randomiseAICheckbox.setSelected(isAIRandomised);
+
         ButtonType cancel = new ButtonType("Cancel", ButtonData.CANCEL_CLOSE);
         ButtonType ok = new ButtonType("OK", ButtonData.OK_DONE);
         dialogPane.getButtonTypes().addAll(ok, cancel);
@@ -105,13 +112,13 @@ class GameSetup extends Dialog {
             }
             searchDepthSpinner.getEditor().textProperty().set(Integer.toString(searchDepth));
             searchTimeSpinner.getEditor().textProperty().set(Integer.toString(searchTime));
+            randomiseAICheckbox.setSelected(isAIRandomised);
         });
         Button okButton = (Button) dialogPane.lookupButton(ok);
         okButton.setOnAction(e -> {
             redPlayerType = redAIButton.isSelected() ? PlayerType.AI : PlayerType.HUMAN;
             blackPlayerType = blackAIButton.isSelected() ? PlayerType.AI : PlayerType.HUMAN;
             aiType = fixedTimeAIButton.isSelected() ? AIType.TIME : AIType.DEPTH;
-
             try {
                 Integer.parseInt(searchDepthSpinner.getEditor().textProperty().get());
                 searchDepth = (int) searchDepthSpinner.getValue();
@@ -130,6 +137,7 @@ class GameSetup extends Dialog {
                 alert.showAndWait();
                 searchTimeSpinner.getEditor().textProperty().set(Integer.toString(searchTime));
             }
+            isAIRandomised = randomiseAICheckbox.isSelected();
 
             hide();
         });
@@ -146,6 +154,7 @@ class GameSetup extends Dialog {
         nodes.add(searchDepthSpinner);
         nodes.add(fixedTimeAIButton);
         nodes.add(searchTimeSpinner);
+        nodes.add(randomiseAICheckbox);
 
         for (int i = 0; i < nodes.size(); i++) {
             gridPane.add(nodes.get(i), 0, i);
@@ -158,21 +167,16 @@ class GameSetup extends Dialog {
         hide();
     }
 
-    /**
-     * Checks if the given player is an AI.
-     * @param player The player to check.
-     * @return true if the player is an AI, false otherwise.
-     */
     boolean isAIPlayer(Player player) {
         return player.getAlliance().isRed() ? redPlayerType.isAI() : blackPlayerType.isAI();
     }
 
-    /**
-     * Checks if the current AI is fixed-time.
-     * @return true if the current AI is fixed-time, false if fixed-depth.
-     */
     boolean isAITimeLimited() {
         return aiType.isTimeLimited();
+    }
+
+    boolean isAIRandomised() {
+        return isAIRandomised;
     }
 
     int getSearchDepth() {

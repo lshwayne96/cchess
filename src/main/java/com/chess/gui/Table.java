@@ -15,6 +15,7 @@ import javafx.concurrent.Task;
 import javafx.event.EventHandler;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
@@ -91,10 +92,11 @@ public class Table extends BorderPane {
     private final AIObserver aiObserver;
     private final PropertyChangeSupport propertyChangeSupport;
     private Board currBoard;
+    private MoveLog partialMovelog;
     private Point sourcePoint;
     private Point destPoint;
     private Piece selectedPiece;
-    private MoveLog partialMovelog;
+    private boolean highlightLegalMoves;
 
     private Table() {
         currBoard = Board.initialiseBoard();
@@ -111,6 +113,7 @@ public class Table extends BorderPane {
         aiObserver = new AIObserver();
         propertyChangeSupport = new PropertyChangeSupport(this);
         propertyChangeSupport.addPropertyChangeListener(aiObserver);
+        highlightLegalMoves = true;
 
         setTop(createMenuBar());
         setCenter(boardPane);
@@ -131,7 +134,7 @@ public class Table extends BorderPane {
      */
     private MenuBar createMenuBar() {
         MenuBar menuBar = new MenuBar();
-        menuBar.getMenus().addAll(createGameMenu(), createOptionsMenu(), createHelpMenu());
+        menuBar.getMenus().addAll(createGameMenu(), createOptionsMenu(), createPreferencesMenu(), createHelpMenu());
         return menuBar;
     }
 
@@ -217,13 +220,26 @@ public class Table extends BorderPane {
             notifyAIObserver("setup");
         });
 
+        optionsMenu.getItems().addAll(undoTurn, undoMove, new SeparatorMenuItem(), setup);
+
+        return optionsMenu;
+    }
+
+    private Menu createPreferencesMenu() {
+        Menu prefMenu = new Menu("Preferences");
+
+        CheckMenuItem highlight = new CheckMenuItem("Highlight legal moves");
+        highlight.setSelected(highlightLegalMoves);
+        highlight.setOnAction(e -> {
+            highlightLegalMoves = highlight.isSelected();
+        });
+
         MenuItem flipBoard = new MenuItem("Flip board");
         flipBoard.setOnAction(e -> boardPane.flipBoard());
 
-        optionsMenu.getItems().addAll(undoTurn, undoMove, new SeparatorMenuItem(),
-                setup, new SeparatorMenuItem(), flipBoard);
+        prefMenu.getItems().addAll(highlight, new SeparatorMenuItem(), flipBoard);
 
-        return optionsMenu;
+        return prefMenu;
     }
 
     private Menu createHelpMenu() {
@@ -403,6 +419,10 @@ public class Table extends BorderPane {
             boardPane.drawBoard(currBoard);
             infoPane.update(currBoard, partialMovelog);
         }
+    }
+
+    public boolean isAIRandomised() {
+        return gameSetup.isAIRandomised();
     }
 
     /**
@@ -693,6 +713,7 @@ public class Table extends BorderPane {
          * @param board The current board.
          */
         private void highlightPossibleMoves(Board board) {
+            if (!highlightLegalMoves) return;
             for (Move move : pieceLegalMoves(board)) {
                 // check for suicidal move
                 MoveTransition transition = board.getCurrPlayer().makeMove(move);

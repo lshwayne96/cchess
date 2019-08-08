@@ -6,6 +6,7 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
@@ -21,6 +22,7 @@ import javafx.scene.layout.GridPane;
 import java.util.ArrayList;
 
 import static com.chess.gui.Table.*;
+import static javafx.scene.control.Alert.*;
 
 /**
  * A pane for displaying the move history of the game.
@@ -129,6 +131,8 @@ class MoveHistoryPane extends BorderPane {
                             turnTableView.scrollTo(0);
                         }
                     } else {
+                        Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
+                        alert.showAndWait();
                         toggleReplay.setSelected(false);
                     }
                 } else {

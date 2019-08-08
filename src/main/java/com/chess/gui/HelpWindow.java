@@ -34,7 +34,7 @@ class HelpWindow extends Dialog {
         Label note2 = new Label("\u2022 Replay mode can also be activated by clicking on a move in the move history");
         Label note3 = new Label("\u2022 While in Replay mode, all controls from Play mode are disabled (and vice versa)");
         Label note4 = new Label("\u2022 Starting/loading a new game or undoing a turn/move will automatically exit Replay mode");
-        Label note5 = new Label("\u2022 Entering Setup will stop any thinking AI");
+        Label note5 = new Label("\u2022 Entering Setup or Replay mode will stop any thinking AI");
 
         ButtonType close = new ButtonType("Close", ButtonBar.ButtonData.CANCEL_CLOSE);
 
