@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 public class Horse extends Piece {
 
@@ -17,12 +18,15 @@ public class Horse extends Piece {
                     new Coordinate(0, -1),
                     new Coordinate(1, 0),
                     new Coordinate(0, 1));
-
     private static final List<List<Coordinate>> SECOND_MOVE_VECTORS_LIST =
             List.of(List.of(new Coordinate(-1, -1), new Coordinate(-1 ,1)),
                     List.of(new Coordinate(-1, -1), new Coordinate(1, -1)),
                     List.of(new Coordinate(1, -1), new Coordinate(1, 1)),
                     List.of(new Coordinate(-1, 1), new Coordinate(1, 1)));
+    private static final Set<Coordinate> STARTING_POSITIONS_RED =
+            Set.of(new Coordinate(9, 1), new Coordinate(9, 7));
+    private static final Set<Coordinate> STARTING_POSITIONS_BLACK =
+            Set.of(new Coordinate(0, 1), new Coordinate(0, 7));
 
     public Horse(Coordinate position, Alliance alliance) {
         super(PieceType.HORSE, position, alliance);
@@ -57,5 +61,9 @@ public class Horse extends Piece {
     public Horse getMirrorPiece() {
         Coordinate mirrorPosition = new Coordinate(position.getRow(), Board.NUM_COLS - 1 - position.getCol());
         return new Horse(mirrorPosition, alliance);
+    }
+
+    public boolean isInStartingPosition() {
+        return alliance.isRed() ? STARTING_POSITIONS_RED.contains(position) : STARTING_POSITIONS_BLACK.contains(position);
     }
 }

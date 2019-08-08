@@ -2,6 +2,8 @@ package com.chess.engine.player.ai;
 
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Move;
+import com.chess.engine.pieces.Chariot;
+import com.chess.engine.pieces.Horse;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.Player;
 import com.chess.gui.Table;
@@ -78,11 +80,17 @@ final class BoardEvaluator {
             switch (piece.getPieceType()) {
                 case CHARIOT:
                     chariotCount++;
+                    if (((Chariot) piece).isInStartingPosition()) {
+                        totalMiscValue -= 50;
+                    }
                     break;
                 case CANNON:
                     cannonCount++;
                     break;
                 case HORSE:
+                    if (((Horse) piece).isInStartingPosition()) {
+                        totalMiscValue -= 50;
+                    }
                     horseCount++;
                     break;
                 default:
