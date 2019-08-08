@@ -14,6 +14,7 @@ Features:
 - AI
   - Thorough board evaluation
   - Adjustable search depth and time
+  - Move randomisation
 - Others
   - Undo last move/turn
   - Highlight player's legal moves
