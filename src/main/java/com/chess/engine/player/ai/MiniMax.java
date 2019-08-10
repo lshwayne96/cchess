@@ -24,11 +24,9 @@ public class MiniMax {
 
     private static final MiniMax INSTANCE = new MiniMax();
 
-    private final BoardEvaluator evaluator;
     private final Map<BoardState, Integer> stateToValueMap;
 
     private MiniMax() {
-        evaluator = BoardEvaluator.getInstance();
         stateToValueMap = new HashMap<>();
     }
 
@@ -143,7 +141,7 @@ public class MiniMax {
      */
     private int min(Board board, int depth, int a, int b) {
         if (depth == 0 || board.isGameOver() || board.isGameDraw()) {
-            return evaluator.evaluate(board, depth);
+            return BoardEvaluator.evaluate(board, depth);
         }
         BoardState state = new BoardState(board, depth);
         Integer value = stateToValueMap.get(state);
@@ -171,7 +169,7 @@ public class MiniMax {
      */
     private int max(Board board, int depth, int a, int b) {
         if (depth == 0 || board.isGameOver() || board.isGameDraw()) {
-            return evaluator.evaluate(board, depth);
+            return BoardEvaluator.evaluate(board, depth);
         }
         BoardState state = new BoardState(board, depth);
         Integer value = stateToValueMap.get(state);

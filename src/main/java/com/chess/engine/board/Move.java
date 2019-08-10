@@ -205,11 +205,11 @@ public class Move {
         return this.movedPiece.equals(other.movedPiece)
                 && this.destPosition.equals(other.destPosition)
                 && this.getCapturedPiece().equals(other.getCapturedPiece())
-                && this.board.equals(other.board);
+                && this.board.toString().equals(other.board.toString());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(movedPiece, destPosition, getCapturedPiece(), board);
+        return Objects.hash(movedPiece, destPosition, getCapturedPiece(), board.toString());
     }
 }

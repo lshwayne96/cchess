@@ -64,11 +64,8 @@ public abstract class Player {
 
     /**
      * Returns a collection of opponent moves that attack the given position.
-     * @param position The position on the board.
-     * @param opponentMoves The legal moves of the opponent.
-     * @return A collection of opponent moves that attack the given position.
      */
-    public static Collection<Move> getIncomingAttacks(Coordinate position, Collection<Move> opponentMoves) {
+    private static Collection<Move> getIncomingAttacks(Coordinate position, Collection<Move> opponentMoves) {
         List<Move> attacksOnPoint = new ArrayList<>();
 
         for (Move move : opponentMoves) {
@@ -78,23 +75,6 @@ public abstract class Player {
         }
 
         return Collections.unmodifiableList(attacksOnPoint);
-    }
-
-    /**
-     * Returns a collection of this player's own pieces that defend the given position.
-     * @param position The position on the board.
-     * @return A collection of this player's own pieces that defend the given position.
-     */
-    public Collection<Piece> getDefenses(Coordinate position) {
-        List<Piece> defendingPieces = new ArrayList<>();
-
-        for (Piece piece : getActivePieces()) {
-            if (!piece.getPosition().equals(position) && piece.getDestPositions(board).contains(position)) {
-                defendingPieces.add(piece);
-            }
-        }
-
-        return Collections.unmodifiableList(defendingPieces);
     }
 
     /**

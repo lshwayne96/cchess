@@ -21,15 +21,9 @@ public class MoveBook {
 
     private static final Board INITIAL_BOARD = Board.initialiseBoard();
     private static final String AI_MOVEBOOK_PATH = "/ai/movebook.txt";
+    private static final Map<Board, List<Move>> MOVE_BOOK = readMoveBook();
+    private static final Random rand = new Random();
     private static final MoveBook INSTANCE = new MoveBook();
-
-    private final Map<Board, List<Move>> movebook;
-    private final Random rand;
-
-    private MoveBook() {
-        movebook = readMoveBook();
-        rand = new Random();
-    }
 
     /**
      * Returns an instance of this move book.
@@ -44,8 +38,8 @@ public class MoveBook {
      * @param board The current board.
      * @return A random move in the book, if any, based on the given board.
      */
-    public Optional<Move> getRandomMove(Board board) {
-        List<Move> moves = movebook.get(board);
+    public static Optional<Move> getRandomMove(Board board) {
+        List<Move> moves = MOVE_BOOK.get(board);
         if (moves == null) {
             return Optional.empty();
         }

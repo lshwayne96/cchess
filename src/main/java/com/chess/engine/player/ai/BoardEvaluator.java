@@ -1,6 +1,7 @@
 package com.chess.engine.player.ai;
 
 import com.chess.engine.board.Board;
+import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
 import com.chess.engine.pieces.Chariot;
 import com.chess.engine.pieces.Horse;
@@ -8,7 +9,10 @@ import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.Player;
 import com.chess.gui.Table;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 import static com.chess.engine.board.Board.*;
@@ -17,23 +21,9 @@ import static com.chess.engine.pieces.Piece.*;
 /**
  * A helper class for evaluating a board.
  */
-final class BoardEvaluator {
+class BoardEvaluator {
 
-    private static final BoardEvaluator INSTANCE = new BoardEvaluator();
-
-    private final Random rand;
-
-    private BoardEvaluator() {
-        rand = new Random();
-    }
-
-    /**
-     * Returns an instance of this board evaluator.
-     * @return An instance of this board evaluator.
-     */
-    static BoardEvaluator getInstance() {
-        return INSTANCE;
-    }
+    private static final Random rand = new Random();
 
     /**
      * Returns the heuristic value of the given board at the current search depth.
@@ -42,7 +32,7 @@ final class BoardEvaluator {
      * @param depth The current search depth.
      * @return The heuristic value of the given board at the current search depth.
      */
-    int evaluate(Board board, int depth) {
+    static int evaluate(Board board, int depth) {
         return getPlayerScore(board, board.getRedPlayer(), depth)
                 - getPlayerScore(board, board.getBlackPlayer(), depth)
                 + getRelationScore(board)
@@ -89,7 +79,7 @@ final class BoardEvaluator {
                     break;
                 case HORSE:
                     if (((Horse) piece).isInStartingPosition()) {
-                        totalMiscValue -= 50;
+                        totalMiscValue -= 30;
                     }
                     horseCount++;
                     break;
@@ -155,9 +145,38 @@ final class BoardEvaluator {
     private static int getRelationScore(Board board) {
         int[] scores = new int[2];
         BoardStatus boardStatus = board.getStatus();
+        Map<Piece, Collection<Move>> incomingAttacksMap = new HashMap<>();
+        Map<Piece, Collection<Piece>> defendingPiecesMap = new HashMap<>();
+
+        for (Move move : board.getAllLegalMoves()) {
+            if (!move.getCapturedPiece().isPresent()) continue;
+            Piece capturedPiece = move.getCapturedPiece().get();
+            if (!incomingAttacksMap.containsKey(capturedPiece)) {
+                Collection<Move> attackMoves = new ArrayList<>();
+                attackMoves.add(move);
+                incomingAttacksMap.put(capturedPiece, attackMoves);
+            } else {
+                incomingAttacksMap.get(capturedPiece).add(move);
+            }
+        }
+        for (Piece piece : board.getAllPieces()) {
+            for (Coordinate destPosition : piece.getDestPositions(board)) {
+                board.getPoint(destPosition).getPiece().ifPresent(p -> {
+                    if (p.getAlliance().equals(piece.getAlliance())) {
+                        if (!defendingPiecesMap.containsKey(p)) {
+                            Collection<Piece> defendingPieces = new ArrayList<>();
+                            defendingPieces.add(piece);
+                            defendingPiecesMap.put(p, defendingPieces);
+                        } else {
+                            defendingPiecesMap.get(p).add(piece);
+                        }
+                    }
+                });
+            }
+        }
 
         for (Piece piece : board.getAllPieces()) {
-            if (!piece.getPieceType().equals(PieceType.GENERAL)) continue;
+            if (piece.getPieceType().equals(PieceType.GENERAL)) continue;
 
             Player player = piece.getAlliance().isRed() ? board.getRedPlayer() : board.getBlackPlayer();
             int index = player.getAlliance().isRed() ? 0 : 1;
@@ -173,34 +192,37 @@ final class BoardEvaluator {
             int unitValue = pieceValue >> 3;
 
             // tabulate incoming attacks
-            Collection<Move> attackMoves =
-                    Player.getIncomingAttacks(piece.getPosition(), player.getOpponent().getLegalMoves());
-            for (Move move : attackMoves) {
-                Piece oppPiece = move.getMovedPiece();
-                int attackValue = oppPiece.getMaterialValue(boardStatus) + oppPiece.getPositionValue();
-                if (attackValue < pieceValue && attackValue < flagValue) {
-                    flagValue = attackValue;
+            Collection<Move> attackMoves = incomingAttacksMap.get(piece);
+            if (attackMoves != null) {
+                for (Move move : attackMoves) {
+                    Piece oppPiece = move.getMovedPiece();
+                    int attackValue = oppPiece.getMaterialValue(boardStatus) + oppPiece.getPositionValue();
+                    if (attackValue < pieceValue && attackValue < flagValue) {
+                        flagValue = attackValue;
+                    }
+                    oppMinAttack = Math.min(oppMinAttack, attackValue);
+                    oppMaxAttack = Math.max(oppMaxAttack, attackValue);
+                    oppTotalAttack += attackValue;
                 }
-                oppMinAttack = Math.min(oppMinAttack, attackValue);
-                oppMaxAttack = Math.max(oppMaxAttack, attackValue);
-                oppTotalAttack += attackValue;
             }
 
             // tabulate defenses
-            Collection<Piece> defendingPieces = player.getDefenses(piece.getPosition());
-            for (Piece defendingPiece : defendingPieces) {
-                int defendingValue = defendingPiece.getMaterialValue(boardStatus);
-                playerMinDefense = Math.min(playerMinDefense, defendingValue);
-                playerMaxDefense = Math.max(playerMaxDefense, defendingValue);
-                playerTotalDefense += defendingValue;
+            Collection<Piece> defendingPieces = defendingPiecesMap.get(piece);
+            if (defendingPieces != null) {
+                for (Piece defendingPiece : defendingPieces) {
+                    int defendingValue = defendingPiece.getMaterialValue(boardStatus);
+                    playerMinDefense = Math.min(playerMinDefense, defendingValue);
+                    playerMaxDefense = Math.max(playerMaxDefense, defendingValue);
+                    playerTotalDefense += defendingValue;
+                }
             }
 
             // calculate scores
             boolean isCurrTurn = board.getCurrPlayer().getAlliance().equals(player.getAlliance());
-            if (oppTotalAttack == 0) {
-                scores[index] += 10 * defendingPieces.size();
+            if (attackMoves == null) {
+                scores[index] += defendingPieces == null ? 0 : 10 * defendingPieces.size();
             } else {
-                if (defendingPieces.isEmpty()) {
+                if (defendingPieces == null) {
                     scores[index] -= isCurrTurn ? unitValue : 5 * unitValue;
                 } else {
                     int playerScore = 0;

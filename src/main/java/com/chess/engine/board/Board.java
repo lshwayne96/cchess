@@ -331,6 +331,14 @@ public class Board {
         return allPieces;
     }
 
+    public Collection<Move> getAllLegalMoves() {
+        Collection<Move> allMoves = new ArrayList<>();
+        allMoves.addAll(redPlayer.getLegalMoves());
+        allMoves.addAll(blackPlayer.getLegalMoves());
+
+        return allMoves;
+    }
+
     public Player getRedPlayer() {
         return redPlayer;
     }
