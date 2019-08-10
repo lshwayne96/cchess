@@ -60,4 +60,27 @@ public class Cannon extends Piece {
         Coordinate mirrorPosition = new Coordinate(position.getRow(), Board.NUM_COLS - 1 - position.getCol());
         return new Cannon(mirrorPosition, alliance);
     }
+
+    /**
+     * Checks if this cannon is directly facing the opponent's general on the middle column.
+     * @param board The current board.
+     * @return true if this cannon is directly facing the opponent's general on the middle column, false otherwise.
+     */
+    public boolean isMiddleFacingGeneral(Board board) {
+        if (position.getCol() != 4
+                || (alliance.isRed() && position.getRow() < 3)
+                || (!alliance.isRed() && position.getRow() > 6)) return false;
+
+        Coordinate forwardVector = MOVE_VECTORS.get(2);
+        Coordinate destPosition = position.add(forwardVector.scale(alliance.getDirection()));
+        while (Board.isWithinBounds(destPosition)) {
+            Point destPoint = board.getPoint(destPosition);
+            if (destPoint.getPiece().isPresent()) {
+                Piece destPiece = destPoint.getPiece().get();
+                return destPiece.getPieceType().equals(PieceType.GENERAL);
+            }
+            destPosition = destPosition.add(forwardVector.scale(alliance.getDirection()));
+        }
+        return false;
+    }
 }

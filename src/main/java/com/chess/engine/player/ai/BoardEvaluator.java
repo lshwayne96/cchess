@@ -3,6 +3,7 @@ package com.chess.engine.player.ai;
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
+import com.chess.engine.pieces.Cannon;
 import com.chess.engine.pieces.Chariot;
 import com.chess.engine.pieces.Horse;
 import com.chess.engine.pieces.Piece;
@@ -71,11 +72,14 @@ class BoardEvaluator {
                 case CHARIOT:
                     chariotCount++;
                     if (((Chariot) piece).isInStartingPosition()) {
-                        totalMiscValue -= 30;
+                        totalMiscValue -= 20;
                     }
                     break;
                 case CANNON:
                     cannonCount++;
+                    if (!boardStatus.equals(BoardStatus.END) && ((Cannon) piece).isMiddleFacingGeneral(board)) {
+                        totalMiscValue += 200;
+                    }
                     break;
                 case HORSE:
                     if (((Horse) piece).isInStartingPosition()) {
