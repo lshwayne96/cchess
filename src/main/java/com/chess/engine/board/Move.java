@@ -3,6 +3,7 @@ package com.chess.engine.board;
 import com.chess.engine.Alliance;
 import com.chess.engine.pieces.Piece;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import static com.chess.engine.board.Board.*;
@@ -204,16 +205,11 @@ public class Move {
         return this.movedPiece.equals(other.movedPiece)
                 && this.destPosition.equals(other.destPosition)
                 && this.getCapturedPiece().equals(other.getCapturedPiece())
-                && this.board.getRedPieces().size() == other.board.getRedPieces().size()
-                && this.board.getBlackPieces().size() == other.board.getBlackPieces().size();
+                && this.board.equals(other.board);
     }
 
     @Override
     public int hashCode() {
-        int result = destPosition.hashCode();
-        result = 31*result + movedPiece.hashCode();
-        result = 31*result + getCapturedPiece().hashCode();
-
-        return result;
+        return Objects.hash(movedPiece, destPosition, getCapturedPiece(), board);
     }
 }

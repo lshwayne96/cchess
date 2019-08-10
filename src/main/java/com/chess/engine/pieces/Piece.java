@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -133,11 +134,7 @@ public abstract class Piece {
     }
 
     private int getHashCode() {
-        int result = pieceType.hashCode();
-        result = 31*result + alliance.hashCode();
-        result = 31*result + position.hashCode();
-
-        return result;
+        return Objects.hash(pieceType, alliance, position);
     }
 
     /**

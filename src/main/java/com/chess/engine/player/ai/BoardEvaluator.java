@@ -81,7 +81,7 @@ final class BoardEvaluator {
                 case CHARIOT:
                     chariotCount++;
                     if (((Chariot) piece).isInStartingPosition()) {
-                        totalMiscValue -= 50;
+                        totalMiscValue -= 30;
                     }
                     break;
                 case CANNON:
@@ -97,12 +97,9 @@ final class BoardEvaluator {
                     break;
             }
         }
-        int oppChariotCount = 0,  oppElephantCount = 0, oppAdvisorCount = 0;
+        int oppElephantCount = 0, oppAdvisorCount = 0;
         for (Piece piece : player.getOpponent().getActivePieces()) {
             switch (piece.getPieceType()) {
-                case CHARIOT:
-                    oppChariotCount++;
-                    break;
                 case ELEPHANT:
                     oppElephantCount++;
                     break;
@@ -114,8 +111,6 @@ final class BoardEvaluator {
             }
         }
 
-        // compare number of chariots
-        totalMiscValue += 100 * (chariotCount - oppChariotCount);
         if (boardStatus.equals(BoardStatus.END)) {
             // cannon+horse might be better than cannon+cannon or horse+horse
             if (cannonCount > 0 && horseCount > 0) {
@@ -130,9 +125,9 @@ final class BoardEvaluator {
             // double chariots might be strong against lack of advisors
             if (chariotCount == 2) {
                 if (oppAdvisorCount == 1) {
-                    totalMiscValue += (350 - 100 * oppChariotCount);
+                    totalMiscValue += 200;
                 } else if (oppAdvisorCount == 0) {
-                    totalMiscValue += (500 - 100 * oppChariotCount);
+                    totalMiscValue += 400;
                 }
             }
         }
@@ -154,7 +149,7 @@ final class BoardEvaluator {
     }
 
     /**
-     * Returns a complex relationship analysis score on the given board.
+     * Returns a relationship analysis score on the given board.
      * The higher the score, the better for the red player.
      */
     private static int getRelationScore(Board board) {
@@ -162,6 +157,8 @@ final class BoardEvaluator {
         BoardStatus boardStatus = board.getStatus();
 
         for (Piece piece : board.getAllPieces()) {
+            if (!piece.getPieceType().equals(PieceType.GENERAL)) continue;
+
             Player player = piece.getAlliance().isRed() ? board.getRedPlayer() : board.getBlackPlayer();
             int index = player.getAlliance().isRed() ? 0 : 1;
             int pieceValue = piece.getMaterialValue(boardStatus) + piece.getPositionValue();

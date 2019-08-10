@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -115,7 +116,6 @@ public class Board {
     public static final int NUM_COLS = 9;
     public static final int RIVER_ROW_RED = 5;
     public static final int RIVER_ROW_BLACK = 4;
-
     private static final int MAX_PIECES_IN_MIDGAME = 14;
     private static final int MAX_PIECES_IN_ENDGAME = 8;
 
@@ -374,7 +374,7 @@ public class Board {
 
     @Override
     public int hashCode() {
-        return 31*toString().hashCode() + currPlayer.getAlliance().hashCode();
+        return Objects.hash(toString(), currPlayer.getAlliance());
     }
 
     /**
