@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import static com.chess.engine.pieces.Piece.*;
+
 /**
  * Represents a Chinese chess board.
  */
@@ -116,8 +118,8 @@ public class Board {
     public static final int NUM_COLS = 9;
     public static final int RIVER_ROW_RED = 5;
     public static final int RIVER_ROW_BLACK = 4;
-    private static final int MAX_PIECES_IN_MIDGAME = 14;
-    private static final int MAX_PIECES_IN_ENDGAME = 8;
+    private static final int MAX_PIECES_MIDGAME = 30;
+    private static final int MAX_ATTACKING_UNITS_ENDGAME = 8;
 
     private final List<Point> points;
     private final Collection<Piece> redPieces;
@@ -236,15 +238,31 @@ public class Board {
      * @return The current status of this board.
      */
     public BoardStatus getStatus() {
-        if (redPlayer.getActivePieces().size() <= MAX_PIECES_IN_ENDGAME
-                && blackPlayer.getActivePieces().size() <= MAX_PIECES_IN_ENDGAME) {
+        Collection<Piece> allPieces = getAllPieces();
+
+        if (getAllPieces().size() > MAX_PIECES_MIDGAME) {
+            return BoardStatus.OPENING;
+        }
+
+        int attackingUnits = 0;
+        for (Piece piece : allPieces) {
+            switch (piece.getPieceType()) {
+                case CHARIOT:
+                    attackingUnits += 2;
+                    break;
+                case CANNON:
+                case HORSE:
+                    attackingUnits++;
+                    break;
+                default:
+                    break;
+            }
+        }
+        if (attackingUnits > MAX_ATTACKING_UNITS_ENDGAME) {
+            return BoardStatus.MIDDLE;
+        } else {
             return BoardStatus.END;
         }
-        if (redPlayer.getActivePieces().size() <= MAX_PIECES_IN_MIDGAME
-                || blackPlayer.getActivePieces().size() <= MAX_PIECES_IN_MIDGAME) {
-            return BoardStatus.MIDDLE;
-        }
-        return BoardStatus.OPENING;
     }
 
     /**
