@@ -178,18 +178,6 @@ public class Table extends BorderPane {
         return gameMenu;
     }
 
-    private void restart() {
-        clearSelections();
-        currBoard = Board.initialiseBoard();
-        boardHistory = new ArrayList<>();
-        boardHistory.add(currBoard);
-        fullMovelog.clear();
-
-        boardPane.drawBoard(currBoard);
-        moveHistoryPane.update(fullMovelog);
-        infoPane.update(currBoard, fullMovelog);
-    }
-
     /**
      * Creates and returns an options menu for the menu bar.
      */
@@ -244,14 +232,15 @@ public class Table extends BorderPane {
         return optionsMenu;
     }
 
+    /**
+     * Creates and returns a preferences menu for the menu bar.
+     */
     private Menu createPreferencesMenu() {
         Menu prefMenu = new Menu("Preferences");
 
         CheckMenuItem highlight = new CheckMenuItem("Highlight legal moves");
         highlight.setSelected(highlightLegalMoves);
-        highlight.setOnAction(e -> {
-            highlightLegalMoves = highlight.isSelected();
-        });
+        highlight.setOnAction(e -> highlightLegalMoves = highlight.isSelected());
 
         MenuItem flipBoard = new MenuItem("Flip board");
         flipBoard.setOnAction(e -> boardPane.flipBoard());
@@ -261,6 +250,9 @@ public class Table extends BorderPane {
         return prefMenu;
     }
 
+    /**
+     * Creates and returns a help menu for the menu bar.
+     */
     private Menu createHelpMenu() {
         Menu helpMenu = new Menu("Help");
 
@@ -279,6 +271,21 @@ public class Table extends BorderPane {
         helpMenu.getItems().addAll(rules, controls);
 
         return helpMenu;
+    }
+
+    /**
+     * Restarts the game.
+     */
+    private void restart() {
+        clearSelections();
+        currBoard = Board.initialiseBoard();
+        boardHistory = new ArrayList<>();
+        boardHistory.add(currBoard);
+        fullMovelog.clear();
+
+        boardPane.drawBoard(currBoard);
+        moveHistoryPane.update(fullMovelog);
+        infoPane.update(currBoard, fullMovelog);
     }
 
     /**
@@ -749,12 +756,11 @@ public class Table extends BorderPane {
         private void highlightPossibleMoves(Board board) {
             if (!highlightLegalMoves) return;
             for (Move move : pieceLegalMoves(board)) {
-                // check for suicidal move
                 MoveTransition transition = board.getCurrPlayer().makeMove(move);
+                // check for suicidal move
                 if (!transition.getMoveStatus().isDone()) {
                     continue;
                 }
-
                 // legal AND non-suicidal move
                 if (move.getDestPosition().equals(position)) {
                     Label label = new Label();
@@ -780,7 +786,6 @@ public class Table extends BorderPane {
      */
     private static class AIObserver implements PropertyChangeListener {
 
-        private static final MoveBook movebook = MoveBook.getInstance();
         private static final int MIN_TIME = 1000;
 
         private final Timer timer;
@@ -798,7 +803,7 @@ public class Table extends BorderPane {
                     && getInstance().gameSetup.isAIPlayer(getInstance().currBoard.getCurrPlayer())
                     && !getInstance().currBoard.getCurrPlayer().isInCheckmate()) {
                 Board board = getInstance().currBoard;
-                Optional<Move> move = movebook.getRandomMove(board);
+                Optional<Move> move = MoveBook.getRandomMove(board);
                 if (move.isPresent()) {
                     task = getTimerTask(move.get());
                     timer.schedule(task, MIN_TIME);
@@ -936,7 +941,7 @@ public class Table extends BorderPane {
             timer.schedule(task, AIObserver.MIN_TIME);
             startTime = System.currentTimeMillis();
             searchDepth = getInstance().gameSetup.getSearchDepth();
-            return MiniMax.getInstance().fixedDepth(getInstance().currBoard, searchDepth, bannedPiece);
+            return new MiniMax().fixedDepth(getInstance().currBoard, searchDepth, bannedPiece);
         }
 
         /**
@@ -977,7 +982,7 @@ public class Table extends BorderPane {
             task = getTimerTask();
             searchTime = getInstance().gameSetup.getSearchTime();
             timer.schedule(task, searchTime * 1000);
-            return MiniMax.getInstance().fixedTime(getInstance().currBoard, bannedPiece, this,
+            return new MiniMax().fixedTime(getInstance().currBoard, bannedPiece, this,
                     System.currentTimeMillis() + searchTime*1000);
         }
 

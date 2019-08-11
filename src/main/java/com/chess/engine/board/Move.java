@@ -81,7 +81,6 @@ public class Move {
                 return Optional.of(move);
             }
         }
-
         return Optional.empty();
     }
 

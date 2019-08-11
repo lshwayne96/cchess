@@ -22,20 +22,10 @@ import static com.chess.gui.Table.*;
  */
 public class MiniMax {
 
-    private static final MiniMax INSTANCE = new MiniMax();
-
     private final Map<BoardState, Integer> stateToValueMap;
 
-    private MiniMax() {
+    public MiniMax() {
         stateToValueMap = new HashMap<>();
-    }
-
-    /**
-     * Returns an instance of this MiniMax.
-     * @return An instance of this MiniMax.
-     */
-    public static MiniMax getInstance() {
-        return INSTANCE;
     }
 
     /**

@@ -66,8 +66,8 @@ class MoveHistoryPane extends BorderPane {
         turnTableView.setPlaceholder(EMPTY_TABLE_MESSAGE);
 
         replayPane = new ReplayPane();
-        ObservableList selectedCells = turnTableView.getSelectionModel().getSelectedCells();
-        selectedCells.addListener((ListChangeListener) c -> {
+        ObservableList<TablePosition> selectedCells = turnTableView.getSelectionModel().getSelectedCells();
+        selectedCells.addListener((ListChangeListener<TablePosition>) c -> {
             if (selectedCells.isEmpty()) {
                 if (!turnList.isEmpty()) {
                     Table.getInstance().jumpToMove(-1);
@@ -77,7 +77,7 @@ class MoveHistoryPane extends BorderPane {
             if (!replayPane.toggleReplay.isSelected()) {
                 replayPane.toggleReplay.fire();
             }
-            TablePosition tablePosition = (TablePosition) selectedCells.get(0);
+            TablePosition tablePosition = selectedCells.get(0);
             int moveIndex = tablePosition.getRow()*2 + tablePosition.getColumn();
             Table.getInstance().jumpToMove(moveIndex);
         });
@@ -153,9 +153,9 @@ class MoveHistoryPane extends BorderPane {
 
             TableColumn<Turn, ?> redMoveCol = turnTableView.getColumns().get(0);
             TableColumn<Turn, ?> blackMoveCol = turnTableView.getColumns().get(1);
-            ObservableList selectedCells = turnTableView.getSelectionModel().getSelectedCells();
+            ObservableList<TablePosition> selectedCells = turnTableView.getSelectionModel().getSelectedCells();
             prevMove.setOnAction(e -> {
-                TablePosition tablePosition = (TablePosition) selectedCells.get(0);
+                TablePosition tablePosition = selectedCells.get(0);
                 if (tablePosition.getTableColumn().equals(blackMoveCol)) {
                     turnTableView.getSelectionModel().clearAndSelect(tablePosition.getRow(), redMoveCol);
                 } else if (tablePosition.getTableColumn().equals(redMoveCol) && tablePosition.getRow() > 0) {
@@ -164,7 +164,7 @@ class MoveHistoryPane extends BorderPane {
                 turnTableView.scrollTo(turnTableView.getSelectionModel().getSelectedIndex());
             });
             nextMove.setOnAction(e -> {
-                TablePosition tablePosition = (TablePosition) selectedCells.get(0);
+                TablePosition tablePosition = selectedCells.get(0);
                 Turn currTurn = turnList.get(tablePosition.getRow());
                 if (tablePosition.getTableColumn().equals(redMoveCol) && currTurn.getBlackMove() != null) {
                     turnTableView.getSelectionModel().clearAndSelect(tablePosition.getRow(), blackMoveCol);

@@ -54,7 +54,6 @@ public class Soldier extends Piece {
 
     /**
      * Checks if this soldier has crossed his side of the river.
-     * @return
      */
     private boolean crossedRiver() {
         if (alliance.isRed()) {

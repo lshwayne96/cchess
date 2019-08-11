@@ -33,14 +33,14 @@ public class General extends Piece {
             }
         }
 
-        // flying general move
+        // flying general move (only used for enforcing check)
         Coordinate vector = new Coordinate(1, 0).scale(alliance.getDirection());
         Coordinate currPosition = position.add(vector);
         while (Board.isWithinBounds(currPosition)) {
             Point currPoint = board.getPoint(currPosition);
             Optional<Piece> piece = currPoint.getPiece();
             if (piece.isPresent()) {
-                if (piece.get().getPieceType() == PieceType.GENERAL) {
+                if (piece.get().getPieceType().equals(PieceType.GENERAL)) {
                     destPositions.add(currPosition);
                 }
                 break;

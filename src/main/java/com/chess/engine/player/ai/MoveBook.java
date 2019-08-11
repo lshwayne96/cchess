@@ -23,15 +23,6 @@ public class MoveBook {
     private static final String AI_MOVEBOOK_PATH = "/ai/movebook.txt";
     private static final Map<Board, List<Move>> MOVE_BOOK = readMoveBook();
     private static final Random rand = new Random();
-    private static final MoveBook INSTANCE = new MoveBook();
-
-    /**
-     * Returns an instance of this move book.
-     * @return An instance of this move book.
-     */
-    public static MoveBook getInstance() {
-        return INSTANCE;
-    }
 
     /**
      * Returns a random move in the book, if any, based on the given board.

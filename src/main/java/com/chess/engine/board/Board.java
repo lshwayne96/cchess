@@ -22,98 +22,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import static com.chess.engine.pieces.Piece.*;
-
 /**
- * Represents a Chinese chess board.
+ * Represents a Chinese Chess board.
  */
 public class Board {
 
-    /* The following 2D arrays represent the positional values of each piece on all positions of the board */
-    public static int[][] POSITION_VALUES_SOLDIER = {
-            {  0,    0,    0,    2,    4,    2,    0,    0,    0},
-            { 40,   60,  100,  130,  140,  130,  100,   60,   40},
-            { 40,   60,   90,  110,  110,  110,   90,   60,   40},
-            { 40,   54,   60,   80,   84,   80,   60,   54,   40},
-            { 20,   36,   44,   70,   80,   70,   44,   36,   20},
-            {  6,    0,    8,    0,   14,    0,    8,    0,    6},
-            { -4,    0,   -4,    0,   12,    0,   -4,    0,   -4},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0}
-    };
-    public static int[][] POSITION_VALUES_ADVISOR = {
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    6,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0}
-    };
-    public static int[][] POSITION_VALUES_ELEPHANT = {
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,   -2,    0,    0,    0,   -2,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            { -4,    0,    0,    0,    6,    0,    0,    0,   -4},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0}
-    };
-    public static int[][] POSITION_VALUES_HORSE = {
-            {  4,    4,    4,   16,    4,   16,    4,    4,    4},
-            {  4,   16,   30,   18,   12,   18,   30,   16,    4},
-            {  8,   20,   22,   30,   22,   30,   22,   20,    8},
-            { 10,   40,   24,   38,   24,   38,   24,   40,    10},
-            {  4,   24,   22,   30,   32,   30,   22,   24,    4},
-            {  4,   20,   26,   28,   30,   28,   26,   20,    4},
-            {  8,   12,   20,   14,   20,   14,   20,   12,    8},
-            { 10,    8,   12,   14,    8,   14,   12,    8,   10},
-            { -6,    4,    8,   10,  -20,   10,    8,    4,   -6},
-            {  0,  -6,    4,    0,    4,    0,    4,    -6,    0}
-    };
-    public static int[][] POSITION_VALUES_CANNON = {
-            {  8,    8,    0,  -10,  -12,  -10,    0,    8,    8},
-            {  4,    4,    0,   -8,  -14,   -8,    0,    4,    4},
-            {  2,    2,    0,  -10,   -8,  -10,    0,    2,    2},
-            {  0,    6,    6,    4,    8,    4,    6,    0,    0},
-            {  0,    0,    0,    0,    8,    0,    0,    0,    0},
-            { -2,    0,    6,    0,    8,    0,    6,    0,   -2},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  2,    0,    8,    6,   10,    6,    8,    0,    2},
-            {  0,    2,    4,    4,    4,    4,    4,    2,    0},
-            {  0,    0,    2,    6,    6,    6,    2,    0,    0}
-    };
-    public static int[][] POSITION_VALUES_CHARIOT = {
-            { 12,   16,   14,   26,   28,   26,   14,   16,   12},
-            { 12,   24,   18,   32,   66,   32,   18,   24,   12},
-            { 12,   16,   14,   28,   32,   28,   14,   16,   12},
-            { 12,   26,   26,   32,   32,   32,   26,   26,   12},
-            { 16,   22,   22,   28,   30,   28,   22,   22,   16},
-            { 16,   24,   24,   28,   30,   28,   24,   24,   16},
-            {  8,   18,    8,   24,   28,   24,    8,   18,    8},
-            { -4,   16,    8,   24,   24,   24,    8,   16,   -4},
-            { 10,   16,   12,   24,    0,   24,   12,   16,   10},
-            {-12,   12,    8,   24,    0,   24,    8,   12,  -12}
-    };
-    public static int[][] POSITION_VALUES_GENERAL = {
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,    0,    0,    0,    0,    0,    0},
-            {  0,    0,    0,  -18,  -18,  -18,    0,    0,    0},
-            {  0,    0,    0,  -16,  -16,  -16,    0,    0,    0},
-            {  0,    0,    0,    2,   10,    2,    0,    0,    0}
-    };
     public static final int NUM_ROWS = 10;
     public static final int NUM_COLS = 9;
     public static final int RIVER_ROW_RED = 5;
@@ -164,9 +77,8 @@ public class Board {
         List<Piece> activePieces = new ArrayList<>();
 
         for (Point point : pointList) {
-            Optional<Piece> piece = point.getPiece();
-            piece.ifPresent(p -> {
-                if (p.getAlliance() == alliance) {
+            point.getPiece().ifPresent(p -> {
+                if (p.getAlliance().equals(alliance)) {
                     activePieces.add(p);
                 }
             });
@@ -343,6 +255,7 @@ public class Board {
 
     public Collection<Piece> getAllPieces() {
         Collection<Piece> allPieces = new ArrayList<>();
+
         allPieces.addAll(redPieces);
         allPieces.addAll(blackPieces);
 
@@ -351,6 +264,7 @@ public class Board {
 
     public Collection<Move> getAllLegalMoves() {
         Collection<Move> allMoves = new ArrayList<>();
+
         allMoves.addAll(redPlayer.getLegalMoves());
         allMoves.addAll(blackPlayer.getLegalMoves());
 

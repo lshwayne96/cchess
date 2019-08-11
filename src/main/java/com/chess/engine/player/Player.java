@@ -15,20 +15,20 @@ import java.util.List;
 import static com.chess.engine.pieces.Piece.*;
 
 /**
- * Represents a player of Chinese chess.
+ * Represents a player of Chinese Chess.
  */
 public abstract class Player {
 
     protected final Board board;
-    private final General playerGeneral;
+    private final General general;
     private final Collection<Move> legalMoves;
     private final boolean isInCheck;
 
     Player(Board board, Collection<Move> playerLegalMoves, Collection<Move> opponentLegalMoves) {
         this.board = board;
-        playerGeneral = getPlayerGeneral();
+        general = getGeneral();
         legalMoves = playerLegalMoves;
-        isInCheck = !getIncomingAttacks(playerGeneral.getPosition(), opponentLegalMoves).isEmpty();
+        isInCheck = !getIncomingAttacks(general.getPosition(), opponentLegalMoves).isEmpty();
     }
 
     /**
@@ -52,7 +52,7 @@ public abstract class Player {
     /**
      * Returns the general piece of this player.
      */
-    private General getPlayerGeneral() {
+    private General getGeneral() {
         for (Piece piece : getActivePieces()) {
             if (piece.getPieceType().equals(PieceType.GENERAL)) {
                 return (General) piece;
@@ -85,7 +85,7 @@ public abstract class Player {
     public MoveTransition makeMove(Move move) {
         Board nextBoard = move.execute();
         Collection<Move> generalAttacks =
-                getIncomingAttacks(nextBoard.getCurrPlayer().getOpponent().playerGeneral.getPosition(),
+                getIncomingAttacks(nextBoard.getCurrPlayer().getOpponent().general.getPosition(),
                         nextBoard.getCurrPlayer().getLegalMoves());
 
         if (!generalAttacks.isEmpty()) {

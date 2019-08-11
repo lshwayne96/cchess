@@ -9,11 +9,10 @@ import java.util.Optional;
 
 public class Point {
 
-    /* A map containing all possible empty points on the board */
     private static final Map<Coordinate, Point> EMPTY_POINTS = getEmptyPoints();
 
-    private final Coordinate position; // the position of this point on the board
-    private final Piece piece; // the piece (if any) on this point
+    private final Coordinate position;
+    private final Piece piece;
 
     private Point(Coordinate position, Piece piece) {
         this.position = position;
