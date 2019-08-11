@@ -70,7 +70,7 @@ class MoveHistoryPane extends BorderPane {
         selectedCells.addListener((ListChangeListener) c -> {
             if (selectedCells.isEmpty()) {
                 if (!turnList.isEmpty()) {
-                    Table.getInstance().jumpToMove(-1, true);
+                    Table.getInstance().jumpToMove(-1);
                 }
                 return;
             }
@@ -79,7 +79,7 @@ class MoveHistoryPane extends BorderPane {
             }
             TablePosition tablePosition = (TablePosition) selectedCells.get(0);
             int moveIndex = tablePosition.getRow()*2 + tablePosition.getColumn();
-            Table.getInstance().jumpToMove(moveIndex, true);
+            Table.getInstance().jumpToMove(moveIndex);
         });
 
         setTop(replayPane);

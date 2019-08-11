@@ -25,6 +25,14 @@ import static com.chess.engine.pieces.Piece.*;
 class BoardEvaluator {
 
     private static final Random rand = new Random();
+    private static final int CHECKMATE_VALUE = PieceType.GENERAL.getDefaultValue();
+    private static final int HORSE_PENALTY = 30;
+    private static final int CHARIOT_PENALTY = 20;
+    private static final int CANNON_GENERAL_BONUS = 200;
+    private static final int CANNON_HORSE_BONUS = 50;
+    private static final int CANNON_ELEPHANT_BONUS = 75;
+    private static final int CHARIOT_ONE_ADVISOR_BONUS = 200;
+    private static final int CHARIOT_ZERO_ADVISOR_BONUS = 400;
 
     /**
      * Returns the heuristic value of the given board at the current search depth.
@@ -34,71 +42,85 @@ class BoardEvaluator {
      * @return The heuristic value of the given board at the current search depth.
      */
     static int evaluate(Board board, int depth) {
-        return getPlayerScore(board, board.getRedPlayer(), depth)
-                - getPlayerScore(board, board.getBlackPlayer(), depth)
-                + getRelationScore(board)
+        if (board.getCurrPlayer().isInCheckmate()) {
+            return board.getCurrPlayer().getAlliance().isRed()
+                    ? (-1 * CHECKMATE_VALUE) * (depth + 1) : CHECKMATE_VALUE * (depth + 1);
+        }
+
+        BoardStatus boardStatus = board.getStatus();
+        return getPieceScoreDiff(board, boardStatus)
+                + getRelationScoreDiff(board, boardStatus)
+                + getTotalMobilityValue(board.getRedPlayer()) - getTotalMobilityValue(board.getBlackPlayer())
                 + (Table.getInstance().isAIRandomised() ? rand.nextInt(5) : 0);
     }
 
     /**
-     * Returns a heuristic value of a player based on the given board and search depth.
+     * Returns the piece score difference between the two players on the given board.
      */
-    private static int getPlayerScore(Board board, Player player, int depth) {
-        int standardValue = getTotalPieceValue(board, player) + getTotalMobilityValue(player);
+    private static int getPieceScoreDiff(Board board, BoardStatus boardStatus) {
+        int redScore = 0, blackScore = 0;
 
-        // only need to get checkmate value for opp
-        int checkmateValue = 0;
-        if (board.getCurrPlayer().getOpponent().getAlliance().equals(player.getAlliance())) {
-            checkmateValue = getCheckmateValue(player) * (depth + 1);
-        }
-
-        return standardValue + checkmateValue;
-    }
-
-    /**
-     * Returns the total value of all active pieces of the given player on the given board.
-     */
-    private static int getTotalPieceValue(Board board, Player player) {
-        int totalMaterialValue = 0;
-        int totalPositionValue = 0;
-        int totalMiscValue = 0;
-        BoardStatus boardStatus = board.getStatus();
-
-        int chariotCount = 0, cannonCount = 0, horseCount = 0;
-        for (Piece piece : player.getActivePieces()) {
-            totalMaterialValue += piece.getMaterialValue(boardStatus);
-            totalPositionValue += piece.getPositionValue();
+        int redChariotCount = 0, redCannonCount = 0, redHorseCount = 0,
+                redElephantCount = 0, redAdvisorCount = 0;
+        for (Piece piece : board.getRedPieces()) {
+            redScore += piece.getMaterialValue(boardStatus) + piece.getPositionValue();
             switch (piece.getPieceType()) {
                 case CHARIOT:
-                    chariotCount++;
+                    redChariotCount++;
                     if (((Chariot) piece).isInStartingPosition()) {
-                        totalMiscValue -= 20;
+                        redScore -= CHARIOT_PENALTY;
                     }
                     break;
                 case CANNON:
-                    cannonCount++;
+                    redCannonCount++;
                     if (!boardStatus.equals(BoardStatus.END) && ((Cannon) piece).isMiddleFacingGeneral(board)) {
-                        totalMiscValue += 200;
+                        redScore += CANNON_GENERAL_BONUS;
                     }
                     break;
                 case HORSE:
                     if (((Horse) piece).isInStartingPosition()) {
-                        totalMiscValue -= 30;
+                        redScore -= HORSE_PENALTY;
                     }
-                    horseCount++;
+                    redHorseCount++;
+                    break;
+                case ELEPHANT:
+                    redElephantCount++;
+                    break;
+                case ADVISOR:
+                    redAdvisorCount++;
                     break;
                 default:
                     break;
             }
         }
-        int oppElephantCount = 0, oppAdvisorCount = 0;
-        for (Piece piece : player.getOpponent().getActivePieces()) {
+        int blackChariotCount = 0, blackCannonCount = 0, blackHorseCount = 0,
+                blackElephantCount = 0, blackAdvisorCount = 0;
+        for (Piece piece : board.getBlackPieces()) {
+            blackScore += piece.getMaterialValue(boardStatus) + piece.getPositionValue();
             switch (piece.getPieceType()) {
+                case CHARIOT:
+                    blackChariotCount++;
+                    if (((Chariot) piece).isInStartingPosition()) {
+                        blackScore -= CHARIOT_PENALTY;
+                    }
+                    break;
+                case CANNON:
+                    blackCannonCount++;
+                    if (!boardStatus.equals(BoardStatus.END) && ((Cannon) piece).isMiddleFacingGeneral(board)) {
+                        blackScore += CANNON_GENERAL_BONUS;
+                    }
+                    break;
+                case HORSE:
+                    if (((Horse) piece).isInStartingPosition()) {
+                        blackScore -= HORSE_PENALTY;
+                    }
+                    blackHorseCount++;
+                    break;
                 case ELEPHANT:
-                    oppElephantCount++;
+                    blackElephantCount++;
                     break;
                 case ADVISOR:
-                    oppAdvisorCount++;
+                    blackAdvisorCount++;
                     break;
                 default:
                     break;
@@ -107,26 +129,39 @@ class BoardEvaluator {
 
         if (boardStatus.equals(BoardStatus.END)) {
             // cannon+horse might be better than cannon+cannon or horse+horse
-            if (cannonCount > 0 && horseCount > 0) {
-                totalMiscValue += 50;
+            if (redCannonCount > 0 && redHorseCount > 0) {
+                redScore += CANNON_HORSE_BONUS;
+            }
+            if (blackCannonCount > 0 && blackHorseCount > 0) {
+                blackScore += CANNON_HORSE_BONUS;
             }
             // cannon might be strong against lack of elephants
-            if (oppElephantCount == 0) {
-                totalMiscValue += 75 * cannonCount;
+            if (blackElephantCount == 0) {
+                redScore += CANNON_ELEPHANT_BONUS * redCannonCount;
+            }
+            if (redElephantCount == 0) {
+                blackScore += CANNON_ELEPHANT_BONUS * blackCannonCount;
             }
         }
         if (!boardStatus.equals(BoardStatus.OPENING)) {
             // double chariots might be strong against lack of advisors
-            if (chariotCount == 2) {
-                if (oppAdvisorCount == 1) {
-                    totalMiscValue += 200;
-                } else if (oppAdvisorCount == 0) {
-                    totalMiscValue += 400;
+            if (redChariotCount == 2) {
+                if (blackAdvisorCount == 1) {
+                    redScore += CHARIOT_ONE_ADVISOR_BONUS;
+                } else if (blackAdvisorCount == 0) {
+                    redScore += CHARIOT_ZERO_ADVISOR_BONUS;
+                }
+            }
+            if (blackChariotCount == 2) {
+                if (redAdvisorCount == 1) {
+                    blackScore += CHARIOT_ONE_ADVISOR_BONUS;
+                } else if (redAdvisorCount == 0) {
+                    blackScore += CHARIOT_ZERO_ADVISOR_BONUS;
                 }
             }
         }
 
-        return totalMaterialValue + totalPositionValue + totalMiscValue;
+        return redScore - blackScore;
     }
 
     /**
@@ -143,12 +178,10 @@ class BoardEvaluator {
     }
 
     /**
-     * Returns a relationship analysis score on the given board.
-     * The higher the score, the better for the red player.
+     * Returns the relationship score difference between the two players on the given board.
      */
-    private static int getRelationScore(Board board) {
+    private static int getRelationScoreDiff(Board board, BoardStatus boardStatus) {
         int[] scores = new int[2];
-        BoardStatus boardStatus = board.getStatus();
         Map<Piece, Collection<Move>> incomingAttacksMap = new HashMap<>();
         Map<Piece, Collection<Piece>> defendingPiecesMap = new HashMap<>();
 
@@ -256,12 +289,5 @@ class BoardEvaluator {
         }
 
         return scores[0] - scores[1];
-    }
-
-    /**
-     * Returns the checkmate value for the given player.
-     */
-    private static int getCheckmateValue(Player player) {
-        return player.getOpponent().isInCheckmate() ? PieceType.GENERAL.getDefaultValue() : 0;
     }
 }

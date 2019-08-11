@@ -409,25 +409,22 @@ public class Table extends BorderPane {
     private void exitReplayMode() {
         if (moveHistoryPane.isInReplayMode()) {
             moveHistoryPane.disableReplay();
-            jumpToMove(-1, false);
+            aiObserver.stopAI();
         }
     }
 
     /**
      * Exits replay mode if moveIndex = -1; else enters replay mode at the given moveIndex.
      * @param moveIndex The index of the move in the full movelog.
-     * @param notifyAI Whether to notify the AI observer.
      */
-    void jumpToMove(int moveIndex, boolean notifyAI) {
+    void jumpToMove(int moveIndex) {
         if (moveIndex < -1 || moveIndex >= fullMovelog.getSize()) return;
         if (moveIndex == -1) {
             partialMovelog = null;
             currBoard = boardHistory.get(boardHistory.size() - 1);
             boardPane.drawBoard(currBoard);
             infoPane.update(currBoard, fullMovelog);
-            if (notifyAI) {
-                Table.getInstance().notifyAIObserver("exitreplay");
-            }
+            Table.getInstance().notifyAIObserver("exitreplay");
         } else {
             aiObserver.stopAI();
             partialMovelog = fullMovelog.getPartialLog(moveIndex);
