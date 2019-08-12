@@ -8,9 +8,9 @@ import com.chess.engine.board.Move;
 import com.chess.engine.board.Point;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.MoveTransition;
-import com.chess.engine.player.ai.FixedDepthSearch;
 import com.chess.engine.player.ai.FixedTimeSearch;
 import com.chess.engine.player.ai.MoveBook;
+import com.chess.engine.player.ai.QuiescenceSearch;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.event.EventHandler;
@@ -694,7 +694,7 @@ public class Table extends BorderPane {
                         if (!move.isPresent()) return;
 
                         MoveTransition transition = currBoard.getCurrPlayer().makeMove(move.get());
-                        if (transition.getMoveStatus().isDone()) {
+                        if (transition.getMoveStatus().isAllowed()) {
                             currBoard = transition.getNextBoard();
                             boardHistory.add(currBoard);
                             fullMovelog.addMove(transition.getMove());
@@ -780,7 +780,7 @@ public class Table extends BorderPane {
             for (Move move : pieceLegalMoves(board)) {
                 MoveTransition transition = board.getCurrPlayer().makeMove(move);
                 // check for suicidal move
-                if (!transition.getMoveStatus().isDone()) {
+                if (!transition.getMoveStatus().isAllowed()) {
                     continue;
                 }
                 // legal AND non-suicidal move
@@ -968,7 +968,7 @@ public class Table extends BorderPane {
             timer.schedule(task, AIObserver.MIN_TIME);
             startTime = System.currentTimeMillis();
             searchDepth = getInstance().gameSetup.getSearchDepth();
-            return new FixedDepthSearch(getInstance().currBoard, bannedMove, searchDepth).search();
+            return new QuiescenceSearch(getInstance().currBoard, bannedMove, searchDepth).search();
         }
 
         /**

@@ -40,7 +40,7 @@ public class FixedTimeSearch extends MiniMax {
                 if (move.equals(bannedMove)) continue;
 
                 MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
-                if (transition.getMoveStatus().isDone()) {
+                if (transition.getMoveStatus().isAllowed()) {
                     Board nextBoard = transition.getNextBoard();
                     int currValue;
                     if (currBoard.getCurrPlayer().getAlliance().isRed()) {

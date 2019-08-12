@@ -52,7 +52,7 @@ public abstract class MiniMax {
         int minValue = Integer.MAX_VALUE;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isDone()) {
+            if (transition.getMoveStatus().isAllowed()) {
                 minValue = Math.min(minValue, max(transition.getNextBoard(), depth - 1, alpha, beta));
                 beta = Math.min(beta, minValue);
                 if (alpha >= beta) break;
@@ -81,7 +81,7 @@ public abstract class MiniMax {
         int maxValue = Integer.MIN_VALUE;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isDone()) {
+            if (transition.getMoveStatus().isAllowed()) {
                 maxValue = Math.max(maxValue, min(transition.getNextBoard(), depth - 1, alpha, beta));
                 alpha = Math.max(alpha, maxValue);
                 if (alpha >= beta) break;

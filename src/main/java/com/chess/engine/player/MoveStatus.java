@@ -4,18 +4,18 @@ package com.chess.engine.player;
  * Represents the status of a move.
  */
 public enum MoveStatus {
-    DONE { // legal AND non-suicidal
+    ALLOWED { // legal AND non-suicidal
         @Override
-        public boolean isDone() {
+        public boolean isAllowed() {
             return true;
         }
     },
     SUICIDAL { // causes the general to be captured immediately
         @Override
-        public boolean isDone() {
+        public boolean isAllowed() {
             return false;
         }
     };
 
-    public abstract boolean isDone();
+    public abstract boolean isAllowed();
 }

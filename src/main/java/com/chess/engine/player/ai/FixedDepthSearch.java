@@ -28,7 +28,7 @@ public class FixedDepthSearch extends MiniMax {
             if (move.equals(bannedMove)) continue;
 
             MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isDone()) {
+            if (transition.getMoveStatus().isAllowed()) {
                 Board nextBoard = transition.getNextBoard();
                 if (currBoard.getCurrPlayer().getAlliance().isRed()) {
                     currValue = min(nextBoard, searchDepth - 1, maxValue, minValue);

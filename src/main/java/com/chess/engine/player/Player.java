@@ -91,7 +91,7 @@ public abstract class Player {
         if (!generalAttacks.isEmpty()) {
             return new MoveTransition(board, move, MoveStatus.SUICIDAL);
         }
-        return new MoveTransition(nextBoard, move, MoveStatus.DONE);
+        return new MoveTransition(nextBoard, move, MoveStatus.ALLOWED);
     }
 
     public Collection<Move> getLegalMoves() {
@@ -116,7 +116,7 @@ public abstract class Player {
     private boolean hasEscapeMoves() {
         for (Move move : legalMoves) {
             MoveTransition transition = makeMove(move);
-            if (transition.getMoveStatus().isDone()) return true;
+            if (transition.getMoveStatus().isAllowed()) return true;
         }
         return false;
     }
