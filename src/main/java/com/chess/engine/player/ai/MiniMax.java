@@ -3,10 +3,8 @@ package com.chess.engine.player.ai;
 import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Move;
-import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.MoveTransition;
 
-import java.beans.PropertyChangeSupport;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -15,131 +13,37 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.chess.gui.Table.*;
-
 /**
  * Represents a MiniMax algorithm with alpha-beta pruning and hashing of calculated board states.
  */
-public class MiniMax {
+public abstract class MiniMax {
 
-    private final Map<BoardState, Integer> stateToValueMap;
-    private final Piece bannedCheckingPiece;
-    private final Move bannedMove;
+    final Board currBoard;
+    final Move bannedMove;
+    final Map<BoardState, Integer> stateToValueMap;
 
-    public MiniMax(Piece bannedCheckingPiece, Move bannedMove) {
-        stateToValueMap = new HashMap<>();
-        this.bannedCheckingPiece = bannedCheckingPiece;
+    MiniMax(Board currBoard, Move bannedMove) {
+        this.currBoard = currBoard;
         this.bannedMove = bannedMove;
+        stateToValueMap = new HashMap<>();
     }
 
     /**
-     * Returns the best move using fixed-depth search based on the given board and search depth.
-     * @param board The current board.
-     * @param searchDepth The depth of the search.
-     * @return The best move using fixed-depth search based on the given board and search depth.
+     * Returns the best move using the corresponding MiniMax algorithm.
+     * @return The best move using the corresponding MiniMax algorithm.
      */
-    public Move fixedDepth(Board board, int searchDepth) {
-        stateToValueMap.clear();
-        Move bestMove = null;
-
-        int maxValue = Integer.MIN_VALUE;
-        int minValue = Integer.MAX_VALUE;
-        int currValue;
-
-        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            if (move.equals(bannedMove)) continue;
-
-            MoveTransition transition = board.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isDone()) {
-                Board nextBoard = transition.getNextBoard();
-                if (move.getMovedPiece().equals(bannedCheckingPiece) && !move.getCapturedPiece().isPresent()
-                        && nextBoard.getCurrPlayer().isInCheck()) continue;
-
-                if (board.getCurrPlayer().getAlliance().isRed()) {
-                    currValue = min(nextBoard, searchDepth - 1, maxValue, minValue);
-                    if (currValue > maxValue) {
-                        maxValue = currValue;
-                        bestMove = move;
-                    }
-                } else {
-                    currValue = max(nextBoard, searchDepth - 1, maxValue, minValue);
-                    if (currValue < minValue) {
-                        minValue = currValue;
-                        bestMove = move;
-                    }
-                }
-            }
-        }
-
-        return bestMove;
-    }
+    public abstract Move search();
 
     /**
-     * Returns the best move using time-limited search based on the given board and end time.
-     * @param board The current board.
-     * @param fixedTimeAIPlayer The AI player to notify after the best move at each depth has been computed.
-     * @param endTime The time to stop searching.
-     * @return The best move using time-limited search based on the given board and end time.
+     * The default algorithm for the minimising player.
      */
-    public Move fixedTime(Board board, FixedTimeAIPlayer fixedTimeAIPlayer, long endTime) {
-        PropertyChangeSupport support = new PropertyChangeSupport(this);
-        support.addPropertyChangeListener(fixedTimeAIPlayer);
-        stateToValueMap.clear();
-        Move bestMove = null;
-
-        int currDepth = 1;
-        List<Move> sortedMoves = MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves());
-        while (System.currentTimeMillis() < endTime) {
-            int maxValue = Integer.MIN_VALUE;
-            int minValue = Integer.MAX_VALUE;
-            List<MoveEntry> moveEntries = new ArrayList<>();
-
-            for (Move move : sortedMoves) {
-                if (move.equals(bannedMove)) continue;
-
-                MoveTransition transition = board.getCurrPlayer().makeMove(move);
-                if (transition.getMoveStatus().isDone()) {
-                    Board nextBoard = transition.getNextBoard();
-                    if (move.getMovedPiece().equals(bannedCheckingPiece)
-                            && !move.getCapturedPiece().isPresent()
-                            && nextBoard.getCurrPlayer().isInCheck()) continue;
-
-                    int currValue;
-                    if (board.getCurrPlayer().getAlliance().isRed()) {
-                        currValue = min(nextBoard, currDepth - 1, maxValue, minValue);
-                        if (currValue > maxValue) {
-                            maxValue = currValue;
-                            bestMove = move;
-                        }
-                    } else {
-                        currValue = max(nextBoard, currDepth - 1, maxValue, minValue);
-                        if (currValue < minValue) {
-                            minValue = currValue;
-                            bestMove = move;
-                        }
-                    }
-
-                    moveEntries.add(new MoveEntry(move, currValue));
-                }
-            }
-
-            support.firePropertyChange("currbestmove", currDepth, bestMove);
-            sortedMoves = MoveSorter.valueSort(board.getCurrPlayer().getAlliance(), moveEntries);
-            currDepth++;
-        }
-
-        return bestMove;
-    }
-
-    /**
-     * The algorithm for the minimising player.
-     */
-    private int min(Board board, int depth, int a, int b) {
-        if (depth == 0 || board.isGameOver() || board.isGameDraw()) {
+    int min(Board board, int depth, int a, int b) {
+        if (depth == 0 || board.isGameOver()) {
             return BoardEvaluator.evaluate(board, depth);
         }
-        BoardState state = new BoardState(board, depth);
-        Integer value = stateToValueMap.get(state);
+
+        BoardState boardState = new BoardState(board, depth);
+        Integer value = stateToValueMap.get(boardState);
         if (value != null) {
             return value;
         }
@@ -155,19 +59,20 @@ public class MiniMax {
             }
         }
 
-        stateToValueMap.put(state, minValue);
+        stateToValueMap.put(boardState, minValue);
         return minValue;
     }
 
     /**
-     * The algorithm for the maximising player.
+     * The default algorithm for the maximising player.
      */
-    private int max(Board board, int depth, int a, int b) {
-        if (depth == 0 || board.isGameOver() || board.isGameDraw()) {
+    int max(Board board, int depth, int a, int b) {
+        if (depth == 0 || board.isGameOver()) {
             return BoardEvaluator.evaluate(board, depth);
         }
-        BoardState state = new BoardState(board, depth);
-        Integer value = stateToValueMap.get(state);
+
+        BoardState boardState = new BoardState(board, depth);
+        Integer value = stateToValueMap.get(boardState);
         if (value != null) {
             return value;
         }
@@ -183,19 +88,19 @@ public class MiniMax {
             }
         }
 
-        stateToValueMap.put(state, maxValue);
+        stateToValueMap.put(boardState, maxValue);
         return maxValue;
     }
 
     /**
      * Represents a state containing a board and the depth at which it was evaluated.
      */
-    private static class BoardState {
+    static class BoardState {
 
-        private final Board board;
-        private final int depth;
+        final Board board;
+        final int depth;
 
-        private BoardState(Board board, int depth) {
+        BoardState(Board board, int depth) {
             this.board = board;
             this.depth = depth;
         }
@@ -222,7 +127,7 @@ public class MiniMax {
     /**
      * A helper class for sorting moves to aid alpha-beta pruning.
      */
-    private static class MoveSorter {
+    static class MoveSorter {
 
         private static final Comparator<Move> MOVE_COMPARATOR = (m1, m2) -> {
             int cpValue1 = m1.getCapturedPiece().isPresent()
@@ -230,11 +135,16 @@ public class MiniMax {
             int cpValue2 = m2.getCapturedPiece().isPresent()
                     ? m2.getCapturedPiece().get().getPieceType().getDefaultValue() : 0;
 
-            if (cpValue1 != cpValue2) {
+            if (cpValue1 != cpValue2) { // diff captured piece values -> larger value first
                 return cpValue2 - cpValue1;
             }
-            return m2.getMovedPiece().getPieceType().getDefaultValue()
-                    - m1.getMovedPiece().getPieceType().getDefaultValue();
+            if (cpValue1 != 0) { // same nonzero captured piece values -> smaller moved piece value first
+                return m1.getMovedPiece().getPieceType().getDefaultValue()
+                        - m2.getMovedPiece().getPieceType().getDefaultValue();
+            } else { // zero captured piece values -> larger moved piece value first
+                return m2.getMovedPiece().getPieceType().getDefaultValue()
+                        - m1.getMovedPiece().getPieceType().getDefaultValue();
+            }
         };
         private static final Comparator<MoveEntry> MOVE_ENTRY_COMPARATOR_RED = (e1, e2) -> {
             if (e1.value != e2.value) {
@@ -252,7 +162,7 @@ public class MiniMax {
         /**
          * Sorts the given list of move entries according their calculated values and alliance.
          */
-        private static List<Move> valueSort(Alliance alliance, List<MoveEntry> moveEntries) {
+        static List<Move> valueSort(Alliance alliance, List<MoveEntry> moveEntries) {
             List<Move> sortedMoves = new ArrayList<>();
 
             if (alliance.isRed()) {
@@ -270,7 +180,7 @@ public class MiniMax {
         /**
          * Sorts the given collection of moves according to their captured piece values, otherwise moved piece values.
          */
-        private static List<Move> simpleSort(Collection<Move> moves) {
+        static List<Move> simpleSort(Collection<Move> moves) {
             List<Move> sortedMoves = new ArrayList<>(moves);
 
             sortedMoves.sort(MOVE_COMPARATOR);
@@ -282,12 +192,12 @@ public class MiniMax {
     /**
      * Represents an entry containing a move and its value.
      */
-    private static class MoveEntry {
+    static class MoveEntry {
 
-        private final Move move;
-        private final int value;
+        final Move move;
+        final int value;
 
-        private MoveEntry(Move move, int value) {
+        MoveEntry(Move move, int value) {
             this.move = move;
             this.value = value;
         }

@@ -8,7 +8,8 @@ import com.chess.engine.board.Move;
 import com.chess.engine.board.Point;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.MoveTransition;
-import com.chess.engine.player.ai.MiniMax;
+import com.chess.engine.player.ai.FixedDepthSearch;
+import com.chess.engine.player.ai.FixedTimeSearch;
 import com.chess.engine.player.ai.MoveBook;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
@@ -889,12 +890,10 @@ public class Table extends BorderPane {
 
         final Timer timer;
         TimerTask task;
-        Piece bannedCheckingPiece;
         Move bannedMove;
 
         private AIPlayer() {
             timer = new Timer("AI Timer");
-            bannedCheckingPiece = getBannedCheckingPiece();
             bannedMove = Table.getInstance().bannedMove;
         }
 
@@ -923,6 +922,11 @@ public class Table extends BorderPane {
             }
 
             return movedPiece;
+
+            /*
+            if (move.getMovedPiece().equals(bannedCheckingPiece) && !move.getCapturedPiece().isPresent()
+                    && nextBoard.getCurrPlayer().isInCheck()) continue;
+             */
         }
 
         /**
@@ -964,7 +968,7 @@ public class Table extends BorderPane {
             timer.schedule(task, AIObserver.MIN_TIME);
             startTime = System.currentTimeMillis();
             searchDepth = getInstance().gameSetup.getSearchDepth();
-            return new MiniMax(bannedCheckingPiece, bannedMove).fixedDepth(getInstance().currBoard, searchDepth);
+            return new FixedDepthSearch(getInstance().currBoard, bannedMove, searchDepth).search();
         }
 
         /**
@@ -1005,8 +1009,8 @@ public class Table extends BorderPane {
             task = getTimerTask();
             searchTime = getInstance().gameSetup.getSearchTime();
             timer.schedule(task, searchTime * 1000);
-            return new MiniMax(bannedCheckingPiece, bannedMove).fixedTime(getInstance().currBoard, this,
-                    System.currentTimeMillis() + searchTime*1000);
+            return new FixedTimeSearch(getInstance().currBoard, bannedMove, this,
+                    System.currentTimeMillis() + searchTime*1000).search();
         }
 
         @Override
