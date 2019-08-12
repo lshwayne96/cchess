@@ -96,6 +96,7 @@ public class Table extends BorderPane {
     private Point sourcePoint;
     private Point destPoint;
     private Piece selectedPiece;
+    private Move bannedMove;
     private boolean highlightLegalMoves;
 
     private Table() {
@@ -147,25 +148,28 @@ public class Table extends BorderPane {
         MenuItem newGame = new MenuItem("New");
         newGame.setOnAction(e -> {
             if (fullMovelog.isEmpty()) {
-                Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
-                alert.setTitle("New");
-                alert.showAndWait();
+                showAlert(AlertType.INFORMATION, "New", "No moves made");
                 return;
             }
-            Alert alert = new Alert(AlertType.CONFIRMATION, "Start a new game?");
-            alert.setTitle("New");
-            alert.showAndWait().ifPresent(response -> {
-                if (response.equals(ButtonType.OK)) {
-                    aiObserver.stopAI();
-                    exitReplayMode();
-                    restart();
-                    notifyAIObserver("newgame");
-                }
-            });
+            showAlert(AlertType.CONFIRMATION, "New", "Start a new game?")
+                    .ifPresent(response -> {
+                        if (response.equals(ButtonType.OK)) {
+                            aiObserver.stopAI();
+                            exitReplayMode();
+                            restart();
+                            notifyAIObserver("newgame");
+                        }
+                    });
         });
 
         MenuItem saveGame = new MenuItem("Save...");
-        saveGame.setOnAction(e -> saveGame());
+        saveGame.setOnAction(e -> {
+            if (fullMovelog.isEmpty()) {
+                showAlert(AlertType.INFORMATION, "Save", "No moves made");
+                return;
+            }
+            saveGame();
+        });
 
         MenuItem loadGame = new MenuItem("Load...");
         loadGame.setOnAction(e -> loadGame());
@@ -186,6 +190,10 @@ public class Table extends BorderPane {
 
         MenuItem undoTurn = new MenuItem("Undo last turn");
         undoTurn.setOnAction(e -> {
+            if (fullMovelog.getSize() < 2) {
+                showAlert(AlertType.INFORMATION, "Undo last turn", "No turns made");
+                return;
+            }
             aiObserver.stopAI();
             exitReplayMode();
             undoLastTurn();
@@ -194,6 +202,10 @@ public class Table extends BorderPane {
 
         MenuItem undoMove = new MenuItem("Undo last move");
         undoMove.setOnAction(e -> {
+            if (fullMovelog.isEmpty()) {
+                showAlert(AlertType.INFORMATION, "Undo last move", "No moves made");
+                return;
+            }
             aiObserver.stopAI();
             exitReplayMode();
             undoLastMove();
@@ -203,20 +215,39 @@ public class Table extends BorderPane {
         MenuItem playFromMove = new MenuItem("Play from selected move");
         playFromMove.setOnAction(e -> {
             if (!moveHistoryPane.isInReplayMode()) {
-                Alert alert = new Alert(AlertType.INFORMATION, "Not in replay mode");
-                alert.setTitle("Play from selected move");
-                alert.showAndWait();
+                showAlert(AlertType.INFORMATION, "Play from selected move", "No move selected");
                 return;
             }
+            showAlert(AlertType.CONFIRMATION, "Play from selected move",
+                    "Subsequent moves will be deleted. Continue?")
+                    .ifPresent(response -> {
+                        if (response.equals(ButtonType.OK)) {
+                            playFromSelectedMove();
+                            notifyAIObserver("playfrommove");
+                        }
+                    });
+        });
 
-            Alert alert = new Alert(AlertType.CONFIRMATION, "Subsequent moves will be deleted. Continue?");
-            alert.setTitle("Play from selected move");
-            alert.showAndWait().ifPresent(response -> {
-                if (response.equals(ButtonType.OK)) {
-                    playFromSelectedMove();
-                    notifyAIObserver("playfrommove");
-                }
-            });
+        MenuItem banMove = new MenuItem("Ban selected move");
+        banMove.setOnAction(e -> {
+            if (!moveHistoryPane.isInReplayMode()) {
+                showAlert(AlertType.INFORMATION, "Ban selected move", "No move selected");
+                return;
+            }
+            bannedMove = partialMovelog.getLastMove();
+            showAlert(AlertType.INFORMATION, "Ban selected move", bannedMove.toString() + " has been banned");
+        });
+
+        MenuItem unbanMove = new MenuItem("Unban");
+        unbanMove.setOnAction(e -> {
+            if (bannedMove == null) {
+                showAlert(AlertType.INFORMATION, "Unban", "No move banned");
+                return;
+            }
+            aiObserver.stopAI();
+            showAlert(AlertType.INFORMATION, "Unban", bannedMove.toString() + " has been unbanned");
+            bannedMove = null;
+            notifyAIObserver("unban");
         });
 
         MenuItem setup = new MenuItem("Setup...");
@@ -227,7 +258,8 @@ public class Table extends BorderPane {
             notifyAIObserver("setup");
         });
 
-        optionsMenu.getItems().addAll(undoTurn, undoMove, playFromMove, new SeparatorMenuItem(), setup);
+        optionsMenu.getItems().addAll(undoTurn, undoMove, playFromMove, new SeparatorMenuItem(),
+                banMove, unbanMove, new SeparatorMenuItem(), setup);
 
         return optionsMenu;
     }
@@ -282,6 +314,7 @@ public class Table extends BorderPane {
         boardHistory = new ArrayList<>();
         boardHistory.add(currBoard);
         fullMovelog.clear();
+        bannedMove = null;
 
         boardPane.drawBoard(currBoard);
         moveHistoryPane.update(fullMovelog);
@@ -292,13 +325,6 @@ public class Table extends BorderPane {
      * Saves the current game in-progress into a loadable text file.
      */
     private void saveGame() {
-        if (fullMovelog.isEmpty()) {
-            Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
-            alert.setTitle("Save");
-            alert.showAndWait();
-            return;
-        }
-
         FileChooser fc = new FileChooser();
         fc.setTitle("Save");
         File file = fc.showSaveDialog(CChess.stage);
@@ -315,9 +341,7 @@ public class Table extends BorderPane {
                 e.printStackTrace();
             }
 
-            Alert alert = new Alert(AlertType.INFORMATION, "Save success");
-            alert.setTitle("Save");
-            alert.showAndWait();
+            showAlert(AlertType.INFORMATION, "Save", "Save success");
         }
     }
 
@@ -332,9 +356,7 @@ public class Table extends BorderPane {
         if (file != null) {
             LoadGameUtil lgu = new LoadGameUtil(file);
             if (!lgu.isValidFile()) {
-                Alert alert = new Alert(AlertType.ERROR, "Invalid file");
-                alert.setTitle("Load");
-                alert.showAndWait();
+                showAlert(AlertType.ERROR, "Load", "Invalid file");
             } else {
                 aiObserver.stopAI();
                 exitReplayMode();
@@ -354,9 +376,7 @@ public class Table extends BorderPane {
 
                 notifyAIObserver("load");
 
-                Alert alert = new Alert(AlertType.INFORMATION, "Load success");
-                alert.setTitle("Load");
-                alert.showAndWait();
+                showAlert(AlertType.INFORMATION, "Load", "Load success");
             }
         }
     }
@@ -375,10 +395,6 @@ public class Table extends BorderPane {
             moveHistoryPane.update(fullMovelog);
             infoPane.update(currBoard, fullMovelog);
             boardPane.drawBoard(currBoard);
-        } else {
-            Alert alert = new Alert(AlertType.INFORMATION, "No moves made");
-            alert.setTitle("Undo last move");
-            alert.showAndWait();
         }
     }
 
@@ -389,10 +405,6 @@ public class Table extends BorderPane {
         if (fullMovelog.getSize() > 1) {
             undoLastMove();
             undoLastMove();
-        } else {
-            Alert alert = new Alert(AlertType.INFORMATION, "No turns made");
-            alert.setTitle("Undo last turn");
-            alert.showAndWait();
         }
     }
 
@@ -443,15 +455,6 @@ public class Table extends BorderPane {
     }
 
     /**
-     * Clears all mouse selections made by the human player.
-     */
-    private void clearSelections() {
-        sourcePoint = null;
-        destPoint = null;
-        selectedPiece = null;
-    }
-
-    /**
      * Notifies the AI observer with the given property name.
      */
     private void notifyAIObserver(String propertyName) {
@@ -464,6 +467,24 @@ public class Table extends BorderPane {
      */
     public boolean isAIRandomised() {
         return gameSetup.isAIRandomised();
+    }
+
+    /**
+     * Clears all mouse selections made by the human player.
+     */
+    private void clearSelections() {
+        sourcePoint = null;
+        destPoint = null;
+        selectedPiece = null;
+    }
+
+    /**
+     * Creates an alert given the alert type, title and content strings.
+     */
+    private Optional<ButtonType> showAlert(AlertType alertType, String title, String content) {
+        Alert alert = new Alert(alertType, content);
+        alert.setTitle(title);
+        return alert.showAndWait();
     }
 
     /**
@@ -868,17 +889,19 @@ public class Table extends BorderPane {
 
         final Timer timer;
         TimerTask task;
-        Piece bannedPiece;
+        Piece bannedCheckingPiece;
+        Move bannedMove;
 
         private AIPlayer() {
             timer = new Timer("AI Timer");
-            bannedPiece = getBannedPiece();
+            bannedCheckingPiece = getBannedCheckingPiece();
+            bannedMove = Table.getInstance().bannedMove;
         }
 
         /**
          * Returns the piece not to use for checking the opponent.
          */
-        private Piece getBannedPiece() {
+        private Piece getBannedCheckingPiece() {
             List<Board> boardHistory = getInstance().boardHistory;
             List<Move> moveHistory = getInstance().fullMovelog.getMoves();
             if (moveHistory.size() < MAX_CONSEC_CHECKS * 2) return null;
@@ -941,7 +964,7 @@ public class Table extends BorderPane {
             timer.schedule(task, AIObserver.MIN_TIME);
             startTime = System.currentTimeMillis();
             searchDepth = getInstance().gameSetup.getSearchDepth();
-            return new MiniMax().fixedDepth(getInstance().currBoard, searchDepth, bannedPiece);
+            return new MiniMax(bannedCheckingPiece, bannedMove).fixedDepth(getInstance().currBoard, searchDepth);
         }
 
         /**
@@ -982,7 +1005,7 @@ public class Table extends BorderPane {
             task = getTimerTask();
             searchTime = getInstance().gameSetup.getSearchTime();
             timer.schedule(task, searchTime * 1000);
-            return new MiniMax().fixedTime(getInstance().currBoard, bannedPiece, this,
+            return new MiniMax(bannedCheckingPiece, bannedMove).fixedTime(getInstance().currBoard, this,
                     System.currentTimeMillis() + searchTime*1000);
         }
 

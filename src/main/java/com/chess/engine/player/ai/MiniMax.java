@@ -23,19 +23,22 @@ import static com.chess.gui.Table.*;
 public class MiniMax {
 
     private final Map<BoardState, Integer> stateToValueMap;
+    private final Piece bannedCheckingPiece;
+    private final Move bannedMove;
 
-    public MiniMax() {
+    public MiniMax(Piece bannedCheckingPiece, Move bannedMove) {
         stateToValueMap = new HashMap<>();
+        this.bannedCheckingPiece = bannedCheckingPiece;
+        this.bannedMove = bannedMove;
     }
 
     /**
      * Returns the best move using fixed-depth search based on the given board and search depth.
      * @param board The current board.
      * @param searchDepth The depth of the search.
-     * @param bannedPiece The piece not to use for checking the opponent.
      * @return The best move using fixed-depth search based on the given board and search depth.
      */
-    public Move fixedDepth(Board board, int searchDepth, Piece bannedPiece) {
+    public Move fixedDepth(Board board, int searchDepth) {
         stateToValueMap.clear();
         Move bestMove = null;
 
@@ -44,10 +47,12 @@ public class MiniMax {
         int currValue;
 
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
+            if (move.equals(bannedMove)) continue;
+
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isDone()) {
                 Board nextBoard = transition.getNextBoard();
-                if (move.getMovedPiece().equals(bannedPiece) && !move.getCapturedPiece().isPresent()
+                if (move.getMovedPiece().equals(bannedCheckingPiece) && !move.getCapturedPiece().isPresent()
                         && nextBoard.getCurrPlayer().isInCheck()) continue;
 
                 if (board.getCurrPlayer().getAlliance().isRed()) {
@@ -72,13 +77,11 @@ public class MiniMax {
     /**
      * Returns the best move using time-limited search based on the given board and end time.
      * @param board The current board.
-     * @param bannedPiece The piece not to use for checking the opponent.
      * @param fixedTimeAIPlayer The AI player to notify after the best move at each depth has been computed.
      * @param endTime The time to stop searching.
      * @return The best move using time-limited search based on the given board and end time.
      */
-    public Move fixedTime(Board board, Piece bannedPiece,
-                          FixedTimeAIPlayer fixedTimeAIPlayer, long endTime) {
+    public Move fixedTime(Board board, FixedTimeAIPlayer fixedTimeAIPlayer, long endTime) {
         PropertyChangeSupport support = new PropertyChangeSupport(this);
         support.addPropertyChangeListener(fixedTimeAIPlayer);
         stateToValueMap.clear();
@@ -92,10 +95,12 @@ public class MiniMax {
             List<MoveEntry> moveEntries = new ArrayList<>();
 
             for (Move move : sortedMoves) {
+                if (move.equals(bannedMove)) continue;
+
                 MoveTransition transition = board.getCurrPlayer().makeMove(move);
                 if (transition.getMoveStatus().isDone()) {
                     Board nextBoard = transition.getNextBoard();
-                    if (move.getMovedPiece().equals(bannedPiece)
+                    if (move.getMovedPiece().equals(bannedCheckingPiece)
                             && !move.getCapturedPiece().isPresent()
                             && nextBoard.getCurrPlayer().isInCheck()) continue;
 

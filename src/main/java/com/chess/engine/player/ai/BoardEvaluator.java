@@ -26,13 +26,13 @@ class BoardEvaluator {
 
     private static final Random rand = new Random();
     private static final int CHECKMATE_VALUE = PieceType.GENERAL.getDefaultValue();
-    private static final int HORSE_PENALTY = 30;
-    private static final int CHARIOT_PENALTY = 20;
-    private static final int CANNON_GENERAL_BONUS = 200;
+    private static final int HORSE_PENALTY = 50;
+    private static final int CHARIOT_PENALTY = 25;
+    private static final int CANNON_GENERAL_BONUS = 250;
     private static final int CANNON_HORSE_BONUS = 50;
-    private static final int CANNON_ELEPHANT_BONUS = 75;
+    private static final int CANNON_ELEPHANT_BONUS = 50;
     private static final int CHARIOT_ONE_ADVISOR_BONUS = 200;
-    private static final int CHARIOT_ZERO_ADVISOR_BONUS = 400;
+    private static final int CHARIOT_ZERO_ADVISOR_BONUS = 350;
 
     /**
      * Returns the heuristic value of the given board at the current search depth.
@@ -51,7 +51,7 @@ class BoardEvaluator {
         return getPieceScoreDiff(board, boardStatus)
                 + getRelationScoreDiff(board, boardStatus)
                 + getTotalMobilityValue(board.getRedPlayer()) - getTotalMobilityValue(board.getBlackPlayer())
-                + (Table.getInstance().isAIRandomised() ? rand.nextInt(5) : 0);
+                + (Table.getInstance().isAIRandomised() ? rand.nextInt(10) : 0);
     }
 
     /**
