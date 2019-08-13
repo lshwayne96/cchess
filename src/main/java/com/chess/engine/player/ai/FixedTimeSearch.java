@@ -44,13 +44,13 @@ public class FixedTimeSearch extends MiniMax {
                     Board nextBoard = transition.getNextBoard();
                     int currValue;
                     if (currBoard.getCurrPlayer().getAlliance().isRed()) {
-                        currValue = min(nextBoard, currDepth - 1, maxValue, minValue);
+                        currValue = min(nextBoard, currDepth - 1, maxValue, minValue, true);
                         if (currValue > maxValue) {
                             maxValue = currValue;
                             bestMove = move;
                         }
                     } else {
-                        currValue = max(nextBoard, currDepth - 1, maxValue, minValue);
+                        currValue = max(nextBoard, currDepth - 1, maxValue, minValue, true);
                         if (currValue < minValue) {
                             minValue = currValue;
                             bestMove = move;

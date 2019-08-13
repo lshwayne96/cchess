@@ -88,6 +88,19 @@ public class Board {
     }
 
     /**
+     * Returns a collection of legal moves that can be made by the given collection of pieces.
+     */
+    private Collection<Move> getLegalMoves(Collection<Piece> pieces) {
+        List<Move> legalMoves = new ArrayList<>();
+
+        for (Piece piece : pieces) {
+            legalMoves.addAll(piece.getLegalMoves(this));
+        }
+
+        return Collections.unmodifiableList(legalMoves);
+    }
+
+    /**
      * Returns the initial state of the board.
      */
     public static Board initialiseBoard() {
@@ -130,19 +143,6 @@ public class Board {
         builder.setCurrTurn(Alliance.RED);
 
         return builder.build();
-    }
-
-    /**
-     * Returns a collection of legal moves that can be made by the given collection of pieces.
-     */
-    private Collection<Move> getLegalMoves(Collection<Piece> pieces) {
-        List<Move> legalMoves = new ArrayList<>();
-
-        for (Piece piece : pieces) {
-            legalMoves.addAll(piece.getLegalMoves(this));
-        }
-
-        return Collections.unmodifiableList(legalMoves);
     }
 
     /**
@@ -202,15 +202,31 @@ public class Board {
     }
 
     /**
-     * Checks if the given position is within bounds of the board.
-     * @param position The position to check.
-     * @return true if the given position is within bounds, false otherwise.
+     * Checks if this board is quiet.
+     * @return true if this board is quiet (current player has no capture moves), false otherwise.
      */
-    public static boolean isWithinBounds(Coordinate position) {
-        int row = position.getRow();
-        int col = position.getCol();
+    public boolean isQuiet() {
+        for (Move move : currPlayer.getLegalMoves()) {
+            if (move.getCapturedPiece().isPresent()) {
+                return false;
+            }
+        }
+        return true;
+    }
 
-        return (row >= 0 && row < NUM_ROWS) && (col >= 0 && col < NUM_COLS);
+    /**
+     * Returns the board after skipping a move. (For AI search only)
+     * @return The board after skipping a move.
+     */
+    public Board makeNullMove() {
+        Builder builder = new Builder();
+
+        for (Piece piece : getAllPieces()) {
+            builder.putPiece(piece);
+        }
+        builder.setCurrTurn(currPlayer.getOpponent().getAlliance());
+
+        return builder.build();
     }
 
     /**
@@ -236,6 +252,18 @@ public class Board {
      */
     public Point getPoint(Coordinate position) {
         return points.get(positionToIndex(position.getRow(), position.getCol()));
+    }
+
+    /**
+     * Checks if the given position is within bounds of the board.
+     * @param position The position to check.
+     * @return true if the given position is within bounds, false otherwise.
+     */
+    public static boolean isWithinBounds(Coordinate position) {
+        int row = position.getRow();
+        int col = position.getCol();
+
+        return (row >= 0 && row < NUM_ROWS) && (col >= 0 && col < NUM_COLS);
     }
 
     /**

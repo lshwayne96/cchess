@@ -9,23 +9,24 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
+
+import static com.chess.engine.board.Board.*;
 
 /**
- * Represents a MiniMax algorithm with alpha-beta pruning and hashing of calculated board states.
+ * Represents a MiniMax algorithm.
  */
 public abstract class MiniMax {
+// TODO: quiescence, PVS, aspiration window, transposition table
+    private static final int R = 2; // depth reduction for null move pruning
 
     final Board currBoard;
     final Move bannedMove;
-    final Map<BoardState, Integer> stateToValueMap;
 
     MiniMax(Board currBoard, Move bannedMove) {
         this.currBoard = currBoard;
         this.bannedMove = bannedMove;
-        stateToValueMap = new HashMap<>();
     }
 
     /**
@@ -34,63 +35,121 @@ public abstract class MiniMax {
      */
     public abstract Move search();
 
-    /**
-     * The default algorithm for the minimising player.
-     */
-    int min(Board board, int depth, int a, int b) {
-        if (depth == 0 || board.isGameOver()) {
+    int min(Board board, int depth, int alpha, int beta, boolean allowNull) {
+        if (depth <= 0 || board.isGameOver()) {
             return BoardEvaluator.evaluate(board, depth);
         }
 
-        BoardState boardState = new BoardState(board, depth);
-        Integer value = stateToValueMap.get(boardState);
-        if (value != null) {
-            return value;
+        if (allowNull && !board.getCurrPlayer().isInCheck() && !board.getStatus().equals(BoardStatus.END)) {
+            Board nextBoard = board.makeNullMove();
+            int val = max(nextBoard, depth - 1 - R, beta - 1, beta, false);
+            if (alpha >= val) {
+                return val;
+            }
         }
 
-        int alpha = a, beta = b;
         int minValue = Integer.MAX_VALUE;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isAllowed()) {
-                minValue = Math.min(minValue, max(transition.getNextBoard(), depth - 1, alpha, beta));
+                minValue = Math.min(minValue, max(transition.getNextBoard(), depth - 1, alpha, beta, true));
                 beta = Math.min(beta, minValue);
                 if (alpha >= beta) break;
             }
         }
 
-        stateToValueMap.put(boardState, minValue);
         return minValue;
     }
 
-    /**
-     * The default algorithm for the maximising player.
-     */
-    int max(Board board, int depth, int a, int b) {
-        if (depth == 0 || board.isGameOver()) {
+    int max(Board board, int depth, int alpha, int beta, boolean allowNull) {
+        if (depth <= 0 || board.isGameOver()) {
             return BoardEvaluator.evaluate(board, depth);
         }
 
-        BoardState boardState = new BoardState(board, depth);
-        Integer value = stateToValueMap.get(boardState);
-        if (value != null) {
-            return value;
+        if (allowNull && !board.getCurrPlayer().isInCheck() && !board.getStatus().equals(BoardStatus.END)) {
+            Board nextBoard = board.makeNullMove();
+            int val = min(nextBoard, depth - 1 - R, beta - 1, beta, false);
+            if (val >= beta) {
+                return val;
+            }
         }
 
-        int alpha = a, beta = b;
         int maxValue = Integer.MIN_VALUE;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isAllowed()) {
-                maxValue = Math.max(maxValue, min(transition.getNextBoard(), depth - 1, alpha, beta));
+                maxValue = Math.max(maxValue, min(transition.getNextBoard(), depth - 1, alpha, beta, true));
                 alpha = Math.max(alpha, maxValue);
                 if (alpha >= beta) break;
             }
         }
 
-        stateToValueMap.put(boardState, maxValue);
         return maxValue;
     }
+/*
+    int alphaBeta(Board board, int depth, int alpha, int beta, boolean allowNull) {
+        int alphaOrig = alpha;
+
+        // look up transposition table
+        TTEntry ttEntry = transTable.get(board);
+        if (ttEntry != null && ttEntry.depth >= depth) {
+            switch (ttEntry.flag) {
+                case EXACT:
+                    return ttEntry.value;
+                case LOWERBOUND:
+                    alpha = Math.max(alpha, ttEntry.value);
+                    break;
+                case UPPERBOUND:
+                    beta = Math.min(beta, ttEntry.value);
+                    break;
+            }
+            if (alpha >= beta) {
+                return ttEntry.value;
+            }
+        }
+
+        // evaluate board if ready
+        if (depth <= 0 || board.isGameOver()) {
+            int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
+            return BoardEvaluator.evaluate(board, depth) * color;
+        }
+
+        // null move pruning if possible
+        if (allowNull && !board.getCurrPlayer().isInCheck() && !board.getStatus().equals(BoardStatus.END)) {
+            Board nextBoard = board.makeNullMove();
+            int val = -alphaBeta(nextBoard, depth - 1 - R, -beta, -beta + 1, false);
+            if (val >= beta) {
+                return val;
+            }
+        }
+
+        // search all moves
+        int bestVal = Integer.MIN_VALUE;
+        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
+            MoveTransition transition = board.getCurrPlayer().makeMove(move);
+            if (transition.getMoveStatus().isAllowed()) {
+                bestVal = Math.max(bestVal, -alphaBeta(transition.getNextBoard(), depth - 1, -beta, -alpha, true));
+                alpha = Math.max(alpha, bestVal);
+                if (alpha >= beta) break;
+            }
+        }
+
+        // store into transposition table if necessary
+        if (ttEntry == null || depth > ttEntry.depth) {
+            Flag flag;
+            if (bestVal <= alphaOrig) {
+                flag = TTEntry.Flag.UPPERBOUND;
+            } else if (bestVal >= beta) {
+                flag = TTEntry.Flag.LOWERBOUND;
+            } else {
+                flag = TTEntry.Flag.EXACT;
+            }
+            TTEntry newEntry = new TTEntry(depth, bestVal, flag);
+            transTable.put(board, newEntry);
+        }
+
+        return bestVal;
+    }*/
 
     /**
      * Represents a state containing a board and the depth at which it was evaluated.
@@ -120,7 +179,32 @@ public abstract class MiniMax {
 
         @Override
         public int hashCode() {
-            return 31 * depth + board.hashCode();
+            return Objects.hash(board, depth);
+        }
+    }
+
+    /**
+     * Represents a transposition table entry.
+     */
+    static class TTEntry {
+
+        private final int depth;
+        private final int value;
+        private final Flag flag;
+
+        private TTEntry(int depth, int value, Flag flag) {
+            this.depth = depth;
+            this.value = value;
+            this.flag = flag;
+        }
+
+        /**
+         * Represents the relationship of value with alpha/beta.
+         */
+        enum Flag {
+            EXACT,
+            LOWERBOUND,
+            UPPERBOUND
         }
     }
 

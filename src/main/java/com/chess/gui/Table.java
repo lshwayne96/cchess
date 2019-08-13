@@ -8,9 +8,9 @@ import com.chess.engine.board.Move;
 import com.chess.engine.board.Point;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.MoveTransition;
+import com.chess.engine.player.ai.FixedDepthSearch;
 import com.chess.engine.player.ai.FixedTimeSearch;
 import com.chess.engine.player.ai.MoveBook;
-import com.chess.engine.player.ai.QuiescenceSearch;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.event.EventHandler;
@@ -968,7 +968,7 @@ public class Table extends BorderPane {
             timer.schedule(task, AIObserver.MIN_TIME);
             startTime = System.currentTimeMillis();
             searchDepth = getInstance().gameSetup.getSearchDepth();
-            return new QuiescenceSearch(getInstance().currBoard, bannedMove, searchDepth).search();
+            return new FixedDepthSearch(getInstance().currBoard, bannedMove, searchDepth).search();
         }
 
         /**

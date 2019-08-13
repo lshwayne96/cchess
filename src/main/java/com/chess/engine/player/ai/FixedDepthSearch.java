@@ -16,7 +16,6 @@ public class FixedDepthSearch extends MiniMax {
         this.searchDepth = searchDepth;
     }
 
-    @Override
     public Move search() {
         Move bestMove = null;
 
@@ -31,13 +30,13 @@ public class FixedDepthSearch extends MiniMax {
             if (transition.getMoveStatus().isAllowed()) {
                 Board nextBoard = transition.getNextBoard();
                 if (currBoard.getCurrPlayer().getAlliance().isRed()) {
-                    currValue = min(nextBoard, searchDepth - 1, maxValue, minValue);
+                    currValue = min(nextBoard, searchDepth - 1, maxValue, minValue, true);
                     if (currValue > maxValue) {
                         maxValue = currValue;
                         bestMove = move;
                     }
                 } else {
-                    currValue = max(nextBoard, searchDepth - 1, maxValue, minValue);
+                    currValue = max(nextBoard, searchDepth - 1, maxValue, minValue, true);
                     if (currValue < minValue) {
                         minValue = currValue;
                         bestMove = move;
@@ -48,4 +47,25 @@ public class FixedDepthSearch extends MiniMax {
 
         return bestMove;
     }
+/*
+    public Move search() {
+        Move bestMove = null;
+        int bestVal = Integer.MIN_VALUE;
+
+        for (Move move : MoveSorter.simpleSort(currBoard.getCurrPlayer().getLegalMoves())) {
+            if (move.equals(bannedMove)) continue;
+
+            MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
+            if (transition.getMoveStatus().isAllowed()) {
+                int val = -alphaBeta(transition.getNextBoard(), searchDepth - 1,
+                        Integer.MIN_VALUE + 1, Integer.MAX_VALUE, true);
+                if (val > bestVal) {
+                    bestVal = val;
+                    bestMove = move;
+                }
+            }
+        }
+
+        return bestMove;
+    }*/
 }
