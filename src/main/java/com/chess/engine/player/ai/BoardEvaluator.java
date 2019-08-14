@@ -28,10 +28,10 @@ class BoardEvaluator {
     private static final int CHECKMATE_VALUE = PieceType.GENERAL.getDefaultValue();
     private static final int HORSE_PENALTY = 50;
     private static final int CHARIOT_PENALTY = 25;
-    private static final int CANNON_GENERAL_BONUS = 250;
+    private static final int CANNON_GENERAL_BONUS = 200;
     private static final int CANNON_HORSE_BONUS = 50;
     private static final int CANNON_ELEPHANT_BONUS = 50;
-    private static final int CHARIOT_ONE_ADVISOR_BONUS = 200;
+    private static final int CHARIOT_ONE_ADVISOR_BONUS = 175;
     private static final int CHARIOT_ZERO_ADVISOR_BONUS = 350;
 
     /**

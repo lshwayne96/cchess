@@ -47,8 +47,8 @@ public class FixedDepthSearch extends MiniMax {
 
         return bestMove;
     }
-/*
-    public Move search() {
+
+    public Move search1() {
         Move bestMove = null;
         int bestVal = Integer.MIN_VALUE;
 
@@ -67,5 +67,5 @@ public class FixedDepthSearch extends MiniMax {
         }
 
         return bestMove;
-    }*/
+    }
 }

@@ -143,19 +143,19 @@ public abstract class Piece {
     public enum PieceType {
 
         SOLDIER("S", true,
-                100, 175, 250, 30, POSITION_VALUES_SOLDIER),
+                100, 175, 250, 30, 3, POSITION_VALUES_SOLDIER),
         ADVISOR("A", false,
-                200, 225, 250, 2, POSITION_VALUES_ADVISOR),
+                200, 225, 250, 2, 4, POSITION_VALUES_ADVISOR),
         ELEPHANT("E", false,
-                200, 225, 250, 2, POSITION_VALUES_ELEPHANT),
+                200, 225, 250, 2, 4, POSITION_VALUES_ELEPHANT),
         HORSE("H", true,
-                450, 500, 550, 24, POSITION_VALUES_HORSE),
+                450, 500, 550, 24, 2, POSITION_VALUES_HORSE),
         CANNON("C", true,
-                500, 525, 550, 10, POSITION_VALUES_CANNON),
+                500, 525, 550, 10, 2, POSITION_VALUES_CANNON),
         CHARIOT("R", true,
-                1000, 1000, 1000, 12, POSITION_VALUES_CHARIOT),
+                1000, 1000, 1000, 12, 1, POSITION_VALUES_CHARIOT),
         GENERAL("G", false,
-                5000, 5000, 5000, 0, POSITION_VALUES_GENERAL);
+                5000, 5000, 5000, 0, 5, POSITION_VALUES_GENERAL);
 
         private final String abbrev;
         private final boolean isAttacking;
@@ -163,10 +163,11 @@ public abstract class Piece {
         private final int midValue;
         private final int endValue;
         private final int mobilityValue;
+        private final int movePriority;
         private final int[][] positionValues;
 
         PieceType(String abbrev, boolean isAttacking,
-                  int openingValue, int midValue, int endValue, int mobilityValue,
+                  int openingValue, int midValue, int endValue, int mobilityValue, int movePriority,
                   int[][] positionValues) {
             this.abbrev = abbrev;
             this.isAttacking = isAttacking;
@@ -174,6 +175,7 @@ public abstract class Piece {
             this.midValue = midValue;
             this.endValue = endValue;
             this.mobilityValue = mobilityValue;
+            this.movePriority = movePriority;
             this.positionValues = positionValues;
         }
 
@@ -187,6 +189,10 @@ public abstract class Piece {
 
         public int getMobilityValue() {
             return mobilityValue;
+        }
+
+        public int getMovePriority() {
+            return movePriority;
         }
 
         @Override

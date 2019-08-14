@@ -18,8 +18,8 @@ import static com.chess.engine.board.Board.*;
  * Represents a MiniMax algorithm.
  */
 public abstract class MiniMax {
-// TODO: quiescence, PVS, aspiration window, transposition table
-    private static final int R = 2; // depth reduction for null move pruning
+// TODO: PVS, aspiration window, transposition table | difficulty levels(w/ quiescence)
+    static final int R = 2; // depth reduction for null move pruning
 
     final Board currBoard;
     final Move bannedMove;
@@ -86,10 +86,10 @@ public abstract class MiniMax {
 
         return maxValue;
     }
-/*
+
     int alphaBeta(Board board, int depth, int alpha, int beta, boolean allowNull) {
         int alphaOrig = alpha;
-
+/*
         // look up transposition table
         TTEntry ttEntry = transTable.get(board);
         if (ttEntry != null && ttEntry.depth >= depth) {
@@ -106,7 +106,7 @@ public abstract class MiniMax {
             if (alpha >= beta) {
                 return ttEntry.value;
             }
-        }
+        }*/
 
         // evaluate board if ready
         if (depth <= 0 || board.isGameOver()) {
@@ -124,16 +124,21 @@ public abstract class MiniMax {
         }
 
         // search all moves
-        int bestVal = Integer.MIN_VALUE;
+        int bestVal = Integer.MIN_VALUE + 1;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isAllowed()) {
-                bestVal = Math.max(bestVal, -alphaBeta(transition.getNextBoard(), depth - 1, -beta, -alpha, true));
-                alpha = Math.max(alpha, bestVal);
-                if (alpha >= beta) break;
+                int val = -alphaBeta(transition.getNextBoard(), depth - 1, -beta, -alpha, true);
+                if (val >= beta) {
+                    return val;
+                }
+                if (val > bestVal) {
+                    bestVal = val;
+                    alpha = Math.max(alpha, val);
+                }
             }
         }
-
+/*
         // store into transposition table if necessary
         if (ttEntry == null || depth > ttEntry.depth) {
             Flag flag;
@@ -146,10 +151,10 @@ public abstract class MiniMax {
             }
             TTEntry newEntry = new TTEntry(depth, bestVal, flag);
             transTable.put(board, newEntry);
-        }
+        }*/
 
         return bestVal;
-    }*/
+    }
 
     /**
      * Represents a state containing a board and the depth at which it was evaluated.
@@ -218,17 +223,18 @@ public abstract class MiniMax {
                     ? m1.getCapturedPiece().get().getPieceType().getDefaultValue() : 0;
             int cpValue2 = m2.getCapturedPiece().isPresent()
                     ? m2.getCapturedPiece().get().getPieceType().getDefaultValue() : 0;
+            if (cpValue1 == 0 && cpValue2 == 0) {
+                return m1.getMovedPiece().getPieceType().getMovePriority()
+                        - m2.getMovedPiece().getPieceType().getMovePriority();
+            }
 
-            if (cpValue1 != cpValue2) { // diff captured piece values -> larger value first
-                return cpValue2 - cpValue1;
+            int pValue1 = m1.getMovedPiece().getPieceType().getDefaultValue();
+            int pValue2 = m2.getMovedPiece().getPieceType().getDefaultValue();
+            if (cpValue1 != 0 && cpValue2 != 0) {
+                return (cpValue2 - pValue2) - (cpValue1 - pValue1);
             }
-            if (cpValue1 != 0) { // same nonzero captured piece values -> smaller moved piece value first
-                return m1.getMovedPiece().getPieceType().getDefaultValue()
-                        - m2.getMovedPiece().getPieceType().getDefaultValue();
-            } else { // zero captured piece values -> larger moved piece value first
-                return m2.getMovedPiece().getPieceType().getDefaultValue()
-                        - m1.getMovedPiece().getPieceType().getDefaultValue();
-            }
+
+            return cpValue2 - cpValue1;
         };
         private static final Comparator<MoveEntry> MOVE_ENTRY_COMPARATOR_RED = (e1, e2) -> {
             if (e1.value != e2.value) {
