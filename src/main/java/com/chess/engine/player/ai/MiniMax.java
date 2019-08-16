@@ -1,6 +1,5 @@
 package com.chess.engine.player.ai;
 
-import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Move;
 import com.chess.engine.player.MoveTransition;
@@ -9,7 +8,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static com.chess.engine.board.Board.*;
@@ -23,10 +24,12 @@ public abstract class MiniMax {
 
     final Board currBoard;
     final Move bannedMove;
+    final Map<Board, TTEntry> transTable;
 
     MiniMax(Board currBoard, Move bannedMove) {
         this.currBoard = currBoard;
         this.bannedMove = bannedMove;
+        transTable = new HashMap<>();
     }
 
     /**
@@ -35,64 +38,13 @@ public abstract class MiniMax {
      */
     public abstract Move search();
 
-    int min(Board board, int depth, int alpha, int beta, boolean allowNull) {
-        if (depth <= 0 || board.isGameOver()) {
-            return BoardEvaluator.evaluate(board, depth);
-        }
-
-        if (allowNull && !board.getCurrPlayer().isInCheck() && !board.getStatus().equals(BoardStatus.END)) {
-            Board nextBoard = board.makeNullMove();
-            int val = max(nextBoard, depth - 1 - R, beta - 1, beta, false);
-            if (alpha >= val) {
-                return val;
-            }
-        }
-
-        int minValue = Integer.MAX_VALUE;
-        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            MoveTransition transition = board.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                minValue = Math.min(minValue, max(transition.getNextBoard(), depth - 1, alpha, beta, true));
-                beta = Math.min(beta, minValue);
-                if (alpha >= beta) break;
-            }
-        }
-
-        return minValue;
-    }
-
-    int max(Board board, int depth, int alpha, int beta, boolean allowNull) {
-        if (depth <= 0 || board.isGameOver()) {
-            return BoardEvaluator.evaluate(board, depth);
-        }
-
-        if (allowNull && !board.getCurrPlayer().isInCheck() && !board.getStatus().equals(BoardStatus.END)) {
-            Board nextBoard = board.makeNullMove();
-            int val = min(nextBoard, depth - 1 - R, beta - 1, beta, false);
-            if (val >= beta) {
-                return val;
-            }
-        }
-
-        int maxValue = Integer.MIN_VALUE;
-        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            MoveTransition transition = board.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                maxValue = Math.max(maxValue, min(transition.getNextBoard(), depth - 1, alpha, beta, true));
-                alpha = Math.max(alpha, maxValue);
-                if (alpha >= beta) break;
-            }
-        }
-
-        return maxValue;
-    }
-
     int alphaBeta(Board board, int depth, int alpha, int beta, boolean allowNull) {
         int alphaOrig = alpha;
-/*
+        /*
         // look up transposition table
         TTEntry ttEntry = transTable.get(board);
         if (ttEntry != null && ttEntry.depth >= depth) {
+            hits++;
             switch (ttEntry.flag) {
                 case EXACT:
                     return ttEntry.value;
@@ -141,7 +93,7 @@ public abstract class MiniMax {
 /*
         // store into transposition table if necessary
         if (ttEntry == null || depth > ttEntry.depth) {
-            Flag flag;
+            TTEntry.Flag flag;
             if (bestVal <= alphaOrig) {
                 flag = TTEntry.Flag.UPPERBOUND;
             } else if (bestVal >= beta) {
@@ -155,6 +107,62 @@ public abstract class MiniMax {
 
         return bestVal;
     }
+/*
+    int min(Board board, int depth, int alpha, int beta, boolean allowNull) {
+        if (depth <= 0 || board.isGameOver()) {
+            return BoardEvaluator.evaluate(board, depth);
+        }
+
+        if (allowNull && !board.getCurrPlayer().isInCheck() && !board.getStatus().equals(BoardStatus.END)) {
+            Board nextBoard = board.makeNullMove();
+            int val = max(nextBoard, depth - 1 - R, alpha, alpha + 1, false);
+            if (alpha >= val) {
+                return val;
+            }
+        }
+
+        int minValue = Integer.MAX_VALUE;
+        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
+            MoveTransition transition = board.getCurrPlayer().makeMove(move);
+            if (transition.getMoveStatus().isAllowed()) {
+                minValue = Math.min(minValue, max(transition.getNextBoard(), depth - 1, alpha, beta, true));
+                beta = Math.min(beta, minValue);
+                if (alpha >= beta) {
+                    break;
+                }
+            }
+        }
+
+        return minValue;
+    }
+
+    int max(Board board, int depth, int alpha, int beta, boolean allowNull) {
+        if (depth <= 0 || board.isGameOver()) {
+            return BoardEvaluator.evaluate(board, depth);
+        }
+
+        if (allowNull && !board.getCurrPlayer().isInCheck() && !board.getStatus().equals(BoardStatus.END)) {
+            Board nextBoard = board.makeNullMove();
+            int val = min(nextBoard, depth - 1 - R, alpha, alpha + 1, false);
+            if (val >= beta) {
+                return val;
+            }
+        }
+
+        int maxValue = Integer.MIN_VALUE;
+        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
+            MoveTransition transition = board.getCurrPlayer().makeMove(move);
+            if (transition.getMoveStatus().isAllowed()) {
+                maxValue = Math.max(maxValue, min(transition.getNextBoard(), depth - 1, alpha, beta, true));
+                alpha = Math.max(alpha, maxValue);
+                if (alpha >= beta) {
+                    break;
+                }
+            }
+        }
+
+        return maxValue;
+    }*/
 
     /**
      * Represents a state containing a board and the depth at which it was evaluated.
@@ -236,30 +244,20 @@ public abstract class MiniMax {
 
             return cpValue2 - cpValue1;
         };
-        private static final Comparator<MoveEntry> MOVE_ENTRY_COMPARATOR_RED = (e1, e2) -> {
+        private static final Comparator<MoveEntry> MOVE_ENTRY_COMPARATOR = (e1, e2) -> {
             if (e1.value != e2.value) {
                 return e2.value - e1.value;
             }
             return MOVE_COMPARATOR.compare(e1.move, e2.move);
         };
-        private static final Comparator<MoveEntry> MOVE_ENTRY_COMPARATOR_BLACK = (e1, e2) -> {
-            if (e1.value != e2.value) {
-                return e1.value - e2.value;
-            }
-            return MOVE_COMPARATOR.compare(e1.move, e2.move);
-        };
 
         /**
-         * Sorts the given list of move entries according their calculated values and alliance.
+         * Sorts the given list of move entries in descending order of their calculated values.
          */
-        static List<Move> valueSort(Alliance alliance, List<MoveEntry> moveEntries) {
+        static List<Move> valueSort(List<MoveEntry> moveEntries) {
             List<Move> sortedMoves = new ArrayList<>();
 
-            if (alliance.isRed()) {
-                moveEntries.sort(MOVE_ENTRY_COMPARATOR_RED);
-            } else {
-                moveEntries.sort(MOVE_ENTRY_COMPARATOR_BLACK);
-            }
+            moveEntries.sort(MOVE_ENTRY_COMPARATOR);
             for (MoveEntry moveEntry : moveEntries) {
                 sortedMoves.add(moveEntry.move);
             }

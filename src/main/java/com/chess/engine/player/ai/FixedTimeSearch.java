@@ -31,38 +31,27 @@ public class FixedTimeSearch extends MiniMax {
 
         int currDepth = 1;
         List<Move> sortedMoves = MoveSorter.simpleSort(currBoard.getCurrPlayer().getLegalMoves());
-        while (System.currentTimeMillis() < endTime) {
-            int maxValue = Integer.MIN_VALUE;
-            int minValue = Integer.MAX_VALUE;
-            List<MoveEntry> moveEntries = new ArrayList<>();
 
+        while (System.currentTimeMillis() < endTime) {
+            List<MoveEntry> moveEntries = new ArrayList<>();
+            int bestVal = Integer.MIN_VALUE + 1;
             for (Move move : sortedMoves) {
                 if (move.equals(bannedMove)) continue;
 
                 MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
                 if (transition.getMoveStatus().isAllowed()) {
-                    Board nextBoard = transition.getNextBoard();
-                    int currValue;
-                    if (currBoard.getCurrPlayer().getAlliance().isRed()) {
-                        currValue = min(nextBoard, currDepth - 1, maxValue, minValue, true);
-                        if (currValue > maxValue) {
-                            maxValue = currValue;
-                            bestMove = move;
-                        }
-                    } else {
-                        currValue = max(nextBoard, currDepth - 1, maxValue, minValue, true);
-                        if (currValue < minValue) {
-                            minValue = currValue;
-                            bestMove = move;
-                        }
+                    int val = -alphaBeta(transition.getNextBoard(), currDepth - 1,
+                            Integer.MIN_VALUE + 1, -bestVal, true);
+                    if (val > bestVal) {
+                        bestVal = val;
+                        bestMove = move;
                     }
-
-                    moveEntries.add(new MoveEntry(move, currValue));
+                    moveEntries.add(new MoveEntry(move, val));
                 }
             }
 
             support.firePropertyChange("currbestmove", currDepth, bestMove);
-            sortedMoves = MoveSorter.valueSort(currBoard.getCurrPlayer().getAlliance(), moveEntries);
+            sortedMoves = MoveSorter.valueSort(moveEntries);
             currDepth++;
         }
 
