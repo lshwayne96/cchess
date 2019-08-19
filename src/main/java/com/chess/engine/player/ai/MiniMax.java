@@ -81,10 +81,10 @@ abstract class MiniMax {
         }
 
         // null move pruning if possible
-        if (allowNull && !board.getCurrPlayer().isInCheck() && board.allowNullMove()) {
-            board.makeNullMove();
+        if (allowNull && board.allowNullMove()) {
+            board.passMove();
             int val = -alphaBeta(board, depth - 1 - R, -beta, -beta + 1, false);
-            board.makeNullMove();
+            board.passMove();
             if (val >= beta) {
                 return val;
             }
@@ -124,64 +124,6 @@ abstract class MiniMax {
         }*/
 
         return bestVal;
-    }
-
-    int min(Board board, int depth, int alpha, int beta, boolean allowNull) {
-        if (depth <= 0 || board.isGameOver()) {
-            return BoardEvaluator.evaluate(board, depth);
-        }
-
-        if (allowNull && !board.getCurrPlayer().isInCheck() && board.allowNullMove()) {
-            board.makeNullMove();
-            int val = max(board, depth - 1 - R, alpha, alpha + 1, false);
-            if (alpha >= val) {
-                return val;
-            }
-        }
-
-        int minValue = POS_INF;
-        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            board.makeMove(move);
-            if (board.isLegalState()) {
-                minValue = Math.min(minValue, max(board, depth - 1, alpha, beta, true));
-                beta = Math.min(beta, minValue);
-                if (alpha >= beta) {
-                    break;
-                }
-            }
-            board.unmakeMove(move);
-        }
-
-        return minValue;
-    }
-
-    int max(Board board, int depth, int alpha, int beta, boolean allowNull) {
-        if (depth <= 0 || board.isGameOver()) {
-            return BoardEvaluator.evaluate(board, depth);
-        }
-
-        if (allowNull && !board.getCurrPlayer().isInCheck() && board.allowNullMove()) {
-            board.makeNullMove();
-            int val = min(board, depth - 1 - R, alpha, alpha + 1, false);
-            if (val >= beta) {
-                return val;
-            }
-        }
-
-        int maxValue = NEG_INF;
-        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            board.makeMove(move);
-            if (board.isLegalState()) {
-                maxValue = Math.max(maxValue, min(board, depth - 1, alpha, beta, true));
-                alpha = Math.max(alpha, maxValue);
-                if (alpha >= beta) {
-                    break;
-                }
-            }
-            board.unmakeMove(move);
-        }
-
-        return maxValue;
     }
 
     /**

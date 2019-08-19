@@ -36,14 +36,13 @@ public class Board {
     private static final int MIN_PIECES_NULLMOVE = 5;
 
     private final List<Point> points;
-    private final RedPlayer redPlayer;
-    private final BlackPlayer blackPlayer;
+    private RedPlayer redPlayer;
+    private BlackPlayer blackPlayer;
     private Player currPlayer;
 
     private Board(Builder builder) {
         points = createBoard(builder);
-        redPlayer = new RedPlayer(this);
-        blackPlayer = new BlackPlayer(this);
+        updatePlayers();
         currPlayer = builder.currTurn.choosePlayer(redPlayer, blackPlayer);
     }
 
@@ -63,6 +62,28 @@ public class Board {
         }
 
         return Collections.unmodifiableList(points);
+    }
+
+    private void updatePlayers() {
+        Collection<Piece> redPieces = new ArrayList<>();
+        Collection<Piece> blackPieces = new ArrayList<>();
+        Collection<Move> redLegalMoves = new ArrayList<>();
+        Collection<Move> blackLegalMoves = new ArrayList<>();
+
+        for (Point point : points) {
+            point.getPiece().ifPresent(p -> {
+                if (p.getAlliance().isRed()) {
+                    redPieces.add(p);
+                    redLegalMoves.addAll(p.getLegalMoves(this));
+                } else {
+                    blackPieces.add(p);
+                    blackLegalMoves.addAll(p.getLegalMoves(this));
+                }
+            });
+        }
+
+        redPlayer = new RedPlayer(this, redPieces, redLegalMoves, blackLegalMoves);
+        blackPlayer = new BlackPlayer(this, blackPieces, blackLegalMoves, redLegalMoves);
     }
 
     /**
@@ -110,10 +131,6 @@ public class Board {
         return builder.build();
     }
 
-    public List<Point> getPoints() {
-        return points;
-    }
-
     public void makeMove(Move move) {
         Piece movedPiece = move.getMovedPiece();
         Coordinate srcPosition = movedPiece.getPosition();
@@ -124,6 +141,7 @@ public class Board {
         Point destPoint = points.get(positionToIndex(destPosition.getRow(), destPosition.getCol()));
         destPoint.setPiece(movedPiece.movePiece(move));
 
+        updatePlayers();
         currPlayer = currPlayer.getOpponent();
     }
 
@@ -139,6 +157,7 @@ public class Board {
         destPoint.removePiece();
         capturedPiece.ifPresent(destPoint::setPiece);
 
+        updatePlayers();
         currPlayer = currPlayer.getOpponent();
     }
 
@@ -229,10 +248,10 @@ public class Board {
     }
 
     public boolean allowNullMove() {
-        return currPlayer.getActivePieces().size() >= MIN_PIECES_NULLMOVE;
+        return !currPlayer.isInCheck() && currPlayer.getActivePieces().size() >= MIN_PIECES_NULLMOVE;
     }
 
-    public void makeNullMove() {
+    public void passMove() {
         currPlayer = currPlayer.getOpponent();
     }
 
@@ -295,9 +314,8 @@ public class Board {
     public Collection<Piece> getAllPieces() {
         Collection<Piece> allPieces = new ArrayList<>();
 
-        for (Point point : points) {
-            point.getPiece().ifPresent(allPieces::add);
-        }
+        allPieces.addAll(redPlayer.getActivePieces());
+        allPieces.addAll(blackPlayer.getActivePieces());
 
         return allPieces;
     }

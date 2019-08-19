@@ -18,7 +18,7 @@ public class FixedDepthSearch extends MiniMax {
         this.searchDepth = searchDepth;
     }
 
-    public Move search3() {
+    public Move search2() {
         Move bestMove = null;
         int bestVal = NEG_INF;
 
@@ -94,39 +94,6 @@ public class FixedDepthSearch extends MiniMax {
 
             sortedMoves = MoveSorter.valueSort(moveEntries);
             currDepth++;
-        }
-
-        return bestMove;
-    }
-
-    public Move search2() {
-        Move bestMove = null;
-
-        int maxValue = NEG_INF;
-        int minValue = POS_INF;
-
-        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            if (bannedMoves.contains(move)) continue;
-
-            boolean isRedTurn = board.getCurrPlayer().getAlliance().isRed();
-            board.makeMove(move);
-            if (board.isLegalState()) {
-                int currValue;
-                if (isRedTurn) {
-                    currValue = min(board, searchDepth - 1, maxValue, minValue, true);
-                    if (currValue > maxValue) {
-                        maxValue = currValue;
-                        bestMove = move;
-                    }
-                } else {
-                    currValue = max(board, searchDepth - 1, maxValue, minValue, true);
-                    if (currValue < minValue) {
-                        minValue = currValue;
-                        bestMove = move;
-                    }
-                }
-            }
-            board.unmakeMove(move);
         }
 
         return bestMove;

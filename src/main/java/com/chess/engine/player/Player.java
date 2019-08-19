@@ -20,16 +20,24 @@ import static com.chess.engine.pieces.Piece.*;
 public abstract class Player {
 
     protected final Board board;
+    private final Collection<Piece> activePieces;
+    private final Collection<Move> legalMoves;
+    private final boolean isInCheck;
 
-    Player(Board board) {
+    Player(Board board, Collection<Piece> activePieces, Collection<Move> legalMoves, Collection<Move> oppLegalMoves) {
         this.board = board;
+        this.activePieces = activePieces;
+        this.legalMoves = legalMoves;
+        isInCheck = !getIncomingAttacks(getGeneral().getPosition(), oppLegalMoves).isEmpty();
     }
 
     /**
      * Returns a collection of this player's active pieces.
      * @return a collection of this player's active pieces.
      */
-    public abstract Collection<Piece> getActivePieces();
+    public Collection<Piece> getActivePieces() {
+        return Collections.unmodifiableCollection(activePieces);
+    }
 
     /**
      * Returns the alliance of this player.
@@ -47,7 +55,7 @@ public abstract class Player {
      * Returns the general piece of this player.
      */
     private General getGeneral() {
-        for (Piece piece : getActivePieces()) {
+        for (Piece piece : activePieces) {
             if (piece.getPieceType().equals(PieceType.GENERAL)) {
                 return (General) piece;
             }
@@ -72,17 +80,11 @@ public abstract class Player {
     }
 
     public Collection<Move> getLegalMoves() {
-        List<Move> legalMoves = new ArrayList<>();
-
-        for (Piece piece : getActivePieces()) {
-            legalMoves.addAll(piece.getLegalMoves(board));
-        }
-
         return Collections.unmodifiableCollection(legalMoves);
     }
 
     public boolean isInCheck() {
-        return !getIncomingAttacks(getGeneral().getPosition(), getOpponent().getLegalMoves()).isEmpty();
+        return isInCheck;
     }
 
     /**
@@ -90,16 +92,14 @@ public abstract class Player {
      * @return true if this player has been checkmated, false otherwise.
      */
     public boolean isInCheckmate() {
-        boolean isInCheckmate = true;
-        for (Move move : getLegalMoves()) {
+        for (Move move : legalMoves) {
             board.makeMove(move);
             if (board.isLegalState()) {
-                isInCheckmate = false;
+                board.unmakeMove(move);
+                return false;
             }
             board.unmakeMove(move);
-            if (!isInCheckmate) break;
         }
-
-        return isInCheckmate;
+        return true;
     }
 }
