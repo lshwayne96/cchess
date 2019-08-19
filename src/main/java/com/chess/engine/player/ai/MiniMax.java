@@ -75,7 +75,6 @@ abstract class MiniMax {
             }
         }
 
-        boolean isInCheck = board.getCurrPlayer().isInCheck();
         // search all moves
         int bestVal = NEG_INF;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {

@@ -153,7 +153,7 @@ public class Board {
     public BoardStatus getStatus() {
         Collection<Piece> allPieces = getAllPieces();
 
-        if (getAllPieces().size() > MAX_PIECES_MIDGAME) {
+        if (allPieces.size() > MAX_PIECES_MIDGAME) {
             return BoardStatus.OPENING;
         }
 
