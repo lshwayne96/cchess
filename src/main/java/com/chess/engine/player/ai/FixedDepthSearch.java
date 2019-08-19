@@ -18,6 +18,25 @@ public class FixedDepthSearch extends MiniMax {
         this.searchDepth = searchDepth;
     }
 
+    public Move search3() {
+        Move bestMove = null;
+        int bestVal = NEG_INF;
+
+        for (Move move : board.getCurrPlayer().getLegalMoves()) {
+            board.makeMove(move);
+            if (board.isLegalState()) {
+                int val = -negamax(board, searchDepth - 1);
+                if (val > bestVal) {
+                    bestVal = val;
+                    bestMove = move;
+                }
+            }
+            board.unmakeMove(move);
+        }
+
+        return bestMove;
+    }
+
     public Move search() {
         Move bestMove = null;
         int bestVal = NEG_INF;

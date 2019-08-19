@@ -7,7 +7,6 @@ import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
 import com.chess.engine.board.Point;
 import com.chess.engine.pieces.Piece;
-import com.chess.engine.player.MoveTransition;
 import com.chess.engine.player.ai.FixedDepthSearch;
 import com.chess.engine.player.ai.FixedTimeSearch;
 import com.chess.engine.player.ai.MoveBook;
@@ -101,7 +100,6 @@ public class Table extends BorderPane {
 
     private Table() {
         board = Board.initialiseBoard();
-
         boardPane = new BoardPane();
         moveHistoryPane = new MoveHistoryPane();
         infoPane = new InfoPane();
@@ -429,16 +427,25 @@ public class Table extends BorderPane {
     void jumpToMove(int moveIndex) {
         if (moveIndex < -1 || moveIndex >= fullMovelog.getSize()) return;
         if (moveIndex == -1) {
+            int currIndex = partialMovelog.getSize() - 1;
             partialMovelog = null;
-            board = boardHistory.get(boardHistory.size() - 1);
+            for (int i = currIndex + 1; i < fullMovelog.getSize(); i++) {
+                board.makeMove(fullMovelog.getMoves().get(i));
+            }
             boardPane.drawBoard(board);
             infoPane.update(board, fullMovelog);
             Table.getInstance().notifyAIObserver("exitreplay");
         } else {
             aiObserver.stopAI();
+            int currIndex = partialMovelog == null ? fullMovelog.getSize() - 1: partialMovelog.getSize() - 1;
             partialMovelog = fullMovelog.getPartialLog(moveIndex);
             clearSelections();
-            board = boardHistory.get(moveIndex + 1);
+            for (int i = currIndex + 1; i <= moveIndex; i++) {
+                board.makeMove(fullMovelog.getMoves().get(i));
+            }
+            for (int i = currIndex; i > moveIndex; i--) {
+                board.unmakeMove(fullMovelog.getMoves().get(i));
+            }
             boardPane.drawBoard(board);
             infoPane.update(board, partialMovelog);
         }
@@ -678,15 +685,12 @@ public class Table extends BorderPane {
                         }
                     } else {
                         destPoint = board.getPoint(position);
-                        Optional<Move> move = Move.getMove(board, sourcePoint.getPosition(),
-                                destPoint.getPosition());
+                        Optional<Move> move = board.getMove(sourcePoint.getPosition(), destPoint.getPosition());
                         if (!move.isPresent()) return;
 
-                        MoveTransition transition = board.getCurrPlayer().makeMove(move.get());
-                        if (transition.getMoveStatus().isAllowed()) {
-                            board = transition.getNextBoard();
-                            boardHistory.add(board);
-                            fullMovelog.addMove(transition.getMove());
+                        board.makeMove(move.get());
+                        if (board.isLegalState()) {
+                            fullMovelog.addMove(move.get());
 
                             clearSelections();
                             Platform.runLater(() -> {
@@ -694,6 +698,8 @@ public class Table extends BorderPane {
                                 infoPane.update(board, fullMovelog);
                                 notifyAIObserver("movemade");
                             });
+                        } else {
+                            board.unmakeMove(move.get());
                         }
                     }
                 }
@@ -767,11 +773,13 @@ public class Table extends BorderPane {
         private void highlightPossibleMoves(Board board) {
             if (!highlightLegalMoves) return;
             for (Move move : pieceLegalMoves(board)) {
-                MoveTransition transition = board.getCurrPlayer().makeMove(move);
+                board.makeMove(move);
                 // check for suicidal move
-                if (!transition.getMoveStatus().isAllowed()) {
+                if (!board.isLegalState()) {
+                    board.unmakeMove(move);
                     continue;
                 }
+                board.unmakeMove(move);
                 // legal AND non-suicidal move
                 if (move.getDestPosition().equals(position)) {
                     Label label = new Label();
@@ -813,8 +821,7 @@ public class Table extends BorderPane {
             if (!Table.getInstance().moveHistoryPane.isInReplayMode()
                     && getInstance().gameSetup.isAIPlayer(getInstance().board.getCurrPlayer())
                     && !getInstance().board.getCurrPlayer().isInCheckmate()) {
-                Board board = getInstance().board;
-                Optional<Move> move = MoveBook.getRandomMove(board);
+                Optional<Move> move = MoveBook.getRandomMove(getInstance().board.getBoardState());
                 if (move.isPresent()) {
                     task = getTimerTask(move.get());
                     timer.schedule(task, MIN_TIME);
@@ -834,8 +841,7 @@ public class Table extends BorderPane {
          * Executes the given move on the board.
          */
         private static void makeMove(Move move) {
-            getInstance().board = getInstance().board.getCurrPlayer().makeMove(move).getNextBoard();
-            getInstance().boardHistory.add(getInstance().board);
+            getInstance().board.makeMove(move);
             getInstance().fullMovelog.addMove(move);
             getInstance().boardPane.drawBoard(getInstance().board);
             getInstance().moveHistoryPane.update(getInstance().fullMovelog);
@@ -875,8 +881,6 @@ public class Table extends BorderPane {
      */
     private static abstract class AIPlayer extends Task<Move> {
 
-        private static final int MAX_CONSEC_CHECKS = 3;
-
         final List<Move> bannedMoves;
         final Timer timer;
         TimerTask task;
@@ -884,35 +888,6 @@ public class Table extends BorderPane {
         private AIPlayer() {
             timer = new Timer("AI Timer");
             bannedMoves = new ArrayList<>(getInstance().bannedMoves);
-        }
-
-        private Piece getBannedCheckingPiece() {
-            List<Board> boardHistory = getInstance().boardHistory;
-            List<Move> moveHistory = getInstance().fullMovelog.getMoves();
-            if (moveHistory.size() < MAX_CONSEC_CHECKS * 2) return null;
-
-            for (int i = 0; i < MAX_CONSEC_CHECKS; i++) {
-                Board board = boardHistory.get(boardHistory.size() - 2 - i*2);
-                if (!board.getCurrPlayer().isInCheck()) return null;
-            }
-
-            Board board = boardHistory.get(boardHistory.size() - MAX_CONSEC_CHECKS*2);
-            Move move = moveHistory.get(moveHistory.size() - MAX_CONSEC_CHECKS*2);
-            if (move.getCapturedPiece().isPresent()) return null;
-            Piece movedPiece = board.getPoint(move.getDestPosition()).getPiece().get();
-            for (int i = 1; i < MAX_CONSEC_CHECKS; i++) {
-                move = moveHistory.get(moveHistory.size() - MAX_CONSEC_CHECKS*2 + i*2);
-                if (!move.getMovedPiece().equals(movedPiece) || move.getCapturedPiece().isPresent()) return null;
-                board = boardHistory.get(boardHistory.size() - MAX_CONSEC_CHECKS*2 + i*2);
-                movedPiece = board.getPoint(move.getDestPosition()).getPiece().get();
-            }
-
-            return movedPiece;
-
-            /*
-            if (move.getMovedPiece().equals(bannedCheckingPiece) && !move.getCapturedPiece().isPresent()
-                    && nextBoard.getCurrPlayer().isInCheck()) continue;
-             */
         }
 
         /**
@@ -954,7 +929,7 @@ public class Table extends BorderPane {
             timer.schedule(task, AIObserver.MIN_TIME);
             startTime = System.currentTimeMillis();
             searchDepth = getInstance().gameSetup.getSearchDepth();
-            return new FixedDepthSearch(getInstance().board, bannedMoves, searchDepth).search();
+            return new FixedDepthSearch(getInstance().board.getCopy(), bannedMoves, searchDepth).search();
         }
 
         /**
@@ -995,7 +970,7 @@ public class Table extends BorderPane {
             task = getTimerTask();
             searchTime = getInstance().gameSetup.getSearchTime();
             timer.schedule(task, searchTime * 1000);
-            return new FixedTimeSearch(getInstance().board, bannedMoves, this,
+            return new FixedTimeSearch(getInstance().board.getCopy(), bannedMoves, this,
                     System.currentTimeMillis() + searchTime*1000).search();
         }
 

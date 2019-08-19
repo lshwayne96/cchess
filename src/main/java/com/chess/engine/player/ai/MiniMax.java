@@ -2,7 +2,6 @@ package com.chess.engine.player.ai;
 
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Move;
-import com.chess.engine.player.MoveTransition;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,7 +10,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Represents a MiniMax algorithm.
@@ -38,6 +36,22 @@ abstract class MiniMax {
      * @return The best move using the corresponding MiniMax algorithm.
      */
     public abstract Move search();
+
+    int negamax(Board board, int depth) {
+        if (depth == 0) {
+            return BoardEvaluator.evaluate(board, depth);
+        }
+        int bestVal = NEG_INF;
+        for (Move move : board.getCurrPlayer().getLegalMoves()) {
+            board.makeMove(move);
+            if (board.isLegalState()) {
+                int val = -negamax(board, depth - 1);
+                bestVal = Math.max(bestVal, val);
+            }
+            board.unmakeMove(move);
+        }
+        return bestVal;
+    }
 
     int alphaBeta(Board board, int depth, int alpha, int beta, boolean allowNull) {
         int alphaOrig = alpha;
@@ -75,7 +89,6 @@ abstract class MiniMax {
             }
         }
 
-        boolean isInCheck = board.getCurrPlayer().isInCheck();
         // search all moves
         int bestVal = NEG_INF;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {

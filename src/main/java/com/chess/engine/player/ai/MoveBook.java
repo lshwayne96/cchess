@@ -27,11 +27,11 @@ public class MoveBook {
 
     /**
      * Returns a random move in the book, if any, based on the given board.
-     * @param board The current board.
+     * @param boardState The current board state.
      * @return A random move in the book, if any, based on the given board.
      */
-    public static Optional<Move> getRandomMove(Board board) {
-        List<Move> moves = MOVE_BOOK.get(board);
+    public static Optional<Move> getRandomMove(BoardState boardState) {
+        List<Move> moves = MOVE_BOOK.get(boardState);
         if (moves == null) {
             return Optional.empty();
         }

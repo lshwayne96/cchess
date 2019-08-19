@@ -169,7 +169,7 @@ public class Board {
     public BoardStatus getStatus() {
         Collection<Piece> allPieces = getAllPieces();
 
-        if (getAllPieces().size() > MAX_PIECES_MIDGAME) {
+        if (allPieces.size() > MAX_PIECES_MIDGAME) {
             return BoardStatus.OPENING;
         }
 
@@ -246,6 +246,18 @@ public class Board {
         for (Point point : points) {
             Optional<Piece> piece = point.getPiece();
             piece.ifPresent(p -> builder.putPiece(p.getMirrorPiece()));
+        }
+        builder.setCurrTurn(currPlayer.getAlliance());
+
+        return builder.build();
+    }
+
+    public Board getCopy() {
+        Builder builder = new Builder();
+
+        for (Point point : points) {
+            Optional<Piece> piece = point.getPiece();
+            piece.ifPresent(builder::putPiece);
         }
         builder.setCurrTurn(currPlayer.getAlliance());
 
@@ -356,6 +368,19 @@ public class Board {
         private BoardState(String string, Alliance currTurn) {
             this.string = string;
             this.currTurn = currTurn;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof BoardState)) {
+                return false;
+            }
+
+            BoardState other = (BoardState) obj;
+            return this.string.equals(other.string) && this.currTurn.equals(other.currTurn);
         }
 
         @Override
