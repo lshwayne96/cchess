@@ -33,6 +33,7 @@ public class Board {
     public static final int RIVER_ROW_BLACK = 4;
     private static final int MAX_PIECES_MIDGAME = 30;
     private static final int MAX_ATTACKING_UNITS_ENDGAME = 8;
+    private static final int MIN_PIECES_NULLMOVE = 5;
 
     private final List<Point> points;
     private final Collection<Piece> redPieces;
@@ -212,6 +213,10 @@ public class Board {
             }
         }
         return true;
+    }
+
+    public boolean allowNullMove() {
+        return currPlayer.getActivePieces().size() >= MIN_PIECES_NULLMOVE;
     }
 
     /**

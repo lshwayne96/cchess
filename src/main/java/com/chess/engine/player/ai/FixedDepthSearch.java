@@ -4,6 +4,9 @@ import com.chess.engine.board.Board;
 import com.chess.engine.board.Move;
 import com.chess.engine.player.MoveTransition;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Represents a fixed-depth MiniMax algorithm.
  */
@@ -11,22 +14,22 @@ public class FixedDepthSearch extends MiniMax {
 
     private final int searchDepth;
 
-    public FixedDepthSearch(Board currBoard, Move bannedMove, int searchDepth) {
-        super(currBoard, bannedMove);
+    public FixedDepthSearch(Board currBoard, List<Move> bannedMoves, int searchDepth) {
+        super(currBoard, bannedMoves);
         this.searchDepth = searchDepth;
     }
 
     public Move search() {
         Move bestMove = null;
-        int bestVal = Integer.MIN_VALUE + 1;
+        int bestVal = NEG_INF;
 
         for (Move move : MoveSorter.simpleSort(currBoard.getCurrPlayer().getLegalMoves())) {
-            if (move.equals(bannedMove)) continue;
+            if (bannedMoves.contains(move)) continue;
 
             MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isAllowed()) {
                 int val = -alphaBeta(transition.getNextBoard(), searchDepth - 1,
-                        Integer.MIN_VALUE + 1, -bestVal, true);
+                        NEG_INF, -bestVal, true);
                 if (val > bestVal) {
                     bestVal = val;
                     bestMove = move;
@@ -36,15 +39,56 @@ public class FixedDepthSearch extends MiniMax {
 
         return bestMove;
     }
-/*
-    public Move search() {
+
+    public Move search1() {
         Move bestMove = null;
 
-        int maxValue = Integer.MIN_VALUE;
-        int minValue = Integer.MAX_VALUE;
+        int currDepth = 1;
+        int alpha = NEG_INF;
+        int beta = POS_INF;
+        List<Move> sortedMoves = MoveSorter.simpleSort(currBoard.getCurrPlayer().getLegalMoves());
+
+        while (currDepth <= searchDepth) {
+            List<MoveEntry> moveEntries = new ArrayList<>();
+            int bestVal = NEG_INF;
+
+            for (Move move : sortedMoves) {
+                if (bannedMoves.contains(move)) continue;
+                MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
+                if (transition.getMoveStatus().isAllowed()) {
+                    int val = -alphaBeta(transition.getNextBoard(), currDepth - 1,
+                            -beta, -alpha, true);
+                    if (val > bestVal) {
+                        bestVal = val;
+                        bestMove = move;
+                    }
+                    moveEntries.add(new MoveEntry(move, val));
+                }
+            }
+
+            if (bestVal <= alpha || bestVal >= beta) {
+                alpha = NEG_INF;
+                beta = POS_INF;
+                continue;
+            }
+            alpha = bestVal - ASP_WINDOW;
+            beta = bestVal + ASP_WINDOW;
+
+            sortedMoves = MoveSorter.valueSort(moveEntries);
+            currDepth++;
+        }
+
+        return bestMove;
+    }
+
+    public Move search2() {
+        Move bestMove = null;
+
+        int maxValue = NEG_INF;
+        int minValue = POS_INF;
 
         for (Move move : MoveSorter.simpleSort(currBoard.getCurrPlayer().getLegalMoves())) {
-            if (move.equals(bannedMove)) continue;
+            if (bannedMoves.contains(move)) continue;
 
             MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isAllowed()) {
@@ -67,5 +111,5 @@ public class FixedDepthSearch extends MiniMax {
         }
 
         return bestMove;
-    }*/
+    }
 }

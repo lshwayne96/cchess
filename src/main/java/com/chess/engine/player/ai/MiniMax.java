@@ -13,22 +13,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static com.chess.engine.board.Board.*;
-
 /**
  * Represents a MiniMax algorithm.
  */
-public abstract class MiniMax {
-// TODO: PVS, aspiration window, transposition table | difficulty levels(w/ quiescence)
-    static final int R = 2; // depth reduction for null move pruning
+abstract class MiniMax {
+// TODO: PVS, aspiration window, transposition table, quiescence
+    static final int R = 3; // depth reduction for null move pruning
+    static final int NEG_INF = Integer.MIN_VALUE + 1;
+    static final int POS_INF = Integer.MAX_VALUE;
+    static final int ASP_WINDOW = 50;
 
     final Board currBoard;
-    final Move bannedMove;
+    final List<Move> bannedMoves;
     final Map<Board, TTEntry> transTable;
 
-    MiniMax(Board currBoard, Move bannedMove) {
+    MiniMax(Board currBoard, List<Move> bannedMoves) {
         this.currBoard = currBoard;
-        this.bannedMove = bannedMove;
+        this.bannedMoves = bannedMoves;
         transTable = new HashMap<>();
     }
 
@@ -40,11 +41,10 @@ public abstract class MiniMax {
 
     int alphaBeta(Board board, int depth, int alpha, int beta, boolean allowNull) {
         int alphaOrig = alpha;
-        /*
+/*
         // look up transposition table
         TTEntry ttEntry = transTable.get(board);
         if (ttEntry != null && ttEntry.depth >= depth) {
-            hits++;
             switch (ttEntry.flag) {
                 case EXACT:
                     return ttEntry.value;
@@ -67,7 +67,7 @@ public abstract class MiniMax {
         }
 
         // null move pruning if possible
-        if (allowNull && !board.getCurrPlayer().isInCheck() && !board.getStatus().equals(BoardStatus.END)) {
+        if (allowNull && !board.getCurrPlayer().isInCheck() && board.allowNullMove()) {
             Board nextBoard = board.makeNullMove();
             int val = -alphaBeta(nextBoard, depth - 1 - R, -beta, -beta + 1, false);
             if (val >= beta) {
@@ -75,8 +75,9 @@ public abstract class MiniMax {
             }
         }
 
+        boolean isInCheck = board.getCurrPlayer().isInCheck();
         // search all moves
-        int bestVal = Integer.MIN_VALUE + 1;
+        int bestVal = NEG_INF;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isAllowed()) {
@@ -107,13 +108,13 @@ public abstract class MiniMax {
 
         return bestVal;
     }
-/*
+
     int min(Board board, int depth, int alpha, int beta, boolean allowNull) {
         if (depth <= 0 || board.isGameOver()) {
             return BoardEvaluator.evaluate(board, depth);
         }
 
-        if (allowNull && !board.getCurrPlayer().isInCheck() && !board.getStatus().equals(BoardStatus.END)) {
+        if (allowNull && !board.getCurrPlayer().isInCheck() && board.allowNullMove()) {
             Board nextBoard = board.makeNullMove();
             int val = max(nextBoard, depth - 1 - R, alpha, alpha + 1, false);
             if (alpha >= val) {
@@ -121,7 +122,7 @@ public abstract class MiniMax {
             }
         }
 
-        int minValue = Integer.MAX_VALUE;
+        int minValue = POS_INF;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isAllowed()) {
@@ -141,7 +142,7 @@ public abstract class MiniMax {
             return BoardEvaluator.evaluate(board, depth);
         }
 
-        if (allowNull && !board.getCurrPlayer().isInCheck() && !board.getStatus().equals(BoardStatus.END)) {
+        if (allowNull && !board.getCurrPlayer().isInCheck() && board.allowNullMove()) {
             Board nextBoard = board.makeNullMove();
             int val = min(nextBoard, depth - 1 - R, alpha, alpha + 1, false);
             if (val >= beta) {
@@ -149,7 +150,7 @@ public abstract class MiniMax {
             }
         }
 
-        int maxValue = Integer.MIN_VALUE;
+        int maxValue = NEG_INF;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isAllowed()) {
@@ -162,7 +163,7 @@ public abstract class MiniMax {
         }
 
         return maxValue;
-    }*/
+    }
 
     /**
      * Represents a state containing a board and the depth at which it was evaluated.

@@ -11,6 +11,7 @@ import com.chess.engine.player.MoveTransition;
 import com.chess.engine.player.ai.FixedDepthSearch;
 import com.chess.engine.player.ai.FixedTimeSearch;
 import com.chess.engine.player.ai.MoveBook;
+import com.chess.engine.player.ai.QuiescenceSearch;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.event.EventHandler;
@@ -97,7 +98,7 @@ public class Table extends BorderPane {
     private Point sourcePoint;
     private Point destPoint;
     private Piece selectedPiece;
-    private Move bannedMove;
+    private List<Move> bannedMoves;
     private boolean highlightLegalMoves;
 
     private Table() {
@@ -115,6 +116,7 @@ public class Table extends BorderPane {
         aiObserver = new AIObserver();
         propertyChangeSupport = new PropertyChangeSupport(this);
         propertyChangeSupport.addPropertyChangeListener(aiObserver);
+        bannedMoves = new ArrayList<>();
         highlightLegalMoves = true;
 
         setTop(createMenuBar());
@@ -235,19 +237,20 @@ public class Table extends BorderPane {
                 showAlert(AlertType.INFORMATION, "Ban selected move", "No move selected");
                 return;
             }
-            bannedMove = partialMovelog.getLastMove();
+            Move bannedMove = partialMovelog.getLastMove();
+            bannedMoves.add(bannedMove);
             showAlert(AlertType.INFORMATION, "Ban selected move", bannedMove.toString() + " has been banned");
         });
 
-        MenuItem unbanMove = new MenuItem("Unban");
-        unbanMove.setOnAction(e -> {
-            if (bannedMove == null) {
-                showAlert(AlertType.INFORMATION, "Unban", "No move banned");
+        MenuItem unbanAll = new MenuItem("Unban all");
+        unbanAll.setOnAction(e -> {
+            if (bannedMoves.isEmpty()) {
+                showAlert(AlertType.INFORMATION, "Unban all", "No moves banned");
                 return;
             }
             aiObserver.stopAI();
-            showAlert(AlertType.INFORMATION, "Unban", bannedMove.toString() + " has been unbanned");
-            bannedMove = null;
+            showAlert(AlertType.INFORMATION, "Unban all", "All moves unbanned");
+            bannedMoves.clear();
             notifyAIObserver("unban");
         });
 
@@ -260,7 +263,7 @@ public class Table extends BorderPane {
         });
 
         optionsMenu.getItems().addAll(undoTurn, undoMove, playFromMove, new SeparatorMenuItem(),
-                banMove, unbanMove, new SeparatorMenuItem(), setup);
+                banMove, unbanAll, new SeparatorMenuItem(), setup);
 
         return optionsMenu;
     }
@@ -315,7 +318,7 @@ public class Table extends BorderPane {
         boardHistory = new ArrayList<>();
         boardHistory.add(currBoard);
         fullMovelog.clear();
-        bannedMove = null;
+        bannedMoves.clear();
 
         boardPane.drawBoard(currBoard);
         moveHistoryPane.update(fullMovelog);
@@ -888,18 +891,15 @@ public class Table extends BorderPane {
 
         private static final int MAX_CONSEC_CHECKS = 3;
 
+        final List<Move> bannedMoves;
         final Timer timer;
         TimerTask task;
-        Move bannedMove;
 
         private AIPlayer() {
             timer = new Timer("AI Timer");
-            bannedMove = Table.getInstance().bannedMove;
+            bannedMoves = new ArrayList<>(getInstance().bannedMoves);
         }
 
-        /**
-         * Returns the piece not to use for checking the opponent.
-         */
         private Piece getBannedCheckingPiece() {
             List<Board> boardHistory = getInstance().boardHistory;
             List<Move> moveHistory = getInstance().fullMovelog.getMoves();
@@ -968,7 +968,7 @@ public class Table extends BorderPane {
             timer.schedule(task, AIObserver.MIN_TIME);
             startTime = System.currentTimeMillis();
             searchDepth = getInstance().gameSetup.getSearchDepth();
-            return new FixedDepthSearch(getInstance().currBoard, bannedMove, searchDepth).search();
+            return new FixedDepthSearch(getInstance().currBoard, bannedMoves, searchDepth).search();
         }
 
         /**
@@ -1009,7 +1009,7 @@ public class Table extends BorderPane {
             task = getTimerTask();
             searchTime = getInstance().gameSetup.getSearchTime();
             timer.schedule(task, searchTime * 1000);
-            return new FixedTimeSearch(getInstance().currBoard, bannedMove, this,
+            return new FixedTimeSearch(getInstance().currBoard, bannedMoves, this,
                     System.currentTimeMillis() + searchTime*1000).search();
         }
 

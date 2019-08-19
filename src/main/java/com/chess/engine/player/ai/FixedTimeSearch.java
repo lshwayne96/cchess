@@ -18,8 +18,8 @@ public class FixedTimeSearch extends MiniMax {
     private final PropertyChangeSupport support;
     private final long endTime;
 
-    public FixedTimeSearch(Board currBoard, Move bannedMove, FixedTimeAIPlayer fixedTimeAIPlayer, long endTime) {
-        super(currBoard, bannedMove);
+    public FixedTimeSearch(Board currBoard, List<Move> bannedMoves, FixedTimeAIPlayer fixedTimeAIPlayer, long endTime) {
+        super(currBoard, bannedMoves);
         this.endTime = endTime;
         support = new PropertyChangeSupport(this);
         support.addPropertyChangeListener(fixedTimeAIPlayer);
@@ -34,14 +34,14 @@ public class FixedTimeSearch extends MiniMax {
 
         while (System.currentTimeMillis() < endTime) {
             List<MoveEntry> moveEntries = new ArrayList<>();
-            int bestVal = Integer.MIN_VALUE + 1;
+            int bestVal = NEG_INF;
             for (Move move : sortedMoves) {
-                if (move.equals(bannedMove)) continue;
+                if (bannedMoves.contains(move)) continue;
 
                 MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
                 if (transition.getMoveStatus().isAllowed()) {
                     int val = -alphaBeta(transition.getNextBoard(), currDepth - 1,
-                            Integer.MIN_VALUE + 1, -bestVal, true);
+                            NEG_INF, -bestVal, true);
                     if (val > bestVal) {
                         bestVal = val;
                         bestMove = move;
