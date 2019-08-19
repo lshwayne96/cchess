@@ -19,9 +19,9 @@ import java.util.Optional;
  */
 public abstract class Piece {
 
-    protected final Coordinate position;
     protected final Alliance alliance;
     private final PieceType pieceType;
+    protected Coordinate position;
     private final int hashCode;
 
     Piece(PieceType pieceType, Coordinate position, Alliance alliance) {

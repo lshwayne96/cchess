@@ -36,22 +36,14 @@ public class Board {
     private static final int MIN_PIECES_NULLMOVE = 5;
 
     private final List<Point> points;
-    private final Collection<Piece> redPieces;
-    private final Collection<Piece> blackPieces;
     private final RedPlayer redPlayer;
     private final BlackPlayer blackPlayer;
-    private final Player currPlayer;
+    private Player currPlayer;
 
     private Board(Builder builder) {
         points = createBoard(builder);
-        redPieces = getActivePieces(points, Alliance.RED);
-        blackPieces = getActivePieces(points, Alliance.BLACK);
-
-        Collection<Move> redLegalMoves = getLegalMoves(redPieces);
-        Collection<Move> blackLegalMoves = getLegalMoves(blackPieces);
-
-        redPlayer = new RedPlayer(this, redLegalMoves, blackLegalMoves);
-        blackPlayer = new BlackPlayer(this, redLegalMoves, blackLegalMoves);
+        redPlayer = new RedPlayer(this);
+        blackPlayer = new BlackPlayer(this);
         currPlayer = builder.currTurn.choosePlayer(redPlayer, blackPlayer);
     }
 
@@ -64,41 +56,13 @@ public class Board {
         for (int row = 0; row < NUM_ROWS; row++) {
             for (int col = 0; col < NUM_COLS; col++) {
                 Coordinate position = new Coordinate(row, col);
-                points.add(Point.getInstance(position, builder.boardConfig.get(position)));
+                Point point = new Point(position);
+                point.setPiece(builder.boardConfig.get(position));
+                points.add(point);
             }
         }
 
         return Collections.unmodifiableList(points);
-    }
-
-    /**
-     * Returns a collection of active pieces in the given list of points belonging to the given alliance.
-     */
-    private static Collection<Piece> getActivePieces(List<Point> pointList, Alliance alliance) {
-        List<Piece> activePieces = new ArrayList<>();
-
-        for (Point point : pointList) {
-            point.getPiece().ifPresent(p -> {
-                if (p.getAlliance().equals(alliance)) {
-                    activePieces.add(p);
-                }
-            });
-        }
-
-        return Collections.unmodifiableList(activePieces);
-    }
-
-    /**
-     * Returns a collection of legal moves that can be made by the given collection of pieces.
-     */
-    private Collection<Move> getLegalMoves(Collection<Piece> pieces) {
-        List<Move> legalMoves = new ArrayList<>();
-
-        for (Piece piece : pieces) {
-            legalMoves.addAll(piece.getLegalMoves(this));
-        }
-
-        return Collections.unmodifiableList(legalMoves);
     }
 
     /**
@@ -146,6 +110,58 @@ public class Board {
         return builder.build();
     }
 
+    public List<Point> getPoints() {
+        return points;
+    }
+
+    public void makeMove(Move move) {
+        Piece movedPiece = move.getMovedPiece();
+        Coordinate srcPosition = movedPiece.getPosition();
+        Coordinate destPosition = move.getDestPosition();
+
+        Point srcPoint = points.get(positionToIndex(srcPosition.getRow(), srcPosition.getCol()));
+        srcPoint.removePiece();
+        Point destPoint = points.get(positionToIndex(destPosition.getRow(), destPosition.getCol()));
+        destPoint.setPiece(movedPiece.movePiece(move));
+
+        currPlayer = currPlayer.getOpponent();
+    }
+
+    public void unmakeMove(Move move) {
+        Piece movedPiece = move.getMovedPiece();
+        Optional<Piece> capturedPiece = move.getCapturedPiece();
+        Coordinate srcPosition = movedPiece.getPosition();
+        Coordinate destPosition = move.getDestPosition();
+
+        Point srcPoint = points.get(positionToIndex(srcPosition.getRow(), srcPosition.getCol()));
+        srcPoint.setPiece(movedPiece);
+        Point destPoint = points.get(positionToIndex(destPosition.getRow(), destPosition.getCol()));
+        destPoint.removePiece();
+        capturedPiece.ifPresent(destPoint::setPiece);
+
+        currPlayer = currPlayer.getOpponent();
+    }
+
+    public boolean isLegalState() {
+        return !currPlayer.getOpponent().isInCheck();
+    }
+
+    /**
+     * Returns a move, if any, corresponding to the given source and destination positions on this board.
+     * @param srcPosition The source position.
+     * @param destPosition The destination position.
+     * @return A move, if any, corresponding to the given source and destination positions on this board.
+     */
+    public Optional<Move> getMove(Coordinate srcPosition, Coordinate destPosition) {
+        for (Move move : currPlayer.getLegalMoves()) {
+            if (move.getMovedPiece().getPosition().equals(srcPosition)
+                    && move.getDestPosition().equals(destPosition)) {
+                return Optional.of(move);
+            }
+        }
+        return Optional.empty();
+    }
+
     /**
      * Returns the current status of this board.
      * @return The current status of this board.
@@ -191,9 +207,6 @@ public class Board {
      * @return true if the game is a draw, false otherwise.
      */
     public boolean isGameDraw() {
-        if (getRedPieces().size() > 5 || getBlackPieces().size() > 5) {
-            return false;
-        }
         for (Piece piece : getAllPieces()) {
             if (piece.getPieceType().isAttacking()) {
                 return false;
@@ -219,19 +232,8 @@ public class Board {
         return currPlayer.getActivePieces().size() >= MIN_PIECES_NULLMOVE;
     }
 
-    /**
-     * Returns the board after skipping a move. (For AI search only)
-     * @return The board after skipping a move.
-     */
-    public Board makeNullMove() {
-        Builder builder = new Builder();
-
-        for (Piece piece : getAllPieces()) {
-            builder.putPiece(piece);
-        }
-        builder.setCurrTurn(currPlayer.getOpponent().getAlliance());
-
-        return builder.build();
+    public void makeNullMove() {
+        currPlayer = currPlayer.getOpponent();
     }
 
     /**
@@ -278,19 +280,12 @@ public class Board {
         return row * NUM_COLS + col;
     }
 
-    public Collection<Piece> getRedPieces() {
-        return redPieces;
-    }
-
-    public Collection<Piece> getBlackPieces() {
-        return blackPieces;
-    }
-
     public Collection<Piece> getAllPieces() {
         Collection<Piece> allPieces = new ArrayList<>();
 
-        allPieces.addAll(redPieces);
-        allPieces.addAll(blackPieces);
+        for (Point point : points) {
+            point.getPiece().ifPresent(allPieces::add);
+        }
 
         return allPieces;
     }
@@ -314,6 +309,10 @@ public class Board {
 
     public Player getCurrPlayer() {
         return currPlayer;
+    }
+
+    public BoardState getBoardState() {
+        return new BoardState(toString(), currPlayer.getAlliance());
     }
 
     @Override
@@ -348,6 +347,21 @@ public class Board {
     @Override
     public int hashCode() {
         return Objects.hash(toString(), currPlayer.getAlliance());
+    }
+
+    public static class BoardState {
+        private String string;
+        private Alliance currTurn;
+
+        private BoardState(String string, Alliance currTurn) {
+            this.string = string;
+            this.currTurn = currTurn;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(string, currTurn);
+        }
     }
 
     /**

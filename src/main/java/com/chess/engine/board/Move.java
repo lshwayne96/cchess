@@ -31,27 +31,6 @@ public class Move {
     }
 
     /**
-     * Executes this move on the current board.
-     * @return The new board after the move has been made.
-     */
-    public Board execute() {
-        Builder builder = new Builder();
-
-        for (Piece piece : board.getCurrPlayer().getActivePieces()) {
-            if (!movedPiece.equals(piece)) {
-                builder.putPiece(piece);
-            }
-        }
-        for (Piece piece : board.getCurrPlayer().getOpponent().getActivePieces()) {
-            builder.putPiece(piece);
-        }
-        builder.putPiece(movedPiece.movePiece(this))
-                .setCurrTurn(board.getCurrPlayer().getOpponent().getAlliance());
-
-        return builder.build();
-    }
-
-    /**
      * Returns the mirrored equivalent (about the middle column) of this move
      * @return The mirrored equivalent of this move.
      */
@@ -64,24 +43,7 @@ public class Move {
         int destCol = Board.NUM_COLS - 1 - destPosition.getCol();
         Coordinate mirroredDestPosition = new Coordinate(destRow, destCol);
 
-        return getMove(board.getMirrorBoard(), mirroredSrcPosition, mirroredDestPosition).get();
-    }
-
-    /**
-     * Returns a move, if any, corresponding to the given source and destination positions on the board.
-     * @param board The board to make a move on.
-     * @param srcPosition The source position.
-     * @param destPosition The destination position.
-     * @return A move, if any, corresponding to the given source and destination positions on the board.
-     */
-    public static Optional<Move> getMove(Board board, Coordinate srcPosition, Coordinate destPosition) {
-        for (Move move : board.getCurrPlayer().getLegalMoves()) {
-            if (move.getMovedPiece().getPosition().equals(srcPosition)
-                    && move.getDestPosition().equals(destPosition)) {
-                return Optional.of(move);
-            }
-        }
-        return Optional.empty();
+        return board.getMirrorBoard().getMove(mirroredSrcPosition, mirroredDestPosition).get();
     }
 
     /**
@@ -104,7 +66,7 @@ public class Move {
         Coordinate srcPosition = new Coordinate(formerRow, formerCol);
         Coordinate destPosition = new Coordinate(newRow, newCol);
 
-        return getMove(board, srcPosition, destPosition);
+        return board.getMove(srcPosition, destPosition);
     }
 
     /**
@@ -184,11 +146,10 @@ public class Move {
         String newRank = rankToString(rowToRank(destPosition.getRow(), alliance));
         String newFile = Integer.toString(colToFile(destPosition.getCol(), alliance));
 
-        return new StringBuilder().append(getPieceAbbrev(pieceType, alliance))
-                .append(formerRank).append(formerFile)
-                .append("-")
-                .append(newRank).append(newFile)
-                .toString();
+        return getPieceAbbrev(pieceType, alliance) +
+                formerRank + formerFile +
+                "-" +
+                newRank + newFile;
     }
 
     @Override

@@ -62,7 +62,7 @@ class BoardEvaluator {
 
         int redChariotCount = 0, redCannonCount = 0, redHorseCount = 0,
                 redElephantCount = 0, redAdvisorCount = 0;
-        for (Piece piece : board.getRedPieces()) {
+        for (Piece piece : board.getRedPlayer().getActivePieces()) {
             redScore += piece.getMaterialValue(boardStatus) + piece.getPositionValue();
             switch (piece.getPieceType()) {
                 case CHARIOT:
@@ -95,7 +95,7 @@ class BoardEvaluator {
         }
         int blackChariotCount = 0, blackCannonCount = 0, blackHorseCount = 0,
                 blackElephantCount = 0, blackAdvisorCount = 0;
-        for (Piece piece : board.getBlackPieces()) {
+        for (Piece piece : board.getBlackPlayer().getActivePieces()) {
             blackScore += piece.getMaterialValue(boardStatus) + piece.getPositionValue();
             switch (piece.getPieceType()) {
                 case CHARIOT:

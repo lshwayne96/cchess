@@ -2,21 +2,32 @@ package com.chess.engine.player;
 
 import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
-import com.chess.engine.board.Move;
+import com.chess.engine.board.Point;
 import com.chess.engine.pieces.Piece;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 public class BlackPlayer extends Player {
 
-    public BlackPlayer(Board board, Collection<Move> redStandardLegalMoves,
-                     Collection<Move> blackStandardLegalMoves) {
-        super(board, blackStandardLegalMoves, redStandardLegalMoves);
+    public BlackPlayer(Board board) {
+        super(board);
     }
 
     @Override
     public Collection<Piece> getActivePieces() {
-        return board.getBlackPieces();
+        List<Piece> pieces = new ArrayList<>();
+
+        for (Point point : board.getPoints()) {
+            point.getPiece().ifPresent(p -> {
+                if (!p.getAlliance().isRed()) {
+                    pieces.add(p);
+                }
+            });
+        }
+
+        return pieces;
     }
 
     @Override

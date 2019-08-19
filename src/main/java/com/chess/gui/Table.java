@@ -11,7 +11,6 @@ import com.chess.engine.player.MoveTransition;
 import com.chess.engine.player.ai.FixedDepthSearch;
 import com.chess.engine.player.ai.FixedTimeSearch;
 import com.chess.engine.player.ai.MoveBook;
-import com.chess.engine.player.ai.QuiescenceSearch;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.event.EventHandler;
@@ -91,8 +90,7 @@ public class Table extends BorderPane {
     private final HelpWindow helpWindow;
     private final AIObserver aiObserver;
     private final PropertyChangeSupport propertyChangeSupport;
-    private Board currBoard;
-    private List<Board> boardHistory;
+    private Board board;
     private MoveLog fullMovelog;
     private MoveLog partialMovelog;
     private Point sourcePoint;
@@ -102,15 +100,13 @@ public class Table extends BorderPane {
     private boolean highlightLegalMoves;
 
     private Table() {
-        currBoard = Board.initialiseBoard();
+        board = Board.initialiseBoard();
 
         boardPane = new BoardPane();
         moveHistoryPane = new MoveHistoryPane();
         infoPane = new InfoPane();
         fullMovelog = new MoveLog();
-        infoPane.update(currBoard, fullMovelog);
-        boardHistory = new ArrayList<>();
-        boardHistory.add(currBoard);
+        infoPane.update(board, fullMovelog);
         gameSetup = new GameSetup();
         helpWindow = new HelpWindow();
         aiObserver = new AIObserver();
@@ -314,15 +310,13 @@ public class Table extends BorderPane {
      */
     private void restart() {
         clearSelections();
-        currBoard = Board.initialiseBoard();
-        boardHistory = new ArrayList<>();
-        boardHistory.add(currBoard);
+        board = Board.initialiseBoard();
         fullMovelog.clear();
         bannedMoves.clear();
 
-        boardPane.drawBoard(currBoard);
+        boardPane.drawBoard(board);
         moveHistoryPane.update(fullMovelog);
-        infoPane.update(currBoard, fullMovelog);
+        infoPane.update(board, fullMovelog);
     }
 
     /**
@@ -365,18 +359,14 @@ public class Table extends BorderPane {
                 aiObserver.stopAI();
                 exitReplayMode();
 
-                List<Board> boards = lgu.getBoardHistory();
-                boardHistory = new ArrayList<>();
-                boardHistory.addAll(boards);
-                currBoard = boardHistory.get(boardHistory.size() - 1);
-
+                board = lgu.getBoard();
                 fullMovelog.clear();
                 for (Move move : lgu.getMoves()) {
                     fullMovelog.addMove(move);
                 }
                 moveHistoryPane.update(fullMovelog);
-                infoPane.update(currBoard, fullMovelog);
-                boardPane.drawBoard(currBoard);
+                infoPane.update(board, fullMovelog);
+                boardPane.drawBoard(board);
 
                 notifyAIObserver("load");
 
@@ -392,13 +382,12 @@ public class Table extends BorderPane {
         if (!fullMovelog.isEmpty()) {
             clearSelections();
 
+            board.unmakeMove(fullMovelog.getLastMove());
             fullMovelog.removeLastMove();
-            boardHistory.remove(boardHistory.size() - 1);
-            currBoard = boardHistory.get(boardHistory.size() - 1);
 
             moveHistoryPane.update(fullMovelog);
-            infoPane.update(currBoard, fullMovelog);
-            boardPane.drawBoard(currBoard);
+            infoPane.update(board, fullMovelog);
+            boardPane.drawBoard(board);
         }
     }
 
@@ -419,9 +408,6 @@ public class Table extends BorderPane {
         if (!moveHistoryPane.isInReplayMode()) return;
 
         fullMovelog = partialMovelog;
-        while (boardHistory.size() > fullMovelog.getSize() + 1) {
-            boardHistory.remove(boardHistory.size() - 1);
-        }
         exitReplayMode();
         moveHistoryPane.update(fullMovelog);
     }
@@ -444,17 +430,17 @@ public class Table extends BorderPane {
         if (moveIndex < -1 || moveIndex >= fullMovelog.getSize()) return;
         if (moveIndex == -1) {
             partialMovelog = null;
-            currBoard = boardHistory.get(boardHistory.size() - 1);
-            boardPane.drawBoard(currBoard);
-            infoPane.update(currBoard, fullMovelog);
+            board = boardHistory.get(boardHistory.size() - 1);
+            boardPane.drawBoard(board);
+            infoPane.update(board, fullMovelog);
             Table.getInstance().notifyAIObserver("exitreplay");
         } else {
             aiObserver.stopAI();
             partialMovelog = fullMovelog.getPartialLog(moveIndex);
             clearSelections();
-            currBoard = boardHistory.get(moveIndex + 1);
-            boardPane.drawBoard(currBoard);
-            infoPane.update(currBoard, partialMovelog);
+            board = boardHistory.get(moveIndex + 1);
+            boardPane.drawBoard(board);
+            infoPane.update(board, partialMovelog);
         }
     }
 
@@ -616,7 +602,7 @@ public class Table extends BorderPane {
          */
         private void flipBoard() {
             boardDirection = boardDirection.opposite();
-            drawBoard(currBoard);
+            drawBoard(board);
             infoPane.setDirection(boardDirection);
         }
     }
@@ -668,7 +654,7 @@ public class Table extends BorderPane {
             setMaxSize(POINT_WIDTH, POINT_WIDTH);
             setOnMouseClicked(getMouseEventHandler());
 
-            assignPointPieceIcon(currBoard);
+            assignPointPieceIcon(board);
         }
 
         /**
@@ -681,37 +667,37 @@ public class Table extends BorderPane {
                     clearSelections();
                 } else if (event.getButton().equals(MouseButton.PRIMARY)) {
                     if (sourcePoint == null) {
-                        sourcePoint = currBoard.getPoint(position);
+                        sourcePoint = board.getPoint(position);
                         Optional<Piece> selectedPiece = sourcePoint.getPiece();
                         if (selectedPiece.isPresent()
-                                && selectedPiece.get().getAlliance() == currBoard.getCurrPlayer().getAlliance()
-                                && !gameSetup.isAIPlayer(currBoard.getCurrPlayer())) {
+                                && selectedPiece.get().getAlliance() == board.getCurrPlayer().getAlliance()
+                                && !gameSetup.isAIPlayer(board.getCurrPlayer())) {
                             Table.this.selectedPiece = selectedPiece.get();
                         } else {
                             sourcePoint = null;
                         }
                     } else {
-                        destPoint = currBoard.getPoint(position);
-                        Optional<Move> move = Move.getMove(currBoard, sourcePoint.getPosition(),
+                        destPoint = board.getPoint(position);
+                        Optional<Move> move = Move.getMove(board, sourcePoint.getPosition(),
                                 destPoint.getPosition());
                         if (!move.isPresent()) return;
 
-                        MoveTransition transition = currBoard.getCurrPlayer().makeMove(move.get());
+                        MoveTransition transition = board.getCurrPlayer().makeMove(move.get());
                         if (transition.getMoveStatus().isAllowed()) {
-                            currBoard = transition.getNextBoard();
-                            boardHistory.add(currBoard);
+                            board = transition.getNextBoard();
+                            boardHistory.add(board);
                             fullMovelog.addMove(transition.getMove());
 
                             clearSelections();
                             Platform.runLater(() -> {
                                 moveHistoryPane.update(fullMovelog);
-                                infoPane.update(currBoard, fullMovelog);
+                                infoPane.update(board, fullMovelog);
                                 notifyAIObserver("movemade");
                             });
                         }
                     }
                 }
-                Platform.runLater(() -> boardPane.drawBoard(currBoard));
+                Platform.runLater(() -> boardPane.drawBoard(board));
             };
         }
 
@@ -825,9 +811,9 @@ public class Table extends BorderPane {
         @Override
         public void propertyChange(PropertyChangeEvent evt) {
             if (!Table.getInstance().moveHistoryPane.isInReplayMode()
-                    && getInstance().gameSetup.isAIPlayer(getInstance().currBoard.getCurrPlayer())
-                    && !getInstance().currBoard.getCurrPlayer().isInCheckmate()) {
-                Board board = getInstance().currBoard;
+                    && getInstance().gameSetup.isAIPlayer(getInstance().board.getCurrPlayer())
+                    && !getInstance().board.getCurrPlayer().isInCheckmate()) {
+                Board board = getInstance().board;
                 Optional<Move> move = MoveBook.getRandomMove(board);
                 if (move.isPresent()) {
                     task = getTimerTask(move.get());
@@ -848,12 +834,12 @@ public class Table extends BorderPane {
          * Executes the given move on the board.
          */
         private static void makeMove(Move move) {
-            getInstance().currBoard = getInstance().currBoard.getCurrPlayer().makeMove(move).getNextBoard();
-            getInstance().boardHistory.add(getInstance().currBoard);
+            getInstance().board = getInstance().board.getCurrPlayer().makeMove(move).getNextBoard();
+            getInstance().boardHistory.add(getInstance().board);
             getInstance().fullMovelog.addMove(move);
-            getInstance().boardPane.drawBoard(getInstance().currBoard);
+            getInstance().boardPane.drawBoard(getInstance().board);
             getInstance().moveHistoryPane.update(getInstance().fullMovelog);
-            getInstance().infoPane.update(getInstance().currBoard, getInstance().fullMovelog);
+            getInstance().infoPane.update(getInstance().board, getInstance().fullMovelog);
             getInstance().notifyAIObserver("movemade");
         }
 
@@ -968,7 +954,7 @@ public class Table extends BorderPane {
             timer.schedule(task, AIObserver.MIN_TIME);
             startTime = System.currentTimeMillis();
             searchDepth = getInstance().gameSetup.getSearchDepth();
-            return new FixedDepthSearch(getInstance().currBoard, bannedMoves, searchDepth).search();
+            return new FixedDepthSearch(getInstance().board, bannedMoves, searchDepth).search();
         }
 
         /**
@@ -1009,7 +995,7 @@ public class Table extends BorderPane {
             task = getTimerTask();
             searchTime = getInstance().gameSetup.getSearchTime();
             timer.schedule(task, searchTime * 1000);
-            return new FixedTimeSearch(getInstance().currBoard, bannedMoves, this,
+            return new FixedTimeSearch(getInstance().board, bannedMoves, this,
                     System.currentTimeMillis() + searchTime*1000).search();
         }
 

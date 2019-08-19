@@ -2,7 +2,6 @@ package com.chess.engine.player.ai;
 
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Move;
-import com.chess.engine.player.MoveTransition;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,8 +13,8 @@ public class FixedDepthSearch extends MiniMax {
 
     private final int searchDepth;
 
-    public FixedDepthSearch(Board currBoard, List<Move> bannedMoves, int searchDepth) {
-        super(currBoard, bannedMoves);
+    public FixedDepthSearch(Board board, List<Move> bannedMoves, int searchDepth) {
+        super(board, bannedMoves);
         this.searchDepth = searchDepth;
     }
 
@@ -23,18 +22,18 @@ public class FixedDepthSearch extends MiniMax {
         Move bestMove = null;
         int bestVal = NEG_INF;
 
-        for (Move move : MoveSorter.simpleSort(currBoard.getCurrPlayer().getLegalMoves())) {
+        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             if (bannedMoves.contains(move)) continue;
 
-            MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                int val = -alphaBeta(transition.getNextBoard(), searchDepth - 1,
-                        NEG_INF, -bestVal, true);
+            board.makeMove(move);
+            if (board.isLegalState()) {
+                int val = -alphaBeta(board, searchDepth - 1, NEG_INF, -bestVal, true);
                 if (val > bestVal) {
                     bestVal = val;
                     bestMove = move;
                 }
             }
+            board.unmakeMove(move);
         }
 
         return bestMove;
@@ -46,7 +45,7 @@ public class FixedDepthSearch extends MiniMax {
         int currDepth = 1;
         int alpha = NEG_INF;
         int beta = POS_INF;
-        List<Move> sortedMoves = MoveSorter.simpleSort(currBoard.getCurrPlayer().getLegalMoves());
+        List<Move> sortedMoves = MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves());
 
         while (currDepth <= searchDepth) {
             List<MoveEntry> moveEntries = new ArrayList<>();
@@ -54,16 +53,16 @@ public class FixedDepthSearch extends MiniMax {
 
             for (Move move : sortedMoves) {
                 if (bannedMoves.contains(move)) continue;
-                MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
-                if (transition.getMoveStatus().isAllowed()) {
-                    int val = -alphaBeta(transition.getNextBoard(), currDepth - 1,
-                            -beta, -alpha, true);
+                board.makeMove(move);
+                if (board.isLegalState()) {
+                    int val = -alphaBeta(board, currDepth - 1, -beta, -alpha, true);
                     if (val > bestVal) {
                         bestVal = val;
                         bestMove = move;
                     }
                     moveEntries.add(new MoveEntry(move, val));
                 }
+                board.unmakeMove(move);
             }
 
             if (bestVal <= alpha || bestVal >= beta) {
@@ -87,27 +86,28 @@ public class FixedDepthSearch extends MiniMax {
         int maxValue = NEG_INF;
         int minValue = POS_INF;
 
-        for (Move move : MoveSorter.simpleSort(currBoard.getCurrPlayer().getLegalMoves())) {
+        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             if (bannedMoves.contains(move)) continue;
 
-            MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                Board nextBoard = transition.getNextBoard();
+            boolean isRedTurn = board.getCurrPlayer().getAlliance().isRed();
+            board.makeMove(move);
+            if (board.isLegalState()) {
                 int currValue;
-                if (currBoard.getCurrPlayer().getAlliance().isRed()) {
-                    currValue = min(nextBoard, searchDepth - 1, maxValue, minValue, true);
+                if (isRedTurn) {
+                    currValue = min(board, searchDepth - 1, maxValue, minValue, true);
                     if (currValue > maxValue) {
                         maxValue = currValue;
                         bestMove = move;
                     }
                 } else {
-                    currValue = max(nextBoard, searchDepth - 1, maxValue, minValue, true);
+                    currValue = max(board, searchDepth - 1, maxValue, minValue, true);
                     if (currValue < minValue) {
                         minValue = currValue;
                         bestMove = move;
                     }
                 }
             }
+            board.unmakeMove(move);
         }
 
         return bestMove;

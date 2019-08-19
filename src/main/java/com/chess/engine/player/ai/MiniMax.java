@@ -23,12 +23,12 @@ abstract class MiniMax {
     static final int POS_INF = Integer.MAX_VALUE;
     static final int ASP_WINDOW = 50;
 
-    final Board currBoard;
+    final Board board;
     final List<Move> bannedMoves;
     final Map<Board, TTEntry> transTable;
 
-    MiniMax(Board currBoard, List<Move> bannedMoves) {
-        this.currBoard = currBoard;
+    MiniMax(Board board, List<Move> bannedMoves) {
+        this.board = board;
         this.bannedMoves = bannedMoves;
         transTable = new HashMap<>();
     }
@@ -68,8 +68,8 @@ abstract class MiniMax {
 
         // null move pruning if possible
         if (allowNull && !board.getCurrPlayer().isInCheck() && board.allowNullMove()) {
-            Board nextBoard = board.makeNullMove();
-            int val = -alphaBeta(nextBoard, depth - 1 - R, -beta, -beta + 1, false);
+            board.makeNullMove();
+            int val = -alphaBeta(board, depth - 1 - R, -beta, -beta + 1, false);
             if (val >= beta) {
                 return val;
             }
@@ -79,9 +79,9 @@ abstract class MiniMax {
         // search all moves
         int bestVal = NEG_INF;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            MoveTransition transition = board.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                int val = -alphaBeta(transition.getNextBoard(), depth - 1, -beta, -alpha, true);
+            board.makeMove(move);
+            if (board.isLegalState()) {
+                int val = -alphaBeta(board, depth - 1, -beta, -alpha, true);
                 if (val >= beta) {
                     return val;
                 }
@@ -90,6 +90,7 @@ abstract class MiniMax {
                     alpha = Math.max(alpha, val);
                 }
             }
+            board.unmakeMove(move);
         }
 /*
         // store into transposition table if necessary
@@ -115,8 +116,8 @@ abstract class MiniMax {
         }
 
         if (allowNull && !board.getCurrPlayer().isInCheck() && board.allowNullMove()) {
-            Board nextBoard = board.makeNullMove();
-            int val = max(nextBoard, depth - 1 - R, alpha, alpha + 1, false);
+            board.makeNullMove();
+            int val = max(board, depth - 1 - R, alpha, alpha + 1, false);
             if (alpha >= val) {
                 return val;
             }
@@ -124,14 +125,15 @@ abstract class MiniMax {
 
         int minValue = POS_INF;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            MoveTransition transition = board.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                minValue = Math.min(minValue, max(transition.getNextBoard(), depth - 1, alpha, beta, true));
+            board.makeMove(move);
+            if (board.isLegalState()) {
+                minValue = Math.min(minValue, max(board, depth - 1, alpha, beta, true));
                 beta = Math.min(beta, minValue);
                 if (alpha >= beta) {
                     break;
                 }
             }
+            board.unmakeMove(move);
         }
 
         return minValue;
@@ -143,8 +145,8 @@ abstract class MiniMax {
         }
 
         if (allowNull && !board.getCurrPlayer().isInCheck() && board.allowNullMove()) {
-            Board nextBoard = board.makeNullMove();
-            int val = min(nextBoard, depth - 1 - R, alpha, alpha + 1, false);
+            board.makeNullMove();
+            int val = min(board, depth - 1 - R, alpha, alpha + 1, false);
             if (val >= beta) {
                 return val;
             }
@@ -152,49 +154,18 @@ abstract class MiniMax {
 
         int maxValue = NEG_INF;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            MoveTransition transition = board.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                maxValue = Math.max(maxValue, min(transition.getNextBoard(), depth - 1, alpha, beta, true));
+            board.makeMove(move);
+            if (board.isLegalState()) {
+                maxValue = Math.max(maxValue, min(board, depth - 1, alpha, beta, true));
                 alpha = Math.max(alpha, maxValue);
                 if (alpha >= beta) {
                     break;
                 }
             }
+            board.unmakeMove(move);
         }
 
         return maxValue;
-    }
-
-    /**
-     * Represents a state containing a board and the depth at which it was evaluated.
-     */
-    static class BoardState {
-
-        final Board board;
-        final int depth;
-
-        BoardState(Board board, int depth) {
-            this.board = board;
-            this.depth = depth;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (!(obj instanceof BoardState)) {
-                return false;
-            }
-
-            BoardState other = (BoardState) obj;
-            return this.board.equals(other.board) && this.depth == other.depth;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(board, depth);
-        }
     }
 
     /**

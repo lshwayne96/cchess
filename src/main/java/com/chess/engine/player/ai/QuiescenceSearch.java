@@ -2,7 +2,6 @@ package com.chess.engine.player.ai;
 
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Move;
-import com.chess.engine.player.MoveTransition;
 
 import java.util.List;
 
@@ -15,8 +14,8 @@ public class QuiescenceSearch extends MiniMax {
 
     private final int searchDepth;
 
-    public QuiescenceSearch(Board currBoard, List<Move> bannedMoves, int searchDepth) {
-        super(currBoard, bannedMoves);
+    public QuiescenceSearch(Board board, List<Move> bannedMoves, int searchDepth) {
+        super(board, bannedMoves);
         this.searchDepth = searchDepth;
     }
 
@@ -24,18 +23,19 @@ public class QuiescenceSearch extends MiniMax {
         Move bestMove = null;
         int bestVal = NEG_INF;
 
-        for (Move move : MoveSorter.simpleSort(currBoard.getCurrPlayer().getLegalMoves())) {
+        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             if (bannedMoves.contains(move)) continue;
 
-            MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                int val = -normal(transition.getNextBoard(), searchDepth - 1,
+            board.makeMove(move);
+            if (board.isLegalState()) {
+                int val = -normal(board, searchDepth - 1,
                         NEG_INF, -bestVal, true);
                 if (val > bestVal) {
                     bestVal = val;
                     bestMove = move;
                 }
             }
+            board.unmakeMove(move);
         }
 
         return bestMove;
@@ -53,8 +53,8 @@ public class QuiescenceSearch extends MiniMax {
         }
 
         if (allowNull && !board.getCurrPlayer().isInCheck() && board.allowNullMove()) {
-            Board nextBoard = board.makeNullMove();
-            int val = -normal(nextBoard, depth - 1 - R, -beta, -beta + 1, false);
+            board.makeNullMove();
+            int val = -normal(board, depth - 1 - R, -beta, -beta + 1, false);
             if (val >= beta) {
                 return val;
             }
@@ -62,9 +62,9 @@ public class QuiescenceSearch extends MiniMax {
 
         int bestVal = NEG_INF;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            MoveTransition transition = board.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                int val = -normal(transition.getNextBoard(), depth - 1, -beta, -alpha, true);
+            board.makeMove(move);
+            if (board.isLegalState()) {
+                int val = -normal(board, depth - 1, -beta, -alpha, true);
                 if (val >= beta) {
                     return val;
                 }
@@ -73,6 +73,7 @@ public class QuiescenceSearch extends MiniMax {
                     alpha = Math.max(alpha, val);
                 }
             }
+            board.unmakeMove(move);
         }
 
         return bestVal;
@@ -96,9 +97,9 @@ public class QuiescenceSearch extends MiniMax {
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             if (!move.getCapturedPiece().isPresent()) break;
 
-            MoveTransition transition = board.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                int val = -quiescence(transition.getNextBoard(), depth - 1, -beta, -alpha);
+            board.makeMove(move);
+            if (board.isLegalState()) {
+                int val = -quiescence(board, depth - 1, -beta, -alpha);
                 if (val >= beta) {
                     return val;
                 }
@@ -107,6 +108,7 @@ public class QuiescenceSearch extends MiniMax {
                     alpha = Math.max(alpha, val);
                 }
             }
+            board.unmakeMove(move);
         }
 
         return bestVal;
@@ -118,27 +120,28 @@ public class QuiescenceSearch extends MiniMax {
         int maxValue = NEG_INF;
         int minValue = POS_INF;
 
-        for (Move move : MoveSorter.simpleSort(currBoard.getCurrPlayer().getLegalMoves())) {
+        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             if (bannedMoves.contains(move)) continue;
 
-            MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                Board nextBoard = transition.getNextBoard();
+            boolean isRedTurn = board.getCurrPlayer().getAlliance().isRed();
+            board.makeMove(move);
+            if (board.isLegalState()) {
                 int currValue;
-                if (currBoard.getCurrPlayer().getAlliance().isRed()) {
-                    currValue = normalMin(nextBoard, searchDepth - 1, maxValue, minValue, true);
+                if (isRedTurn) {
+                    currValue = normalMin(board, searchDepth - 1, maxValue, minValue, true);
                     if (currValue > maxValue) {
                         maxValue = currValue;
                         bestMove = move;
                     }
                 } else {
-                    currValue = normalMax(nextBoard, searchDepth - 1, maxValue, minValue, true);
+                    currValue = normalMax(board, searchDepth - 1, maxValue, minValue, true);
                     if (currValue < minValue) {
                         minValue = currValue;
                         bestMove = move;
                     }
                 }
             }
+            board.unmakeMove(move);
         }
 
         return bestMove;
@@ -155,8 +158,8 @@ public class QuiescenceSearch extends MiniMax {
         }
 
         if (allowNull && !board.getCurrPlayer().isInCheck() && board.allowNullMove()) {
-            Board nextBoard = board.makeNullMove();
-            int val = normalMax(nextBoard, depth - 1 - R, alpha, alpha + 1, false);
+            board.makeNullMove();
+            int val = normalMax(board, depth - 1 - R, alpha, alpha + 1, false);
             if (alpha >= val) {
                 return val;
             }
@@ -164,14 +167,15 @@ public class QuiescenceSearch extends MiniMax {
 
         int minValue = POS_INF;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            MoveTransition transition = board.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                minValue = Math.min(minValue, normalMax(transition.getNextBoard(), depth - 1, alpha, beta, true));
+            board.makeMove(move);
+            if (board.isLegalState()) {
+                minValue = Math.min(minValue, normalMax(board, depth - 1, alpha, beta, true));
                 beta = Math.min(beta, minValue);
                 if (alpha >= beta) {
                     break;
                 }
             }
+            board.unmakeMove(move);
         }
 
         return minValue;
@@ -187,8 +191,8 @@ public class QuiescenceSearch extends MiniMax {
         }
 
         if (allowNull && !board.getCurrPlayer().isInCheck() && board.allowNullMove()) {
-            Board nextBoard = board.makeNullMove();
-            int val = normalMin(nextBoard, depth - 1 - R, alpha, alpha + 1, false);
+            board.makeNullMove();
+            int val = normalMin(board, depth - 1 - R, alpha, alpha + 1, false);
             if (val >= beta) {
                 return val;
             }
@@ -196,14 +200,15 @@ public class QuiescenceSearch extends MiniMax {
 
         int maxValue = NEG_INF;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            MoveTransition transition = board.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                maxValue = Math.max(maxValue, normalMin(transition.getNextBoard(), depth - 1, alpha, beta, true));
+            board.makeMove(move);
+            if (board.isLegalState()) {
+                maxValue = Math.max(maxValue, normalMin(board, depth - 1, alpha, beta, true));
                 alpha = Math.max(alpha, maxValue);
                 if (alpha >= beta) {
                     break;
                 }
             }
+            board.unmakeMove(move);
         }
 
         return maxValue;
@@ -219,14 +224,15 @@ public class QuiescenceSearch extends MiniMax {
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             if (!move.getCapturedPiece().isPresent()) break;
 
-            MoveTransition transition = board.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                int val = quiescenceMax(transition.getNextBoard(), alpha, beta);
+            board.makeMove(move);
+            if (board.isLegalState()) {
+                int val = quiescenceMax(board, alpha, beta);
                 beta = Math.min(beta, val);
                 if (alpha >= beta) {
                     return beta;
                 }
             }
+            board.unmakeMove(move);
         }
 
         return beta;
@@ -242,14 +248,15 @@ public class QuiescenceSearch extends MiniMax {
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             if (!move.getCapturedPiece().isPresent()) break;
 
-            MoveTransition transition = board.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                int val = quiescenceMin(transition.getNextBoard(), alpha, beta);
+            board.makeMove(move);
+            if (board.isLegalState()) {
+                int val = quiescenceMin(board, alpha, beta);
                 alpha = Math.max(alpha, val);
                 if (alpha >= beta) {
                     return alpha;
                 }
             }
+            board.unmakeMove(move);
         }
 
         return alpha;

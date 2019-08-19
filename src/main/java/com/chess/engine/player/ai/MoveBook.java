@@ -14,14 +14,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
+import static com.chess.engine.board.Board.*;
+
 /**
  * Represents an opening book.
  */
 public class MoveBook {
 
-    private static final Board INITIAL_BOARD = Board.initialiseBoard();
     private static final String AI_MOVEBOOK_PATH = "/ai/movebook.txt";
-    private static final Map<Board, List<Move>> MOVE_BOOK = readMoveBook();
+    private static final Map<BoardState, List<Move>> MOVE_BOOK = readMoveBook();
     private static final Random rand = new Random();
 
     /**
@@ -40,22 +41,23 @@ public class MoveBook {
     /**
      * Reads the text file containing moves into a map.
      */
-    private static Map<Board, List<Move>> readMoveBook() {
-        Map<Board, List<Move>> boardToMoves = new HashMap<>();
-        Board board = INITIAL_BOARD;
+    private static Map<BoardState, List<Move>> readMoveBook() {
+        Map<BoardState, List<Move>> boardToMoves = new HashMap<>();
+        Board board = Board.initialiseBoard();
         String str;
 
         BufferedReader br = new BufferedReader(new InputStreamReader(MoveBook.class.getResourceAsStream(AI_MOVEBOOK_PATH)));
         try {
             while ((str = br.readLine()) != null) {
                 if (str.trim().isEmpty()) { // next opening
-                    board = INITIAL_BOARD;
+                    board = Board.initialiseBoard();
                     continue;
                 }
 
+                BoardState boardState = board.getBoardState();
                 Optional<Move> move = Move.stringToMove(board, str);
                 if (move.isPresent()) {
-                    List<Move> currList = boardToMoves.get(board);
+                    List<Move> currList = boardToMoves.get(board.getBoardState());
                     if (currList != null) {
                         if (!currList.contains(move.get())) {
                             currList.add(move.get());
@@ -63,12 +65,13 @@ public class MoveBook {
                     } else {
                         List<Move> newList = new ArrayList<>();
                         newList.add(move.get());
-                        boardToMoves.put(board, newList);
+                        boardToMoves.put(boardState, newList);
                     }
 
                     Board mirroredBoard = board.getMirrorBoard();
+                    BoardState mirroredBoardState = mirroredBoard.getBoardState();
                     Move mirroredMove = move.get().getMirroredMove();
-                    List<Move> currListMirrored = boardToMoves.get(mirroredBoard);
+                    List<Move> currListMirrored = boardToMoves.get(mirroredBoardState);
                     if (currListMirrored != null) {
                         if (!currListMirrored.contains(mirroredMove)) {
                             currListMirrored.add(mirroredMove);
@@ -76,12 +79,12 @@ public class MoveBook {
                     } else {
                         List<Move> newListMirrored = new ArrayList<>();
                         newListMirrored.add(mirroredMove);
-                        boardToMoves.put(mirroredBoard, newListMirrored);
+                        boardToMoves.put(mirroredBoardState, newListMirrored);
                     }
                 } else {
                     continue;
                 }
-                board = move.get().execute();
+                board.makeMove(move.get());
             }
         } catch (IOException e) {
             e.printStackTrace();

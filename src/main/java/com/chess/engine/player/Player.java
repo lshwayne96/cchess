@@ -20,15 +20,9 @@ import static com.chess.engine.pieces.Piece.*;
 public abstract class Player {
 
     protected final Board board;
-    private final General general;
-    private final Collection<Move> legalMoves;
-    private final boolean isInCheck;
 
-    Player(Board board, Collection<Move> playerLegalMoves, Collection<Move> opponentLegalMoves) {
+    Player(Board board) {
         this.board = board;
-        general = getGeneral();
-        legalMoves = playerLegalMoves;
-        isInCheck = !getIncomingAttacks(general.getPosition(), opponentLegalMoves).isEmpty();
     }
 
     /**
@@ -77,29 +71,18 @@ public abstract class Player {
         return Collections.unmodifiableList(attacksOnPoint);
     }
 
-    /**
-     * Returns a move transition after making the given move.
-     * @param move The move to make.
-     * @return A move transition after making the given move.
-     */
-    public MoveTransition makeMove(Move move) {
-        Board nextBoard = move.execute();
-        Collection<Move> generalAttacks =
-                getIncomingAttacks(nextBoard.getCurrPlayer().getOpponent().general.getPosition(),
-                        nextBoard.getCurrPlayer().getLegalMoves());
-
-        if (!generalAttacks.isEmpty()) {
-            return new MoveTransition(board, move, MoveStatus.SUICIDAL);
-        }
-        return new MoveTransition(nextBoard, move, MoveStatus.ALLOWED);
-    }
-
     public Collection<Move> getLegalMoves() {
-        return legalMoves;
+        List<Move> legalMoves = new ArrayList<>();
+
+        for (Piece piece : getActivePieces()) {
+            legalMoves.addAll(piece.getLegalMoves(board));
+        }
+
+        return Collections.unmodifiableCollection(legalMoves);
     }
 
     public boolean isInCheck() {
-        return isInCheck;
+        return !getIncomingAttacks(getGeneral().getPosition(), getOpponent().getLegalMoves()).isEmpty();
     }
 
     /**
@@ -107,17 +90,16 @@ public abstract class Player {
      * @return true if this player has been checkmated, false otherwise.
      */
     public boolean isInCheckmate() {
-        return !hasEscapeMoves();
-    }
-
-    /**
-     * Checks if this player's general can escape check.
-     */
-    private boolean hasEscapeMoves() {
-        for (Move move : legalMoves) {
-            MoveTransition transition = makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) return true;
+        boolean isInCheckmate = true;
+        for (Move move : getLegalMoves()) {
+            board.makeMove(move);
+            if (board.isLegalState()) {
+                isInCheckmate = false;
+            }
+            board.unmakeMove(move);
+            if (!isInCheckmate) break;
         }
-        return false;
+
+        return isInCheckmate;
     }
 }

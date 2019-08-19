@@ -2,7 +2,6 @@ package com.chess.engine.player.ai;
 
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Move;
-import com.chess.engine.player.MoveTransition;
 
 import java.beans.PropertyChangeSupport;
 import java.util.ArrayList;
@@ -18,8 +17,8 @@ public class FixedTimeSearch extends MiniMax {
     private final PropertyChangeSupport support;
     private final long endTime;
 
-    public FixedTimeSearch(Board currBoard, List<Move> bannedMoves, FixedTimeAIPlayer fixedTimeAIPlayer, long endTime) {
-        super(currBoard, bannedMoves);
+    public FixedTimeSearch(Board board, List<Move> bannedMoves, FixedTimeAIPlayer fixedTimeAIPlayer, long endTime) {
+        super(board, bannedMoves);
         this.endTime = endTime;
         support = new PropertyChangeSupport(this);
         support.addPropertyChangeListener(fixedTimeAIPlayer);
@@ -30,7 +29,7 @@ public class FixedTimeSearch extends MiniMax {
         Move bestMove = null;
 
         int currDepth = 1;
-        List<Move> sortedMoves = MoveSorter.simpleSort(currBoard.getCurrPlayer().getLegalMoves());
+        List<Move> sortedMoves = MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves());
 
         while (System.currentTimeMillis() < endTime) {
             List<MoveEntry> moveEntries = new ArrayList<>();
@@ -38,9 +37,9 @@ public class FixedTimeSearch extends MiniMax {
             for (Move move : sortedMoves) {
                 if (bannedMoves.contains(move)) continue;
 
-                MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
-                if (transition.getMoveStatus().isAllowed()) {
-                    int val = -alphaBeta(transition.getNextBoard(), currDepth - 1,
+                board.makeMove(move);
+                if (board.isLegalState()) {
+                    int val = -alphaBeta(board, currDepth - 1,
                             NEG_INF, -bestVal, true);
                     if (val > bestVal) {
                         bestVal = val;
@@ -48,6 +47,7 @@ public class FixedTimeSearch extends MiniMax {
                     }
                     moveEntries.add(new MoveEntry(move, val));
                 }
+                board.unmakeMove(move);
             }
 
             support.firePropertyChange("currbestmove", currDepth, bestMove);
