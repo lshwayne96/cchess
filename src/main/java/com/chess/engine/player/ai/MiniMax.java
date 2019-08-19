@@ -84,6 +84,7 @@ abstract class MiniMax {
         if (allowNull && !board.getCurrPlayer().isInCheck() && board.allowNullMove()) {
             board.makeNullMove();
             int val = -alphaBeta(board, depth - 1 - R, -beta, -beta + 1, false);
+            board.makeNullMove();
             if (val >= beta) {
                 return val;
             }
@@ -95,6 +96,7 @@ abstract class MiniMax {
             board.makeMove(move);
             if (board.isLegalState()) {
                 int val = -alphaBeta(board, depth - 1, -beta, -alpha, true);
+                board.unmakeMove(move);
                 if (val >= beta) {
                     return val;
                 }
@@ -102,8 +104,9 @@ abstract class MiniMax {
                     bestVal = val;
                     alpha = Math.max(alpha, val);
                 }
+            } else {
+                board.unmakeMove(move);
             }
-            board.unmakeMove(move);
         }
 /*
         // store into transposition table if necessary
