@@ -39,22 +39,6 @@ abstract class MiniMax {
      */
     public abstract Move search();
 
-    int negamax(Board board, int depth) {
-        if (depth == 0) {
-            return BoardEvaluator.evaluate(board, depth);
-        }
-        int bestVal = NEG_INF;
-        for (Move move : board.getCurrPlayer().getLegalMoves()) {
-            board.makeMove(move);
-            if (board.isLegalState()) {
-                int val = -negamax(board, depth - 1);
-                bestVal = Math.max(bestVal, val);
-            }
-            board.unmakeMove(move);
-        }
-        return bestVal;
-    }
-
     int alphaBeta(Board board, int depth, int alpha, int beta, boolean allowNull) {
         int alphaOrig = alpha;
 /*
@@ -77,9 +61,12 @@ abstract class MiniMax {
         }*/
 
         // evaluate board if ready
-        if (depth <= 0 || board.isGameOver()) {
-            int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
+        int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
+        if (depth <= 0) {
             return BoardEvaluator.evaluate(board, depth) * color;
+        }
+        if (board.isGameOver()) {
+            return BoardEvaluator.getCheckmateValue(board, depth) * color;
         }
 
         // null move pruning if possible
@@ -94,8 +81,8 @@ abstract class MiniMax {
 
         // search all moves
         int bestVal = NEG_INF;
+        PlayerInfo playerInfo = board.getPlayerInfo();
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            PlayerInfo playerInfo = board.getPlayerInfo();
             board.makeMove(move);
             if (board.isLegalState()) {
                 int val = -alphaBeta(board, depth - 1, -beta, -alpha, true);

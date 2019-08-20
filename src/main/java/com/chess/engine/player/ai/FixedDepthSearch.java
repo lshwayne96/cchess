@@ -6,6 +6,8 @@ import com.chess.engine.board.Move;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.chess.engine.board.Board.*;
+
 /**
  * Represents a fixed-depth MiniMax algorithm.
  */
@@ -18,29 +20,11 @@ public class FixedDepthSearch extends MiniMax {
         this.searchDepth = searchDepth;
     }
 
-    public Move search2() {
-        Move bestMove = null;
-        int bestVal = NEG_INF;
-
-        for (Move move : board.getCurrPlayer().getLegalMoves()) {
-            board.makeMove(move);
-            if (board.isLegalState()) {
-                int val = -negamax(board, searchDepth - 1);
-                if (val > bestVal) {
-                    bestVal = val;
-                    bestMove = move;
-                }
-            }
-            board.unmakeMove(move);
-        }
-
-        return bestMove;
-    }
-
     public Move search() {
         Move bestMove = null;
         int bestVal = NEG_INF;
 
+        PlayerInfo playerInfo = board.getPlayerInfo();
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             if (bannedMoves.contains(move)) continue;
 
@@ -52,7 +36,7 @@ public class FixedDepthSearch extends MiniMax {
                     bestMove = move;
                 }
             }
-            board.unmakeMove(move);
+            board.unmakeMove(move, playerInfo);
         }
 
         return bestMove;

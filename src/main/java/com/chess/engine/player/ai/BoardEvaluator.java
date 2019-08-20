@@ -42,11 +42,15 @@ class BoardEvaluator {
      * @return The heuristic value of the given board at the current search depth.
      */
     static int evaluate(Board board, int depth) {
-        if (board.getCurrPlayer().isInCheckmate()) {
-            return board.getCurrPlayer().getAlliance().isRed()
-                    ? (-1 * CHECKMATE_VALUE) * (depth + 1) : CHECKMATE_VALUE * (depth + 1);
-        }
+        return board.isGameOver() ? getCheckmateValue(board, depth) : evaluate(board);
+    }
 
+    static int getCheckmateValue(Board board, int depth) {
+        return board.getCurrPlayer().getAlliance().isRed()
+                ? (-1 * CHECKMATE_VALUE) * (depth + 1) : CHECKMATE_VALUE * (depth + 1);
+    }
+
+    private static int evaluate(Board board) {
         BoardStatus boardStatus = board.getStatus();
         return getPieceScoreDiff(board, boardStatus)
                 + getRelationScoreDiff(board, boardStatus)
