@@ -17,15 +17,14 @@ import static com.chess.engine.board.Board.*;
  * Represents a MiniMax algorithm.
  */
 abstract class MiniMax {
-// TODO: PVS, aspiration window, transposition table, quiescence
+// TODO: PVS, aspiration window, zobrist, quiescence
     static final int R = 3; // depth reduction for null move pruning
     static final int NEG_INF = Integer.MIN_VALUE + 1;
     static final int POS_INF = Integer.MAX_VALUE;
-    static final int ASP_WINDOW = 50;
 
     final Board board;
     final List<Move> bannedMoves;
-    final Map<Board, TTEntry> transTable;
+    final Map<BoardState, TTEntry> transTable;
 
     MiniMax(Board board, List<Move> bannedMoves) {
         this.board = board;
@@ -41,29 +40,34 @@ abstract class MiniMax {
 
     int alphaBeta(Board board, int depth, int alpha, int beta, boolean allowNull) {
         int alphaOrig = alpha;
-/*
+        Move bestMove = null;
+
         // look up transposition table
-        TTEntry ttEntry = transTable.get(board);
-        if (ttEntry != null && ttEntry.depth >= depth) {
-            switch (ttEntry.flag) {
-                case EXACT:
-                    return ttEntry.value;
-                case LOWERBOUND:
-                    alpha = Math.max(alpha, ttEntry.value);
-                    break;
-                case UPPERBOUND:
-                    beta = Math.min(beta, ttEntry.value);
-                    break;
+        BoardState boardState = board.getState();
+        TTEntry ttEntry = transTable.get(boardState);
+        if (ttEntry != null) {
+            bestMove = ttEntry.bestMove;
+            if (ttEntry.depth >= depth) {
+                switch (ttEntry.flag) {
+                    case EXACT:
+                        return ttEntry.val;
+                    case LOWERBOUND:
+                        alpha = Math.max(alpha, ttEntry.val);
+                        break;
+                    case UPPERBOUND:
+                        beta = Math.min(beta, ttEntry.val);
+                        break;
+                }
+                if (alpha >= beta) {
+                    return ttEntry.val;
+                }
             }
-            if (alpha >= beta) {
-                return ttEntry.value;
-            }
-        }*/
+        }
 
         // evaluate board if ready
         int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
         if (depth <= 0) {
-            return BoardEvaluator.evaluate(board, depth) * color;
+            return BoardEvaluator.evaluate(board, depth);
         }
         if (board.isGameOver()) {
             return BoardEvaluator.getCheckmateValue(board, depth) * color;
@@ -82,23 +86,39 @@ abstract class MiniMax {
         // search all moves
         int bestVal = NEG_INF;
         PlayerInfo playerInfo = board.getPlayerInfo();
+
+        if (bestMove != null) {
+            board.makeMove(bestMove);
+            int val = -alphaBeta(board, depth - 1, -beta, -alpha, true);
+            board.unmakeMove(bestMove, playerInfo);
+            bestVal = val;
+            alpha = Math.max(alpha, val);
+            if (val >= beta) {
+                return val;
+            }
+        }
+
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
+            if (move.equals(bestMove)) continue;
             board.makeMove(move);
             if (board.isLegalState()) {
                 int val = -alphaBeta(board, depth - 1, -beta, -alpha, true);
                 board.unmakeMove(move, playerInfo);
-                if (val >= beta) {
-                    return val;
-                }
                 if (val > bestVal) {
                     bestVal = val;
+                    if (val > alphaOrig) {
+                        bestMove = move;
+                    }
                     alpha = Math.max(alpha, val);
+                }
+                if (val >= beta) {
+                    break;
                 }
             } else {
                 board.unmakeMove(move, playerInfo);
             }
         }
-/*
+
         // store into transposition table if necessary
         if (ttEntry == null || depth > ttEntry.depth) {
             TTEntry.Flag flag;
@@ -109,11 +129,39 @@ abstract class MiniMax {
             } else {
                 flag = TTEntry.Flag.EXACT;
             }
-            TTEntry newEntry = new TTEntry(depth, bestVal, flag);
-            transTable.put(board, newEntry);
-        }*/
+            TTEntry newEntry = new TTEntry(depth, bestVal, flag, bestMove);
+            transTable.put(boardState, newEntry);
+        }
 
         return bestVal;
+    }
+
+    private int quiescence(Board board, int alpha, int beta) {
+        int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
+        int standPat = -BoardEvaluator.evaluate(board, 0) * color;
+        if (standPat >= beta || board.isQuiet()) {
+            return standPat;
+        }
+        alpha = Math.max(alpha, standPat);
+
+        PlayerInfo playerInfo = board.getPlayerInfo();
+        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
+            if (!move.getCapturedPiece().isPresent()) break;
+
+            board.makeMove(move);
+            if (board.isLegalState()) {
+                int val = -quiescence(board, -beta, -alpha);
+                board.unmakeMove(move, playerInfo);
+                if (val >= beta) {
+                    return val;
+                }
+                alpha = Math.max(alpha, val);
+            } else {
+                board.unmakeMove(move, playerInfo);
+            }
+        }
+
+        return alpha;
     }
 
     /**
@@ -122,13 +170,15 @@ abstract class MiniMax {
     static class TTEntry {
 
         private final int depth;
-        private final int value;
+        private final int val;
         private final Flag flag;
+        private final Move bestMove;
 
-        private TTEntry(int depth, int value, Flag flag) {
+        private TTEntry(int depth, int val, Flag flag, Move bestMove) {
             this.depth = depth;
-            this.value = value;
+            this.val = val;
             this.flag = flag;
+            this.bestMove = bestMove;
         }
 
         /**

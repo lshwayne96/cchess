@@ -821,7 +821,7 @@ public class Table extends BorderPane {
             if (!Table.getInstance().moveHistoryPane.isInReplayMode()
                     && getInstance().gameSetup.isAIPlayer(getInstance().board.getCurrPlayer())
                     && !getInstance().board.getCurrPlayer().isInCheckmate()) {
-                Optional<Move> move = MoveBook.getRandomMove(getInstance().board.getBoardState());
+                Optional<Move> move = MoveBook.getRandomMove(getInstance().board.getState());
                 if (move.isPresent()) {
                     task = getTimerTask(move.get());
                     timer.schedule(task, MIN_TIME);

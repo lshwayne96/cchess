@@ -54,10 +54,10 @@ public class MoveBook {
                     continue;
                 }
 
-                BoardState boardState = board.getBoardState();
+                BoardState boardState = board.getState();
                 Optional<Move> move = Move.stringToMove(board, str);
                 if (move.isPresent()) {
-                    List<Move> currList = boardToMoves.get(board.getBoardState());
+                    List<Move> currList = boardToMoves.get(board.getState());
                     if (currList != null) {
                         if (!currList.contains(move.get())) {
                             currList.add(move.get());
@@ -69,7 +69,7 @@ public class MoveBook {
                     }
 
                     Board mirroredBoard = board.getMirrorBoard();
-                    BoardState mirroredBoardState = mirroredBoard.getBoardState();
+                    BoardState mirroredBoardState = mirroredBoard.getState();
                     Move mirroredMove = move.get().getMirroredMove();
                     List<Move> currListMirrored = boardToMoves.get(mirroredBoardState);
                     if (currListMirrored != null) {
