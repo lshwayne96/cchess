@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.chess.engine.board.Board.*;
+
 /**
  * Represents a MiniMax algorithm.
  */
@@ -93,10 +95,11 @@ abstract class MiniMax {
         // search all moves
         int bestVal = NEG_INF;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
+            PlayerInfo playerInfo = board.getPlayerInfo();
             board.makeMove(move);
             if (board.isLegalState()) {
                 int val = -alphaBeta(board, depth - 1, -beta, -alpha, true);
-                board.unmakeMove(move);
+                board.unmakeMove(move, playerInfo);
                 if (val >= beta) {
                     return val;
                 }
@@ -105,7 +108,7 @@ abstract class MiniMax {
                     alpha = Math.max(alpha, val);
                 }
             } else {
-                board.unmakeMove(move);
+                board.unmakeMove(move, playerInfo);
             }
         }
 /*

@@ -66,8 +66,8 @@ public class Board {
 
     private void updatePlayers() {
         Collection<Piece> redPieces = new ArrayList<>();
-        Collection<Piece> blackPieces = new ArrayList<>();
         Collection<Move> redLegalMoves = new ArrayList<>();
+        Collection<Piece> blackPieces = new ArrayList<>();
         Collection<Move> blackLegalMoves = new ArrayList<>();
 
         for (Point point : points) {
@@ -84,6 +84,11 @@ public class Board {
 
         redPlayer = new RedPlayer(this, redPieces, redLegalMoves, blackLegalMoves);
         blackPlayer = new BlackPlayer(this, blackPieces, blackLegalMoves, redLegalMoves);
+    }
+
+    private void updatePlayers(PlayerInfo playerInfo) {
+        this.redPlayer = playerInfo.redPlayer;
+        this.blackPlayer = playerInfo.blackPlayer;
     }
 
     /**
@@ -159,6 +164,26 @@ public class Board {
 
         updatePlayers();
         currPlayer = currPlayer.getOpponent();
+    }
+
+    public void unmakeMove(Move move, PlayerInfo playerInfo) {
+        Piece movedPiece = move.getMovedPiece();
+        Optional<Piece> capturedPiece = move.getCapturedPiece();
+        Coordinate srcPosition = movedPiece.getPosition();
+        Coordinate destPosition = move.getDestPosition();
+
+        Point srcPoint = points.get(positionToIndex(srcPosition.getRow(), srcPosition.getCol()));
+        srcPoint.setPiece(movedPiece);
+        Point destPoint = points.get(positionToIndex(destPosition.getRow(), destPosition.getCol()));
+        destPoint.removePiece();
+        capturedPiece.ifPresent(destPoint::setPiece);
+
+        updatePlayers(playerInfo);
+        currPlayer = currPlayer.getOpponent();
+    }
+
+    public PlayerInfo getPlayerInfo() {
+        return new PlayerInfo(redPlayer, blackPlayer);
     }
 
     public boolean isLegalState() {
@@ -377,6 +402,16 @@ public class Board {
     @Override
     public int hashCode() {
         return Objects.hash(toString(), currPlayer.getAlliance());
+    }
+
+    public static class PlayerInfo {
+        RedPlayer redPlayer;
+        BlackPlayer blackPlayer;
+
+        private PlayerInfo(RedPlayer redPlayer, BlackPlayer blackPlayer) {
+            this.redPlayer = redPlayer;
+            this.blackPlayer = blackPlayer;
+        }
     }
 
     public static class BoardState {
