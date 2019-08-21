@@ -17,10 +17,11 @@ import static com.chess.engine.board.Board.*;
  * Represents a MiniMax algorithm.
  */
 abstract class MiniMax {
-// TODO: PVS, aspiration window, zobrist
+//TODO: quiescence, eval, zobrist
     static final int NEG_INF = Integer.MIN_VALUE + 1;
     static final int POS_INF = Integer.MAX_VALUE;
-    private static final int R = 3; // depth reduction for null move pruning
+    static final int ASP_WINDOW = 50;
+    private static final int R = 2; // depth reduction for null move pruning
 
     final Board board;
     final Collection<Move> legalMoves;
@@ -37,6 +38,24 @@ abstract class MiniMax {
      * @return The best move using the corresponding MiniMax algorithm.
      */
     public abstract Move search();
+
+    List<MoveEntry> alphaBetaRoot(List<MoveEntry> oldMoveEntries, int depth, int alpha, int beta) {
+        List<MoveEntry> newMoveEntries = new ArrayList<>();
+
+        for (MoveEntry moveEntry : oldMoveEntries) {
+            Move move = moveEntry.move;
+            board.makeMove(move);
+            if (board.isStateAllowed()) {
+                int val = -alphaBeta(board, depth - 1, -beta, -alpha, true);
+                alpha = Math.max(alpha, val);
+                newMoveEntries.add(new MoveEntry(move, val));
+            }
+            board.unmakeMove(move);
+        }
+        newMoveEntries.sort(MoveSorter.MOVE_ENTRY_COMPARATOR);
+
+        return Collections.unmodifiableList(newMoveEntries);
+    }
 
     int alphaBeta(Board board, int depth, int alpha, int beta, boolean allowNull) {
         int alphaOrig = alpha;
@@ -218,9 +237,9 @@ abstract class MiniMax {
 
             return cpValue2 - cpValue1;
         };
-        private static final Comparator<MoveEntry> MOVE_ENTRY_COMPARATOR = (e1, e2) -> {
-            if (e1.value != e2.value) {
-                return e2.value - e1.value;
+        static final Comparator<MoveEntry> MOVE_ENTRY_COMPARATOR = (e1, e2) -> {
+            if (e1.val != e2.val) {
+                return e2.val - e1.val;
             }
             return MOVE_COMPARATOR.compare(e1.move, e2.move);
         };
@@ -244,9 +263,7 @@ abstract class MiniMax {
          */
         static List<Move> simpleSort(Collection<Move> moves) {
             List<Move> sortedMoves = new ArrayList<>(moves);
-
             sortedMoves.sort(MOVE_COMPARATOR);
-
             return Collections.unmodifiableList(sortedMoves);
         }
     }
@@ -257,11 +274,11 @@ abstract class MiniMax {
     static class MoveEntry {
 
         final Move move;
-        final int value;
+        final int val;
 
-        MoveEntry(Move move, int value) {
+        MoveEntry(Move move, int val) {
             this.move = move;
-            this.value = value;
+            this.val = val;
         }
     }
 }

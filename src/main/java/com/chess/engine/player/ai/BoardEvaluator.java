@@ -55,7 +55,7 @@ class BoardEvaluator {
         return getPieceScoreDiff(board, boardStatus)
                 + getRelationScoreDiff(board, boardStatus)
                 + getTotalMobilityValue(board.getRedPlayer()) - getTotalMobilityValue(board.getBlackPlayer())
-                + (Table.getInstance().isAIRandomised() ? rand.nextInt(10) : 0);
+                + (Table.getInstance().isAIRandomised() ? rand.nextInt(5) : 0);
     }
 
     /**

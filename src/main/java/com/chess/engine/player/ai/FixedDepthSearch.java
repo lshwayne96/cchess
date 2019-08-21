@@ -22,6 +22,37 @@ public class FixedDepthSearch extends MiniMax {
     public Move search() {
         Move bestMove = null;
 
+        int alpha = NEG_INF;
+        int beta = POS_INF;
+        int currDepth = 1;
+        List<MoveEntry> sortedMoveEntries = new ArrayList<>();
+        for (Move move : MoveSorter.simpleSort(legalMoves)) {
+            sortedMoveEntries.add(new MoveEntry(move, 0));
+        }
+
+        while (currDepth <= searchDepth) {
+            sortedMoveEntries = alphaBetaRoot(sortedMoveEntries, currDepth, alpha, beta);
+            MoveEntry bestMoveEntry = sortedMoveEntries.get(0);
+            bestMove = bestMoveEntry.move;
+            int bestVal = bestMoveEntry.val;
+
+            if (bestVal <= alpha || bestVal >= beta) {
+                alpha = NEG_INF;
+                beta = POS_INF;
+                continue;
+            }
+            alpha = bestVal - ASP_WINDOW;
+            beta = bestVal + ASP_WINDOW;
+
+            currDepth++;
+        }
+
+        return bestMove;
+    }
+
+    public Move search1() {
+        Move bestMove = null;
+
         int currDepth = 1;
         List<Move> sortedMoves = MoveSorter.simpleSort(legalMoves);
 
