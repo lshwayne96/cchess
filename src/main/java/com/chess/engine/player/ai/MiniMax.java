@@ -17,11 +17,11 @@ import static com.chess.engine.board.Board.*;
  * Represents a MiniMax algorithm.
  */
 abstract class MiniMax {
-//TODO: quiescence, eval, zobrist
+//TODO: quiescence, zobrist
     static final int NEG_INF = Integer.MIN_VALUE + 1;
     static final int POS_INF = Integer.MAX_VALUE;
     static final int ASP_WINDOW = 50;
-    private static final int R = 2; // depth reduction for null move pruning
+    private static final int R = 3; // depth reduction for null move pruning
 
     final Board board;
     final Collection<Move> legalMoves;
@@ -55,6 +55,39 @@ abstract class MiniMax {
         newMoveEntries.sort(MoveSorter.MOVE_ENTRY_COMPARATOR);
 
         return Collections.unmodifiableList(newMoveEntries);
+    }
+
+    int alphaBeta1(Board board, int depth, int alpha, int beta) {
+        // evaluate board if ready
+        int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
+        if (depth <= 0) {
+            //return -quiescence(board, -beta, -alpha);
+            return BoardEvaluator.evaluate(board, depth) * color;
+        }
+        if (board.isGameOver()) {
+            return BoardEvaluator.getCheckmateValue(board, depth) * color;
+        }
+
+        // search all moves
+        int bestVal = NEG_INF;
+        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
+            board.makeMove(move);
+            if (board.isStateAllowed()) {
+                int val = -alphaBeta1(board, depth - 1, -beta, -alpha);
+                board.unmakeMove(move);
+                if (val > bestVal) {
+                    bestVal = val;
+                    alpha = Math.max(alpha, val);
+                }
+                if (val >= beta) {
+                    break;
+                }
+            } else {
+                board.unmakeMove(move);
+            }
+        }
+
+        return bestVal;
     }
 
     int alphaBeta(Board board, int depth, int alpha, int beta, boolean allowNull) {
