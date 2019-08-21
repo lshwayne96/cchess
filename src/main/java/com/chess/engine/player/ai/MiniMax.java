@@ -17,7 +17,7 @@ abstract class MiniMax {
 
     static final int NEG_INF = Integer.MIN_VALUE + 1;
     static final int POS_INF = Integer.MAX_VALUE;
-    private static final int R = 2; // depth reduction for null move pruning
+    private static final int R = 3; // depth reduction for null move pruning
 
     final Board currBoard;
     final List<Move> bannedMoves;
