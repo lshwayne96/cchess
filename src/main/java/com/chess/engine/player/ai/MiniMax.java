@@ -17,7 +17,7 @@ import static com.chess.engine.board.Board.*;
  * Represents a MiniMax algorithm.
  */
 abstract class MiniMax {
-//TODO: quiescence, zobrist
+//TODO: zobrist
     static final int NEG_INF = Integer.MIN_VALUE + 1;
     static final int POS_INF = Integer.MAX_VALUE;
     static final int ASP_WINDOW = 50;
@@ -57,39 +57,6 @@ abstract class MiniMax {
         return Collections.unmodifiableList(newMoveEntries);
     }
 
-    int alphaBeta1(Board board, int depth, int alpha, int beta) {
-        // evaluate board if ready
-        int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
-        if (depth <= 0) {
-            //return -quiescence(board, -beta, -alpha);
-            return BoardEvaluator.evaluate(board, depth) * color;
-        }
-        if (board.isGameOver()) {
-            return BoardEvaluator.getCheckmateValue(board, depth) * color;
-        }
-
-        // search all moves
-        int bestVal = NEG_INF;
-        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            board.makeMove(move);
-            if (board.isStateAllowed()) {
-                int val = -alphaBeta1(board, depth - 1, -beta, -alpha);
-                board.unmakeMove(move);
-                if (val > bestVal) {
-                    bestVal = val;
-                    alpha = Math.max(alpha, val);
-                }
-                if (val >= beta) {
-                    break;
-                }
-            } else {
-                board.unmakeMove(move);
-            }
-        }
-
-        return bestVal;
-    }
-
     int alphaBeta(Board board, int depth, int alpha, int beta, boolean allowNull) {
         int alphaOrig = alpha;
         Move bestMove = null;
@@ -119,8 +86,7 @@ abstract class MiniMax {
         // evaluate board if ready
         int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
         if (depth <= 0) {
-            //return -quiescence(board, -beta, -alpha);
-            return BoardEvaluator.evaluate(board, depth) * color;
+            return quiescence(board, -beta, -alpha);
         }
         if (board.isGameOver()) {
             return BoardEvaluator.getCheckmateValue(board, depth) * color;
@@ -189,18 +155,46 @@ abstract class MiniMax {
         return bestVal;
     }
 
-    private int quiescence(Board board, int alpha, int beta) {
+    int alphaBeta1(Board board, int depth, int alpha, int beta) {
         int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
-        int standPat = BoardEvaluator.evaluate(board, 0) * color;
-        if (-standPat >= beta || board.isQuiet()) {
-            return standPat;
+        if (depth <= 0) {
+            return quiescence(board, -beta, -alpha);
         }
-        alpha = Math.max(alpha, -standPat);
+        if (board.isGameOver()) {
+            return BoardEvaluator.getCheckmateValue(board, depth) * color;
+        }
 
         int bestVal = NEG_INF;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            if (!move.getCapturedPiece().isPresent()) break;
+            board.makeMove(move);
+            if (board.isStateAllowed()) {
+                int val = -alphaBeta1(board, depth - 1, -beta, -alpha);
+                board.unmakeMove(move);
+                if (val > bestVal) {
+                    bestVal = val;
+                    alpha = Math.max(alpha, val);
+                }
+                if (val >= beta) {
+                    break;
+                }
+            } else {
+                board.unmakeMove(move);
+            }
+        }
 
+        return bestVal;
+    }
+
+    private int quiescence(Board board, int alpha, int beta) {
+        int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
+        int bestVal = BoardEvaluator.evaluate(board, 0) * color;
+        alpha = Math.max(alpha, bestVal);
+        if (alpha >= beta) {
+            return bestVal;
+        }
+
+        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
+            if (!move.getCapturedPiece().isPresent()) break;
             board.makeMove(move);
             if (board.isStateAllowed()) {
                 int val = -quiescence(board, -beta, -alpha);

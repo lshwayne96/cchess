@@ -19,7 +19,7 @@ public class FixedDepthSearch extends MiniMax {
         this.searchDepth = searchDepth;
     }
 
-    public Move search1() {
+    public Move search() {
         Move bestMove = null;
 
         int alpha = NEG_INF;
@@ -44,13 +44,19 @@ public class FixedDepthSearch extends MiniMax {
             alpha = bestVal - ASP_WINDOW;
             beta = bestVal + ASP_WINDOW;
 
+            if (currDepth == searchDepth) {
+                for (MoveEntry entry : sortedMoveEntries) {
+                    System.out.println(entry.move.toString() + " " + entry.val);
+                }
+            }
+
             currDepth++;
         }
 
         return bestMove;
     }
 
-    public Move search() {
+    public Move search1() {
         Move bestMove = null;
 
         int currDepth = 1;
