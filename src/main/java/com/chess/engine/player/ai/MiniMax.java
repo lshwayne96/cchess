@@ -8,29 +8,23 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 /**
  * Represents a MiniMax algorithm.
  */
 abstract class MiniMax {
-// TODO: PVS, aspiration window, transposition table, quiescence
-    static final int R = 3; // depth reduction for null move pruning
+
     static final int NEG_INF = Integer.MIN_VALUE + 1;
     static final int POS_INF = Integer.MAX_VALUE;
-    static final int ASP_WINDOW = 50;
+    private static final int R = 2; // depth reduction for null move pruning
 
     final Board currBoard;
     final List<Move> bannedMoves;
-    final Map<Board, TTEntry> transTable;
 
     MiniMax(Board currBoard, List<Move> bannedMoves) {
         this.currBoard = currBoard;
         this.bannedMoves = bannedMoves;
-        transTable = new HashMap<>();
     }
 
     /**
@@ -40,26 +34,6 @@ abstract class MiniMax {
     public abstract Move search();
 
     int alphaBeta(Board board, int depth, int alpha, int beta, boolean allowNull) {
-        int alphaOrig = alpha;
-/*
-        // look up transposition table
-        TTEntry ttEntry = transTable.get(board);
-        if (ttEntry != null && ttEntry.depth >= depth) {
-            switch (ttEntry.flag) {
-                case EXACT:
-                    return ttEntry.value;
-                case LOWERBOUND:
-                    alpha = Math.max(alpha, ttEntry.value);
-                    break;
-                case UPPERBOUND:
-                    beta = Math.min(beta, ttEntry.value);
-                    break;
-            }
-            if (alpha >= beta) {
-                return ttEntry.value;
-            }
-        }*/
-
         // evaluate board if ready
         if (depth <= 0 || board.isGameOver()) {
             int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
@@ -90,42 +64,20 @@ abstract class MiniMax {
                 }
             }
         }
-/*
-        // store into transposition table if necessary
-        if (ttEntry == null || depth > ttEntry.depth) {
-            TTEntry.Flag flag;
-            if (bestVal <= alphaOrig) {
-                flag = TTEntry.Flag.UPPERBOUND;
-            } else if (bestVal >= beta) {
-                flag = TTEntry.Flag.LOWERBOUND;
-            } else {
-                flag = TTEntry.Flag.EXACT;
-            }
-            TTEntry newEntry = new TTEntry(depth, bestVal, flag);
-            transTable.put(board, newEntry);
-        }*/
 
         return bestVal;
     }
 
-    int min(Board board, int depth, int alpha, int beta, boolean allowNull) {
+    int min(Board board, int depth, int alpha, int beta) {
         if (depth <= 0 || board.isGameOver()) {
             return BoardEvaluator.evaluate(board, depth);
-        }
-
-        if (allowNull && !board.getCurrPlayer().isInCheck() && board.allowNullMove()) {
-            Board nextBoard = board.makeNullMove();
-            int val = max(nextBoard, depth - 1 - R, alpha, alpha + 1, false);
-            if (alpha >= val) {
-                return val;
-            }
         }
 
         int minValue = POS_INF;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isAllowed()) {
-                minValue = Math.min(minValue, max(transition.getNextBoard(), depth - 1, alpha, beta, true));
+                minValue = Math.min(minValue, max(transition.getNextBoard(), depth - 1, alpha, beta));
                 beta = Math.min(beta, minValue);
                 if (alpha >= beta) {
                     break;
@@ -136,24 +88,16 @@ abstract class MiniMax {
         return minValue;
     }
 
-    int max(Board board, int depth, int alpha, int beta, boolean allowNull) {
+    int max(Board board, int depth, int alpha, int beta) {
         if (depth <= 0 || board.isGameOver()) {
             return BoardEvaluator.evaluate(board, depth);
-        }
-
-        if (allowNull && !board.getCurrPlayer().isInCheck() && board.allowNullMove()) {
-            Board nextBoard = board.makeNullMove();
-            int val = min(nextBoard, depth - 1 - R, alpha, alpha + 1, false);
-            if (val >= beta) {
-                return val;
-            }
         }
 
         int maxValue = NEG_INF;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             MoveTransition transition = board.getCurrPlayer().makeMove(move);
             if (transition.getMoveStatus().isAllowed()) {
-                maxValue = Math.max(maxValue, min(transition.getNextBoard(), depth - 1, alpha, beta, true));
+                maxValue = Math.max(maxValue, min(transition.getNextBoard(), depth - 1, alpha, beta));
                 alpha = Math.max(alpha, maxValue);
                 if (alpha >= beta) {
                     break;
@@ -162,63 +106,6 @@ abstract class MiniMax {
         }
 
         return maxValue;
-    }
-
-    /**
-     * Represents a state containing a board and the depth at which it was evaluated.
-     */
-    static class BoardState {
-
-        final Board board;
-        final int depth;
-
-        BoardState(Board board, int depth) {
-            this.board = board;
-            this.depth = depth;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (!(obj instanceof BoardState)) {
-                return false;
-            }
-
-            BoardState other = (BoardState) obj;
-            return this.board.equals(other.board) && this.depth == other.depth;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(board, depth);
-        }
-    }
-
-    /**
-     * Represents a transposition table entry.
-     */
-    static class TTEntry {
-
-        private final int depth;
-        private final int value;
-        private final Flag flag;
-
-        private TTEntry(int depth, int value, Flag flag) {
-            this.depth = depth;
-            this.value = value;
-            this.flag = flag;
-        }
-
-        /**
-         * Represents the relationship of value with alpha/beta.
-         */
-        enum Flag {
-            EXACT,
-            LOWERBOUND,
-            UPPERBOUND
-        }
     }
 
     /**

@@ -44,8 +44,6 @@ public class FixedDepthSearch extends MiniMax {
         Move bestMove = null;
 
         int currDepth = 1;
-        int alpha = NEG_INF;
-        int beta = POS_INF;
         List<Move> sortedMoves = MoveSorter.simpleSort(currBoard.getCurrPlayer().getLegalMoves());
 
         while (currDepth <= searchDepth) {
@@ -57,7 +55,7 @@ public class FixedDepthSearch extends MiniMax {
                 MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
                 if (transition.getMoveStatus().isAllowed()) {
                     int val = -alphaBeta(transition.getNextBoard(), currDepth - 1,
-                            -beta, -alpha, true);
+                            NEG_INF, -bestVal, true);
                     if (val > bestVal) {
                         bestVal = val;
                         bestMove = move;
@@ -65,15 +63,6 @@ public class FixedDepthSearch extends MiniMax {
                     moveEntries.add(new MoveEntry(move, val));
                 }
             }
-
-            if (bestVal <= alpha || bestVal >= beta) {
-                alpha = NEG_INF;
-                beta = POS_INF;
-                continue;
-            }
-            alpha = bestVal - ASP_WINDOW;
-            beta = bestVal + ASP_WINDOW;
-
             sortedMoves = MoveSorter.valueSort(moveEntries);
             currDepth++;
         }
@@ -95,13 +84,13 @@ public class FixedDepthSearch extends MiniMax {
                 Board nextBoard = transition.getNextBoard();
                 int currValue;
                 if (currBoard.getCurrPlayer().getAlliance().isRed()) {
-                    currValue = min(nextBoard, searchDepth - 1, maxValue, minValue, true);
+                    currValue = min(nextBoard, searchDepth - 1, maxValue, minValue);
                     if (currValue > maxValue) {
                         maxValue = currValue;
                         bestMove = move;
                     }
                 } else {
-                    currValue = max(nextBoard, searchDepth - 1, maxValue, minValue, true);
+                    currValue = max(nextBoard, searchDepth - 1, maxValue, minValue);
                     if (currValue < minValue) {
                         minValue = currValue;
                         bestMove = move;

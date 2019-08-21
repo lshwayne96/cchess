@@ -11,7 +11,6 @@ import com.chess.engine.player.MoveTransition;
 import com.chess.engine.player.ai.FixedDepthSearch;
 import com.chess.engine.player.ai.FixedTimeSearch;
 import com.chess.engine.player.ai.MoveBook;
-import com.chess.engine.player.ai.QuiescenceSearch;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.event.EventHandler;
