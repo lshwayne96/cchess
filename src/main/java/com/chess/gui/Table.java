@@ -95,7 +95,7 @@ public class Table extends BorderPane {
     private Point sourcePoint;
     private Point destPoint;
     private Piece selectedPiece;
-    private List<Move> bannedMoves;
+    private Collection<Move> bannedMoves;
     private boolean highlightLegalMoves;
 
     private Table() {
@@ -689,7 +689,7 @@ public class Table extends BorderPane {
                         if (!move.isPresent()) return;
 
                         board.makeMove(move.get());
-                        if (board.isLegalState()) {
+                        if (board.isStateAllowed()) {
                             fullMovelog.addMove(move.get());
 
                             clearSelections();
@@ -775,7 +775,7 @@ public class Table extends BorderPane {
             for (Move move : pieceLegalMoves(board)) {
                 board.makeMove(move);
                 // check for suicidal move
-                if (!board.isLegalState()) {
+                if (!board.isStateAllowed()) {
                     board.unmakeMove(move);
                     continue;
                 }
@@ -881,13 +881,14 @@ public class Table extends BorderPane {
      */
     private static abstract class AIPlayer extends Task<Move> {
 
-        final List<Move> bannedMoves;
+        final Collection<Move> legalMoves;
         final Timer timer;
         TimerTask task;
 
         private AIPlayer() {
             timer = new Timer("AI Timer");
-            bannedMoves = new ArrayList<>(getInstance().bannedMoves);
+            legalMoves = new ArrayList<>(getInstance().board.getCurrPlayer().getLegalMoves());
+            legalMoves.removeAll(getInstance().bannedMoves);
         }
 
         /**
@@ -929,7 +930,7 @@ public class Table extends BorderPane {
             timer.schedule(task, AIObserver.MIN_TIME);
             startTime = System.currentTimeMillis();
             searchDepth = getInstance().gameSetup.getSearchDepth();
-            return new FixedDepthSearch(getInstance().board.getCopy(), bannedMoves, searchDepth).search();
+            return new FixedDepthSearch(getInstance().board.getCopy(), legalMoves, searchDepth).search();
         }
 
         /**
@@ -970,7 +971,7 @@ public class Table extends BorderPane {
             task = getTimerTask();
             searchTime = getInstance().gameSetup.getSearchTime();
             timer.schedule(task, searchTime * 1000);
-            return new FixedTimeSearch(getInstance().board.getCopy(), bannedMoves, this,
+            return new FixedTimeSearch(getInstance().board.getCopy(), legalMoves, this,
                     System.currentTimeMillis() + searchTime*1000).search();
         }
 

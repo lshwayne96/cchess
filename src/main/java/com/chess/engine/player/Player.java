@@ -12,7 +12,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import static com.chess.engine.board.Board.*;
 import static com.chess.engine.pieces.Piece.*;
 
 /**
@@ -93,14 +92,13 @@ public abstract class Player {
      * @return true if this player has been checkmated, false otherwise.
      */
     public boolean isInCheckmate() {
-        PlayerInfo playerInfo = board.getPlayerInfo();
         for (Move move : legalMoves) {
             board.makeMove(move);
-            if (board.isLegalState()) {
-                board.unmakeMove(move, playerInfo);
+            if (board.isStateAllowed()) {
+                board.unmakeMove(move);
                 return false;
             }
-            board.unmakeMove(move, playerInfo);
+            board.unmakeMove(move);
         }
         return true;
     }

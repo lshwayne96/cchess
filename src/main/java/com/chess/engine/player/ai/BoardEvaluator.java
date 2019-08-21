@@ -188,8 +188,10 @@ class BoardEvaluator {
         int[] scores = new int[2];
         Map<Piece, Collection<Move>> incomingAttacksMap = new HashMap<>();
         Map<Piece, Collection<Piece>> defendingPiecesMap = new HashMap<>();
+        Collection<Move> allLegalMoves = board.getAllLegalMoves();
+        Collection<Piece> allPieces = board.getAllPieces();
 
-        for (Move move : board.getAllLegalMoves()) {
+        for (Move move : allLegalMoves) {
             if (!move.getCapturedPiece().isPresent()) continue;
             Piece capturedPiece = move.getCapturedPiece().get();
             if (!incomingAttacksMap.containsKey(capturedPiece)) {
@@ -200,7 +202,7 @@ class BoardEvaluator {
                 incomingAttacksMap.get(capturedPiece).add(move);
             }
         }
-        for (Piece piece : board.getAllPieces()) {
+        for (Piece piece : allPieces) {
             for (Coordinate destPosition : piece.getDestPositions(board)) {
                 board.getPoint(destPosition).getPiece().ifPresent(p -> {
                     if (p.getAlliance().equals(piece.getAlliance())) {
@@ -216,7 +218,7 @@ class BoardEvaluator {
             }
         }
 
-        for (Piece piece : board.getAllPieces()) {
+        for (Piece piece : allPieces) {
             if (piece.getPieceType().equals(PieceType.GENERAL)) continue;
 
             Player player = piece.getAlliance().isRed() ? board.getRedPlayer() : board.getBlackPlayer();

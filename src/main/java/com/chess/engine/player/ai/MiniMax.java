@@ -17,18 +17,18 @@ import static com.chess.engine.board.Board.*;
  * Represents a MiniMax algorithm.
  */
 abstract class MiniMax {
-// TODO: PVS, aspiration window, zobrist, quiescence
-    static final int R = 3; // depth reduction for null move pruning
+// TODO: PVS, aspiration window, zobrist
     static final int NEG_INF = Integer.MIN_VALUE + 1;
     static final int POS_INF = Integer.MAX_VALUE;
+    private static final int R = 3; // depth reduction for null move pruning
 
     final Board board;
-    final List<Move> bannedMoves;
-    final Map<BoardState, TTEntry> transTable;
+    final Collection<Move> legalMoves;
+    private final Map<BoardState, TTEntry> transTable;
 
-    MiniMax(Board board, List<Move> bannedMoves) {
+    MiniMax(Board board, Collection<Move> legalMoves) {
         this.board = board;
-        this.bannedMoves = bannedMoves;
+        this.legalMoves = legalMoves;
         transTable = new HashMap<>();
     }
 
@@ -67,7 +67,8 @@ abstract class MiniMax {
         // evaluate board if ready
         int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
         if (depth <= 0) {
-            return BoardEvaluator.evaluate(board, depth);
+            //return -quiescence(board, -beta, -alpha);
+            return BoardEvaluator.evaluate(board, depth) * color;
         }
         if (board.isGameOver()) {
             return BoardEvaluator.getCheckmateValue(board, depth) * color;
@@ -75,9 +76,9 @@ abstract class MiniMax {
 
         // null move pruning if possible
         if (allowNull && board.allowNullMove()) {
-            board.passMove();
+            board.changeTurn();
             int val = -alphaBeta(board, depth - 1 - R, -beta, -beta + 1, false);
-            board.passMove();
+            board.changeTurn();
             if (val >= beta) {
                 return val;
             }
@@ -85,25 +86,25 @@ abstract class MiniMax {
 
         // search all moves
         int bestVal = NEG_INF;
-        PlayerInfo playerInfo = board.getPlayerInfo();
-
         if (bestMove != null) {
             board.makeMove(bestMove);
             int val = -alphaBeta(board, depth - 1, -beta, -alpha, true);
-            board.unmakeMove(bestMove, playerInfo);
+            board.unmakeMove(bestMove);
             bestVal = val;
             alpha = Math.max(alpha, val);
             if (val >= beta) {
                 return val;
             }
         }
-
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             if (move.equals(bestMove)) continue;
             board.makeMove(move);
-            if (board.isLegalState()) {
-                int val = -alphaBeta(board, depth - 1, -beta, -alpha, true);
-                board.unmakeMove(move, playerInfo);
+            if (board.isStateAllowed()) {
+                int val = -alphaBeta(board, depth - 1, -alpha - 1, -alpha, true);
+                if (val > alpha && val < beta) {
+                    val = -alphaBeta(board, depth - 1, -beta, -alpha, true);
+                }
+                board.unmakeMove(move);
                 if (val > bestVal) {
                     bestVal = val;
                     if (val > alphaOrig) {
@@ -115,7 +116,7 @@ abstract class MiniMax {
                     break;
                 }
             } else {
-                board.unmakeMove(move, playerInfo);
+                board.unmakeMove(move);
             }
         }
 
@@ -138,30 +139,33 @@ abstract class MiniMax {
 
     private int quiescence(Board board, int alpha, int beta) {
         int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
-        int standPat = -BoardEvaluator.evaluate(board, 0) * color;
-        if (standPat >= beta || board.isQuiet()) {
+        int standPat = BoardEvaluator.evaluate(board, 0) * color;
+        if (-standPat >= beta || board.isQuiet()) {
             return standPat;
         }
-        alpha = Math.max(alpha, standPat);
+        alpha = Math.max(alpha, -standPat);
 
-        PlayerInfo playerInfo = board.getPlayerInfo();
+        int bestVal = NEG_INF;
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             if (!move.getCapturedPiece().isPresent()) break;
 
             board.makeMove(move);
-            if (board.isLegalState()) {
+            if (board.isStateAllowed()) {
                 int val = -quiescence(board, -beta, -alpha);
-                board.unmakeMove(move, playerInfo);
+                board.unmakeMove(move);
                 if (val >= beta) {
                     return val;
                 }
-                alpha = Math.max(alpha, val);
+                if (val > bestVal) {
+                    bestVal = val;
+                    alpha = Math.max(alpha, val);
+                }
             } else {
-                board.unmakeMove(move, playerInfo);
+                board.unmakeMove(move);
             }
         }
 
-        return alpha;
+        return bestVal;
     }
 
     /**

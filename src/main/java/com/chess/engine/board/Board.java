@@ -36,14 +36,15 @@ public class Board {
     private static final int MIN_PIECES_NULLMOVE = 5;
 
     private final List<Point> points;
-    private RedPlayer redPlayer;
-    private BlackPlayer blackPlayer;
-    private Player currPlayer;
+    private final List<PlayerInfo> playerInfoHistory;
+    private PlayerInfo playerInfo;
+    private Alliance currTurn;
 
     private Board(Builder builder) {
         points = createBoard(builder);
-        updatePlayers();
-        currPlayer = builder.currTurn.choosePlayer(redPlayer, blackPlayer);
+        playerInfoHistory = new ArrayList<>();
+        playerInfo = generatePlayerInfo();
+        currTurn = builder.currTurn;
     }
 
     /**
@@ -64,7 +65,7 @@ public class Board {
         return Collections.unmodifiableList(points);
     }
 
-    private void updatePlayers() {
+    private PlayerInfo generatePlayerInfo() {
         Collection<Piece> redPieces = new ArrayList<>();
         Collection<Move> redLegalMoves = new ArrayList<>();
         Collection<Piece> blackPieces = new ArrayList<>();
@@ -82,13 +83,8 @@ public class Board {
             });
         }
 
-        redPlayer = new RedPlayer(this, redPieces, redLegalMoves, blackLegalMoves);
-        blackPlayer = new BlackPlayer(this, blackPieces, blackLegalMoves, redLegalMoves);
-    }
-
-    private void updatePlayers(PlayerInfo playerInfo) {
-        this.redPlayer = playerInfo.redPlayer;
-        this.blackPlayer = playerInfo.blackPlayer;
+        return new PlayerInfo(new RedPlayer(this, redPieces, redLegalMoves, blackLegalMoves),
+                new BlackPlayer(this, blackPieces, blackLegalMoves, redLegalMoves));
     }
 
     /**
@@ -146,8 +142,9 @@ public class Board {
         Point destPoint = points.get(positionToIndex(destPosition.getRow(), destPosition.getCol()));
         destPoint.setPiece(movedPiece.movePiece(move));
 
-        updatePlayers();
-        currPlayer = currPlayer.getOpponent();
+        playerInfoHistory.add(playerInfo);
+        playerInfo = generatePlayerInfo();
+        changeTurn();
     }
 
     public void unmakeMove(Move move) {
@@ -162,32 +159,17 @@ public class Board {
         destPoint.removePiece();
         capturedPiece.ifPresent(destPoint::setPiece);
 
-        updatePlayers();
-        currPlayer = currPlayer.getOpponent();
+        playerInfo = playerInfoHistory.isEmpty() ? generatePlayerInfo()
+                : playerInfoHistory.remove(playerInfoHistory.size() - 1);
+        changeTurn();
     }
 
-    public void unmakeMove(Move move, PlayerInfo playerInfo) {
-        Piece movedPiece = move.getMovedPiece();
-        Optional<Piece> capturedPiece = move.getCapturedPiece();
-        Coordinate srcPosition = movedPiece.getPosition();
-        Coordinate destPosition = move.getDestPosition();
-
-        Point srcPoint = points.get(positionToIndex(srcPosition.getRow(), srcPosition.getCol()));
-        srcPoint.setPiece(movedPiece);
-        Point destPoint = points.get(positionToIndex(destPosition.getRow(), destPosition.getCol()));
-        destPoint.removePiece();
-        capturedPiece.ifPresent(destPoint::setPiece);
-
-        updatePlayers(playerInfo);
-        currPlayer = currPlayer.getOpponent();
+    public void changeTurn() {
+        currTurn = currTurn.opposite();
     }
 
-    public PlayerInfo getPlayerInfo() {
-        return new PlayerInfo(redPlayer, blackPlayer);
-    }
-
-    public boolean isLegalState() {
-        return !currPlayer.getOpponent().isInCheck();
+    public boolean isStateAllowed() {
+        return !getCurrPlayer().getOpponent().isInCheck();
     }
 
     /**
@@ -197,7 +179,7 @@ public class Board {
      * @return A move, if any, corresponding to the given source and destination positions on this board.
      */
     public Optional<Move> getMove(Coordinate srcPosition, Coordinate destPosition) {
-        for (Move move : currPlayer.getLegalMoves()) {
+        for (Move move : getCurrPlayer().getLegalMoves()) {
             if (move.getMovedPiece().getPosition().equals(srcPosition)
                     && move.getDestPosition().equals(destPosition)) {
                 return Optional.of(move);
@@ -243,7 +225,7 @@ public class Board {
      * @return true if the game is over, false otherwise.
      */
     public boolean isGameOver() {
-        return currPlayer.isInCheckmate();
+        return getCurrPlayer().isInCheckmate();
     }
 
     /**
@@ -264,7 +246,7 @@ public class Board {
      * @return true if this board is quiet (current player has no capture moves), false otherwise.
      */
     public boolean isQuiet() {
-        for (Move move : currPlayer.getLegalMoves()) {
+        for (Move move : getCurrPlayer().getLegalMoves()) {
             if (move.getCapturedPiece().isPresent()) {
                 return false;
             }
@@ -273,11 +255,8 @@ public class Board {
     }
 
     public boolean allowNullMove() {
-        return !currPlayer.isInCheck() && currPlayer.getActivePieces().size() >= MIN_PIECES_NULLMOVE;
-    }
-
-    public void passMove() {
-        currPlayer = currPlayer.getOpponent();
+        return !getCurrPlayer().isInCheck()
+                && getCurrPlayer().getActivePieces().size() >= MIN_PIECES_NULLMOVE;
     }
 
     /**
@@ -291,7 +270,7 @@ public class Board {
             Optional<Piece> piece = point.getPiece();
             piece.ifPresent(p -> builder.putPiece(p.getMirrorPiece()));
         }
-        builder.setCurrTurn(currPlayer.getAlliance());
+        builder.setCurrTurn(currTurn);
 
         return builder.build();
     }
@@ -303,7 +282,7 @@ public class Board {
             Optional<Piece> piece = point.getPiece();
             piece.ifPresent(builder::putPiece);
         }
-        builder.setCurrTurn(currPlayer.getAlliance());
+        builder.setCurrTurn(currTurn);
 
         return builder.build();
     }
@@ -339,8 +318,8 @@ public class Board {
     public Collection<Piece> getAllPieces() {
         Collection<Piece> allPieces = new ArrayList<>();
 
-        allPieces.addAll(redPlayer.getActivePieces());
-        allPieces.addAll(blackPlayer.getActivePieces());
+        allPieces.addAll(getRedPlayer().getActivePieces());
+        allPieces.addAll(getBlackPlayer().getActivePieces());
 
         return allPieces;
     }
@@ -348,26 +327,26 @@ public class Board {
     public Collection<Move> getAllLegalMoves() {
         Collection<Move> allMoves = new ArrayList<>();
 
-        allMoves.addAll(redPlayer.getLegalMoves());
-        allMoves.addAll(blackPlayer.getLegalMoves());
+        allMoves.addAll(getRedPlayer().getLegalMoves());
+        allMoves.addAll(getBlackPlayer().getLegalMoves());
 
         return allMoves;
     }
 
     public Player getRedPlayer() {
-        return redPlayer;
+        return playerInfo.redPlayer;
     }
 
     public Player getBlackPlayer() {
-        return blackPlayer;
+        return playerInfo.blackPlayer;
     }
 
     public Player getCurrPlayer() {
-        return currPlayer;
+        return currTurn.isRed() ? getRedPlayer() : getBlackPlayer();
     }
 
     public BoardState getState() {
-        return new BoardState(toString(), currPlayer.getAlliance());
+        return new BoardState(toString(), currTurn);
     }
 
     @Override
@@ -385,9 +364,9 @@ public class Board {
         return sb.toString();
     }
 
-    public static class PlayerInfo {
-        RedPlayer redPlayer;
-        BlackPlayer blackPlayer;
+    private static class PlayerInfo {
+        private RedPlayer redPlayer;
+        private BlackPlayer blackPlayer;
 
         private PlayerInfo(RedPlayer redPlayer, BlackPlayer blackPlayer) {
             this.redPlayer = redPlayer;
