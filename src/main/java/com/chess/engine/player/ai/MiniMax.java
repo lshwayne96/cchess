@@ -23,12 +23,12 @@ abstract class MiniMax {
     static final int ASP_WINDOW = 50;
     private static final int R = 3; // depth reduction for null move pruning
 
-    final Board board;
+    final Board startBoard;
     final Collection<Move> legalMoves;
     private final Map<BoardState, TTEntry> transTable;
 
-    MiniMax(Board board, Collection<Move> legalMoves) {
-        this.board = board;
+    MiniMax(Board startBoard, Collection<Move> legalMoves) {
+        this.startBoard = startBoard;
         this.legalMoves = legalMoves;
         transTable = new HashMap<>();
     }
@@ -39,22 +39,27 @@ abstract class MiniMax {
      */
     public abstract Move search();
 
-    List<MoveEntry> alphaBetaRoot(List<MoveEntry> oldMoveEntries, int depth, int alpha, int beta) {
-        List<MoveEntry> newMoveEntries = new ArrayList<>();
-
+    MoveEntry alphaBetaRoot(List<MoveEntry> oldMoveEntries, List<MoveEntry> newMoveEntries,
+                            int depth, int alpha, int beta) {
+        MoveEntry bestMoveEntry = null;
+        int bestVal = NEG_INF;
         for (MoveEntry moveEntry : oldMoveEntries) {
             Move move = moveEntry.move;
-            board.makeMove(move);
-            if (board.isStateAllowed()) {
-                int val = -alphaBeta(board, depth - 1, -beta, -alpha, true);
-                alpha = Math.max(alpha, val);
+            startBoard.makeMove(move);
+            if (startBoard.isStateAllowed()) {
+                int val = -alphaBeta(startBoard, depth - 1, -beta, -alpha, true);
+                if (val > bestVal) {
+                    bestVal = val;
+                    bestMoveEntry = moveEntry;
+                    alpha = Math.max(alpha, val);
+                }
                 newMoveEntries.add(new MoveEntry(move, val));
             }
-            board.unmakeMove(move);
+            startBoard.unmakeMove(move);
         }
         newMoveEntries.sort(MoveSorter.MOVE_ENTRY_COMPARATOR);
 
-        return Collections.unmodifiableList(newMoveEntries);
+        return bestMoveEntry;
     }
 
     int alphaBeta(Board board, int depth, int alpha, int beta, boolean allowNull) {
@@ -158,7 +163,7 @@ abstract class MiniMax {
     int alphaBeta1(Board board, int depth, int alpha, int beta) {
         int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
         if (depth <= 0) {
-            return quiescence(board, -beta, -alpha);
+            return quiescence(board, alpha, beta);
         }
         if (board.isGameOver()) {
             return BoardEvaluator.getCheckmateValue(board, depth) * color;
@@ -189,7 +194,7 @@ abstract class MiniMax {
         int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
         int bestVal = BoardEvaluator.evaluate(board, 0) * color;
         alpha = Math.max(alpha, bestVal);
-        if (alpha >= beta) {
+        if (alpha >= beta || board.isQuiet()) {
             return bestVal;
         }
 

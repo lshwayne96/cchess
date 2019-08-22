@@ -354,6 +354,7 @@ public class Table extends BorderPane {
             if (!lgu.isValidFile()) {
                 showAlert(AlertType.ERROR, "Load", "Invalid file");
             } else {
+                clearSelections();
                 aiObserver.stopAI();
                 exitReplayMode();
 

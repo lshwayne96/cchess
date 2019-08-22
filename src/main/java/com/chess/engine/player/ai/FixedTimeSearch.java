@@ -25,8 +25,7 @@ public class FixedTimeSearch extends MiniMax {
         support.addPropertyChangeListener(fixedTimeAIPlayer);
     }
 
-    @Override
-    public Move search() {
+    public Move search1() {
         Move bestMove = null;
 
         int currDepth = 1;
@@ -36,9 +35,9 @@ public class FixedTimeSearch extends MiniMax {
             List<MoveEntry> moveEntries = new ArrayList<>();
             int bestVal = NEG_INF;
             for (Move move : sortedMoves) {
-                board.makeMove(move);
-                if (board.isStateAllowed()) {
-                    int val = -alphaBeta(board, currDepth - 1,
+                startBoard.makeMove(move);
+                if (startBoard.isStateAllowed()) {
+                    int val = -alphaBeta(startBoard, currDepth - 1,
                             NEG_INF, -bestVal, true);
                     if (val > bestVal) {
                         bestVal = val;
@@ -46,7 +45,7 @@ public class FixedTimeSearch extends MiniMax {
                     }
                     moveEntries.add(new MoveEntry(move, val));
                 }
-                board.unmakeMove(move);
+                startBoard.unmakeMove(move);
             }
             support.firePropertyChange("currbestmove", currDepth, bestMove);
             sortedMoves = MoveSorter.valueSort(moveEntries);
@@ -54,5 +53,38 @@ public class FixedTimeSearch extends MiniMax {
         }
 
         return bestMove;
+    }
+
+    public Move search() {
+        MoveEntry bestMoveEntry = null;
+
+        int alpha = NEG_INF;
+        int beta = POS_INF;
+        int currDepth = 1;
+        List<MoveEntry> oldMoveEntries = new ArrayList<>();
+        for (Move move : MoveSorter.simpleSort(legalMoves)) {
+            oldMoveEntries.add(new MoveEntry(move, 0));
+        }
+
+        while (System.currentTimeMillis() < endTime) {
+            List<MoveEntry> newMoveEntries = new ArrayList<>();
+            bestMoveEntry = alphaBetaRoot(oldMoveEntries, newMoveEntries, currDepth, alpha, beta);
+
+            int bestVal = bestMoveEntry.val;
+            if (bestVal <= alpha || bestVal >= beta) {
+                alpha = NEG_INF;
+                beta = POS_INF;
+                continue;
+            }
+            support.firePropertyChange("currbestmove", currDepth, bestMoveEntry.move);
+            alpha = bestVal - ASP_WINDOW;
+            beta = bestVal + ASP_WINDOW;
+
+            oldMoveEntries = newMoveEntries;
+            currDepth++;
+        }
+
+        assert bestMoveEntry != null;
+        return bestMoveEntry.move;
     }
 }

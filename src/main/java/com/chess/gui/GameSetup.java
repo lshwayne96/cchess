@@ -31,7 +31,7 @@ class GameSetup extends Dialog {
     private static final String AI_TEXT = "AI";
     private static final String FIXED_DEPTH_TEXT = "Fixed depth (levels)";
     private static final String FIXED_TIME_TEXT = "Fixed time (seconds)";
-    private static final int MIN_DEPTH = 2;
+    private static final int MIN_DEPTH = 1;
     private static final int MAX_DEPTH = 8;
     private static final int MIN_TIME = 1;
     private static final int MAX_TIME = 180;

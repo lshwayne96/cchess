@@ -20,22 +20,21 @@ public class FixedDepthSearch extends MiniMax {
     }
 
     public Move search() {
-        Move bestMove = null;
+        MoveEntry bestMoveEntry = null;
 
         int alpha = NEG_INF;
         int beta = POS_INF;
         int currDepth = 1;
-        List<MoveEntry> sortedMoveEntries = new ArrayList<>();
+        List<MoveEntry> oldMoveEntries = new ArrayList<>();
         for (Move move : MoveSorter.simpleSort(legalMoves)) {
-            sortedMoveEntries.add(new MoveEntry(move, 0));
+            oldMoveEntries.add(new MoveEntry(move, 0));
         }
 
         while (currDepth <= searchDepth) {
-            sortedMoveEntries = alphaBetaRoot(sortedMoveEntries, currDepth, alpha, beta);
-            MoveEntry bestMoveEntry = sortedMoveEntries.get(0);
-            bestMove = bestMoveEntry.move;
-            int bestVal = bestMoveEntry.val;
+            List<MoveEntry> newMoveEntries = new ArrayList<>();
+            bestMoveEntry = alphaBetaRoot(oldMoveEntries, newMoveEntries, currDepth, alpha, beta);
 
+            int bestVal = bestMoveEntry.val;
             if (bestVal <= alpha || bestVal >= beta) {
                 alpha = NEG_INF;
                 beta = POS_INF;
@@ -44,16 +43,12 @@ public class FixedDepthSearch extends MiniMax {
             alpha = bestVal - ASP_WINDOW;
             beta = bestVal + ASP_WINDOW;
 
-            if (currDepth == searchDepth) {
-                for (MoveEntry entry : sortedMoveEntries) {
-                    System.out.println(entry.move.toString() + " " + entry.val);
-                }
-            }
-
+            oldMoveEntries = newMoveEntries;
             currDepth++;
         }
 
-        return bestMove;
+        assert bestMoveEntry != null;
+        return bestMoveEntry.move;
     }
 
     public Move search1() {
@@ -66,38 +61,20 @@ public class FixedDepthSearch extends MiniMax {
             List<MoveEntry> moveEntries = new ArrayList<>();
             int bestVal = NEG_INF;
             for (Move move : sortedMoves) {
-                board.makeMove(move);
-                if (board.isStateAllowed()) {
-                    int val = -alphaBeta(board, currDepth - 1, NEG_INF, -bestVal, true);
+                startBoard.makeMove(move);
+                if (startBoard.isStateAllowed()) {
+                    int val = -alphaBeta(startBoard, currDepth - 1, NEG_INF, -bestVal, true);
                     if (val > bestVal) {
                         bestVal = val;
                         bestMove = move;
                     }
                     moveEntries.add(new MoveEntry(move, val));
                 }
-                board.unmakeMove(move);
+                startBoard.unmakeMove(move);
             }
+
             sortedMoves = MoveSorter.valueSort(moveEntries);
             currDepth++;
-        }
-
-        return bestMove;
-    }
-
-    public Move search2() {
-        Move bestMove = null;
-        int bestVal = NEG_INF;
-
-        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            board.makeMove(move);
-            if (board.isStateAllowed()) {
-                int val = -alphaBeta1(board, searchDepth - 1, NEG_INF, -bestVal);
-                if (val > bestVal) {
-                    bestVal = val;
-                    bestMove = move;
-                }
-            }
-            board.unmakeMove(move);
         }
 
         return bestMove;
