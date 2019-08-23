@@ -4,7 +4,6 @@ import com.chess.engine.board.Board;
 import com.chess.engine.board.Move;
 
 import java.beans.PropertyChangeSupport;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -18,8 +17,8 @@ public class FixedTimeSearch extends MiniMax {
     private final PropertyChangeSupport support;
     private final long endTime;
 
-    public FixedTimeSearch(Board board, Collection<Move> bannedMoves, FixedTimeAIPlayer fixedTimeAIPlayer, long endTime) {
-        super(board, bannedMoves);
+    public FixedTimeSearch(Board board, Collection<Move> legalMoves, FixedTimeAIPlayer fixedTimeAIPlayer, long endTime) {
+        super(board, legalMoves);
         this.endTime = endTime;
         support = new PropertyChangeSupport(this);
         support.addPropertyChangeListener(fixedTimeAIPlayer);
@@ -31,10 +30,7 @@ public class FixedTimeSearch extends MiniMax {
         int alpha = NEG_INF;
         int beta = POS_INF;
         int currDepth = 1;
-        List<MoveEntry> oldMoveEntries = new ArrayList<>();
-        for (Move move : MoveSorter.simpleSort(legalMoves)) {
-            oldMoveEntries.add(new MoveEntry(move, 0));
-        }
+        List<MoveEntry> oldMoveEntries = getLegalMoveEntries();
 
         while (System.currentTimeMillis() < endTime) {
             List<MoveEntry> newMoveEntries = alphaBetaRoot(oldMoveEntries, currDepth, alpha, beta);
@@ -46,8 +42,8 @@ public class FixedTimeSearch extends MiniMax {
                 beta = POS_INF;
                 continue;
             }
-            alpha = bestVal - ASP_WINDOW;
-            beta = bestVal + ASP_WINDOW;
+            alpha = bestVal - ASP;
+            beta = bestVal + ASP;
 
             support.firePropertyChange("currbestmove", currDepth, bestMoveEntry.move);
             oldMoveEntries = newMoveEntries;

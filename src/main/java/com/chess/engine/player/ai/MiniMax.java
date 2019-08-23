@@ -17,20 +17,24 @@ import static com.chess.engine.board.Board.*;
  * Represents a MiniMax algorithm.
  */
 abstract class MiniMax {
-//TODO: hashtable, move ordering, clear table, eval
+//TODO: hashtable, eval, PV
     static final int NEG_INF = Integer.MIN_VALUE + 1;
     static final int POS_INF = Integer.MAX_VALUE;
-    static final int ASP_WINDOW = 50;
+    static final int ASP = 50; // aspiration window
     private static final int R = 3; // depth reduction for null move pruning
 
-    final Board startBoard;
-    final Collection<Move> legalMoves;
+    private final Board startBoard;
+    private final List<Move> legalMoves;
     private final Map<Long, TTEntry> transTable;
+    int calls;
+    int hits;
 
     MiniMax(Board startBoard, Collection<Move> legalMoves) {
         this.startBoard = startBoard;
-        this.legalMoves = legalMoves;
+        this.legalMoves = MoveSorter.simpleSort(legalMoves);
         transTable = new HashMap<>();
+        calls = 0;
+        hits = 0;
     }
 
     /**
@@ -39,16 +43,33 @@ abstract class MiniMax {
      */
     public abstract Move search();
 
+    List<MoveEntry> getLegalMoveEntries() {
+        List<MoveEntry> legalMoveEntries = new ArrayList<>();
+        for (Move move : legalMoves) {
+            legalMoveEntries.add(new MoveEntry(move, 0));
+        }
+        return legalMoveEntries;
+    }
+
     List<MoveEntry> alphaBetaRoot(List<MoveEntry> oldMoveEntries, int depth, int alpha, int beta) {
         List<MoveEntry> newMoveEntries = new ArrayList<>();
         MoveEntry bestMoveEntry = null;
         int bestVal = NEG_INF;
+        int searchedMoves = 0;
 
         for (MoveEntry moveEntry : oldMoveEntries) {
             Move move = moveEntry.move;
             startBoard.makeMove(move);
             if (startBoard.isStateAllowed()) {
-                int val = -alphaBeta(startBoard, depth - 1, -beta, -alpha, true);
+                int val;
+                if (searchedMoves == 0) {
+                    val = -alphaBeta(startBoard, depth - 1, -beta, -alpha, true);
+                } else {
+                    val = -alphaBeta(startBoard, depth - 1, -alpha - 1, -alpha, true);
+                    if (val > alpha && val < beta) {
+                        val = -alphaBeta(startBoard, depth - 1, -beta, -alpha, true);
+                    }
+                }
                 if (val > bestVal) {
                     bestVal = val;
                     bestMoveEntry = moveEntry;
@@ -57,9 +78,11 @@ abstract class MiniMax {
                 newMoveEntries.add(new MoveEntry(move, val));
             }
             startBoard.unmakeMove(move);
+            searchedMoves++;
         }
         assert bestMoveEntry != null;
 
+        // sort new move entries and swap best entry to the front
         newMoveEntries.sort(MoveSorter.MOVE_ENTRY_COMPARATOR);
         int bestIndex = 0;
         for (int i = 0; i < newMoveEntries.size(); i++) {
@@ -73,14 +96,14 @@ abstract class MiniMax {
         return Collections.unmodifiableList(newMoveEntries);
     }
 
-    int alphaBeta(Board board, int depth, int alpha, int beta, boolean allowNull) {
+    private int alphaBeta(Board board, int depth, int alpha, int beta, boolean allowNull) {
         int alphaOrig = alpha;
         Move bestMove = null;
-
+calls++;
         // look up transposition table
         long zobristKey = board.getZobristKey();
         TTEntry ttEntry = transTable.get(zobristKey);
-        if (ttEntry != null) {
+        if (ttEntry != null) { hits++;
             bestMove = ttEntry.bestMove;
             if (ttEntry.depth >= depth) {
                 switch (ttEntry.flag) {
@@ -134,10 +157,16 @@ abstract class MiniMax {
             if (move.equals(bestMove)) continue;
             board.makeMove(move);
             if (board.isStateAllowed()) {
-                int val = -alphaBeta(board, depth - 1, -alpha - 1, -alpha, true);
-                if (val > alpha && val < beta) {
+                int val;
+                if (bestMove != null) {
+                    val = -alphaBeta(board, depth - 1, -alpha - 1, -alpha, true);
+                    if (val > alpha && val < beta) {
+                        val = -alphaBeta(board, depth - 1, -beta, -alpha, true);
+                    }
+                } else {
                     val = -alphaBeta(board, depth - 1, -beta, -alpha, true);
                 }
+
                 board.unmakeMove(move);
                 if (val > bestVal) {
                     bestVal = val;
@@ -166,36 +195,6 @@ abstract class MiniMax {
             }
             TTEntry newEntry = new TTEntry(depth, bestVal, flag, bestMove);
             transTable.put(zobristKey, newEntry);
-        }
-
-        return bestVal;
-    }
-
-    int alphaBeta1(Board board, int depth, int alpha, int beta) {
-        int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
-        if (depth <= 0) {
-            return quiescence(board, alpha, beta);
-        }
-        if (board.isGameOver()) {
-            return BoardEvaluator.getCheckmateValue(board, depth) * color;
-        }
-
-        int bestVal = NEG_INF;
-        for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            board.makeMove(move);
-            if (board.isStateAllowed()) {
-                int val = -alphaBeta1(board, depth - 1, -beta, -alpha);
-                board.unmakeMove(move);
-                if (val > bestVal) {
-                    bestVal = val;
-                    alpha = Math.max(alpha, val);
-                }
-                if (val >= beta) {
-                    break;
-                }
-            } else {
-                board.unmakeMove(move);
-            }
         }
 
         return bestVal;
@@ -288,21 +287,7 @@ abstract class MiniMax {
         };
 
         /**
-         * Sorts the given list of move entries in descending order of their calculated values.
-         */
-        static List<Move> valueSort(List<MoveEntry> moveEntries) {
-            List<Move> sortedMoves = new ArrayList<>();
-
-            moveEntries.sort(MOVE_ENTRY_COMPARATOR);
-            for (MoveEntry moveEntry : moveEntries) {
-                sortedMoves.add(moveEntry.move);
-            }
-
-            return Collections.unmodifiableList(sortedMoves);
-        }
-
-        /**
-         * Sorts the given collection of moves according to their captured piece values, otherwise moved piece values.
+         * Sorts the given collection of moves in the default way.
          */
         static List<Move> simpleSort(Collection<Move> moves) {
             List<Move> sortedMoves = new ArrayList<>(moves);
