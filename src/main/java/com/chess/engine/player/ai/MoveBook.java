@@ -14,24 +14,22 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
-import static com.chess.engine.board.Board.*;
-
 /**
  * Represents an opening book.
  */
 public class MoveBook {
 
     private static final String AI_MOVEBOOK_PATH = "/ai/movebook.txt";
-    private static final Map<BoardState, List<Move>> MOVE_BOOK = readMoveBook();
+    private static final Map<Long, List<Move>> MOVE_BOOK = readMoveBook();
     private static final Random rand = new Random();
 
     /**
-     * Returns a random move in the book, if any, based on the given board.
-     * @param boardState The current board state.
-     * @return A random move in the book, if any, based on the given board.
+     * Returns a random move in the book, if any, based on the given zobrist key.
+     * @param zobristKey The zobrist key of the board.
+     * @return A random move in the book, if any, based on the given zobrist key.
      */
-    public static Optional<Move> getRandomMove(BoardState boardState) {
-        List<Move> moves = MOVE_BOOK.get(boardState);
+    public static Optional<Move> getRandomMove(long zobristKey) {
+        List<Move> moves = MOVE_BOOK.get(zobristKey);
         if (moves == null) {
             return Optional.empty();
         }
@@ -41,8 +39,8 @@ public class MoveBook {
     /**
      * Reads the text file containing moves into a map.
      */
-    private static Map<BoardState, List<Move>> readMoveBook() {
-        Map<BoardState, List<Move>> boardToMoves = new HashMap<>();
+    private static Map<Long, List<Move>> readMoveBook() {
+        Map<Long, List<Move>> boardToMoves = new HashMap<>();
         Board board = Board.initialiseBoard();
         String str;
 
@@ -54,10 +52,10 @@ public class MoveBook {
                     continue;
                 }
 
-                BoardState boardState = board.getState();
+                long zobristKey = board.getZobristKey();
                 Optional<Move> move = Move.stringToMove(board, str);
                 if (move.isPresent()) {
-                    List<Move> currList = boardToMoves.get(board.getState());
+                    List<Move> currList = boardToMoves.get(zobristKey);
                     if (currList != null) {
                         if (!currList.contains(move.get())) {
                             currList.add(move.get());
@@ -65,13 +63,13 @@ public class MoveBook {
                     } else {
                         List<Move> newList = new ArrayList<>();
                         newList.add(move.get());
-                        boardToMoves.put(boardState, newList);
+                        boardToMoves.put(zobristKey, newList);
                     }
 
                     Board mirroredBoard = board.getMirrorBoard();
-                    BoardState mirroredBoardState = mirroredBoard.getState();
+                    long mirroredZobristKey = mirroredBoard.getZobristKey();
                     Move mirroredMove = move.get().getMirroredMove();
-                    List<Move> currListMirrored = boardToMoves.get(mirroredBoardState);
+                    List<Move> currListMirrored = boardToMoves.get(mirroredZobristKey);
                     if (currListMirrored != null) {
                         if (!currListMirrored.contains(mirroredMove)) {
                             currListMirrored.add(mirroredMove);
@@ -79,7 +77,7 @@ public class MoveBook {
                     } else {
                         List<Move> newListMirrored = new ArrayList<>();
                         newListMirrored.add(mirroredMove);
-                        boardToMoves.put(mirroredBoardState, newListMirrored);
+                        boardToMoves.put(mirroredZobristKey, newListMirrored);
                     }
                 } else {
                     continue;

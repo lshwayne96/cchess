@@ -7,11 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import static com.chess.engine.board.Board.*;
 
 /**
  * Represents a MiniMax algorithm.
@@ -22,17 +18,18 @@ abstract class MiniMax {
     static final int POS_INF = Integer.MAX_VALUE;
     static final int ASP = 50; // aspiration window
     private static final int R = 3; // depth reduction for null move pruning
+    private static final int TT_SIZE = 1000003;
 
     private final Board startBoard;
     private final List<Move> legalMoves;
-    private final Map<Long, TTEntry> transTable;
+    private final TTable tTable;
     int calls;
     int hits;
 
     MiniMax(Board startBoard, Collection<Move> legalMoves) {
         this.startBoard = startBoard;
         this.legalMoves = MoveSorter.simpleSort(legalMoves);
-        transTable = new HashMap<>();
+        tTable = new TTable();
         calls = 0;
         hits = 0;
     }
@@ -102,7 +99,7 @@ abstract class MiniMax {
 calls++;
         // look up transposition table
         long zobristKey = board.getZobristKey();
-        TTEntry ttEntry = transTable.get(zobristKey);
+        TTEntry ttEntry = tTable.getEntry(zobristKey);
         if (ttEntry != null) { hits++;
             bestMove = ttEntry.bestMove;
             if (ttEntry.depth >= depth) {
@@ -193,8 +190,7 @@ calls++;
             } else {
                 flag = TTEntry.Flag.EXACT;
             }
-            TTEntry newEntry = new TTEntry(depth, bestVal, flag, bestMove);
-            transTable.put(zobristKey, newEntry);
+            tTable.storeEntry(new TTEntry(zobristKey, depth, bestVal, flag, bestMove));
         }
 
         return bestVal;
@@ -229,17 +225,44 @@ calls++;
         return bestVal;
     }
 
+    private static class TTable {
+
+        private final TTEntry[] arr;
+
+        private TTable() {
+            arr = new TTEntry[TT_SIZE];
+        }
+
+        private TTEntry getEntry(long zobristKey) {
+            int index = (int) Math.abs(zobristKey % TT_SIZE);
+            TTEntry entry = arr[index];
+            if (entry != null && entry.zobristKey == zobristKey) {
+                return entry;
+            } else {
+                return null;
+            }
+        }
+
+        private void storeEntry(TTEntry entry) {
+            if (entry == null) return;
+            int index = (int) Math.abs(entry.zobristKey % TT_SIZE);
+            arr[index] = entry;
+        }
+    }
+
     /**
      * Represents a transposition table entry.
      */
-    static class TTEntry {
+    private static class TTEntry {
 
+        private final long zobristKey;
         private final int depth;
         private final int val;
         private final Flag flag;
         private final Move bestMove;
 
-        private TTEntry(int depth, int val, Flag flag, Move bestMove) {
+        private TTEntry(long zobristKey, int depth, int val, Flag flag, Move bestMove) {
+            this.zobristKey = zobristKey;
             this.depth = depth;
             this.val = val;
             this.flag = flag;
