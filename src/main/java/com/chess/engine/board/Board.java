@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 
 /**
  * Represents a Chinese Chess board.
@@ -34,17 +35,20 @@ public class Board {
     private static final int MAX_PIECES_MIDGAME = 30;
     private static final int MAX_ATTACKING_UNITS_ENDGAME = 8;
     private static final int MIN_PIECES_NULLMOVE = 5;
+    private static final Zobrist ZOBRIST = new Zobrist();
 
     private final List<Point> points;
     private final List<PlayerInfo> playerInfoHistory;
     private PlayerInfo playerInfo;
     private Alliance currTurn;
+    private long zobristKey;
 
     private Board(Builder builder) {
         points = createBoard(builder);
         playerInfoHistory = new ArrayList<>();
         playerInfo = generatePlayerInfo();
         currTurn = builder.currTurn;
+        zobristKey = ZOBRIST.getKey(points, currTurn);
     }
 
     /**
@@ -137,14 +141,15 @@ public class Board {
         Coordinate srcPosition = movedPiece.getPosition();
         Coordinate destPosition = move.getDestPosition();
 
-        Point srcPoint = points.get(positionToIndex(srcPosition.getRow(), srcPosition.getCol()));
+        Point srcPoint = points.get(positionToIndex(srcPosition));
         srcPoint.removePiece();
-        Point destPoint = points.get(positionToIndex(destPosition.getRow(), destPosition.getCol()));
+        Point destPoint = points.get(positionToIndex(destPosition));
         destPoint.setPiece(movedPiece.movePiece(move));
 
         playerInfoHistory.add(playerInfo);
         playerInfo = generatePlayerInfo();
         changeTurn();
+        zobristKey = ZOBRIST.updateKey(zobristKey, move);
     }
 
     public void unmakeMove(Move move) {
@@ -153,19 +158,21 @@ public class Board {
         Coordinate srcPosition = movedPiece.getPosition();
         Coordinate destPosition = move.getDestPosition();
 
-        Point srcPoint = points.get(positionToIndex(srcPosition.getRow(), srcPosition.getCol()));
+        Point srcPoint = points.get(positionToIndex(srcPosition));
         srcPoint.setPiece(movedPiece);
-        Point destPoint = points.get(positionToIndex(destPosition.getRow(), destPosition.getCol()));
+        Point destPoint = points.get(positionToIndex(destPosition));
         destPoint.removePiece();
         capturedPiece.ifPresent(destPoint::setPiece);
 
         playerInfo = playerInfoHistory.isEmpty() ? generatePlayerInfo()
                 : playerInfoHistory.remove(playerInfoHistory.size() - 1);
         changeTurn();
+        zobristKey = ZOBRIST.updateKey(zobristKey, move);
     }
 
     public void changeTurn() {
         currTurn = currTurn.opposite();
+        zobristKey ^= ZOBRIST.side;
     }
 
     public boolean isStateAllowed() {
@@ -293,7 +300,11 @@ public class Board {
      * @return The point on this board with the given position.
      */
     public Point getPoint(Coordinate position) {
-        return points.get(positionToIndex(position.getRow(), position.getCol()));
+        return points.get(positionToIndex(position));
+    }
+
+    public long getZobristKey() {
+        return zobristKey;
     }
 
     /**
@@ -313,6 +324,10 @@ public class Board {
      */
     private static int positionToIndex(int row, int col) {
         return row * NUM_COLS + col;
+    }
+
+    private static int positionToIndex(Coordinate position) {
+        return positionToIndex(position.getRow(), position.getCol());
     }
 
     public Collection<Piece> getAllPieces() {
@@ -374,7 +389,65 @@ public class Board {
         }
     }
 
+    private static class Zobrist {
+
+        private final long[][][] pieces;
+        private final long side;
+
+        private Zobrist() {
+            Random rand = new Random();
+            pieces = new long[7][2][90];
+            for (int i = 0; i < 7; i++) {
+                for (int j = 0; j < 2; j++) {
+                    for (int k = 0; k < 90; k++) {
+                        pieces[i][j][k] = rand.nextLong();
+                    }
+                }
+            }
+            side = rand.nextLong();
+        }
+
+        private long getPieceHash(Piece piece) {
+            int pieceIndex = piece.getPieceType().ordinal();
+            int sideIndex = piece.getAlliance().isRed() ? 0 : 1;
+            int posIndex = positionToIndex(piece.getPosition());
+
+            return pieces[pieceIndex][sideIndex][posIndex];
+        }
+
+        private long getKey(List<Point> points, Alliance currTurn) {
+            long key = 0;
+
+            for (Point point : points) {
+                if (!point.isEmpty()) {
+                    key ^= getPieceHash(point.getPiece().get());
+                }
+            }
+            if (!currTurn.isRed()) {
+                key ^= side;
+            }
+
+            return key;
+        }
+
+        private long updateKey(long key, Move move) {
+            Piece movedPiece = move.getMovedPiece();
+            Piece destPiece = movedPiece.movePiece(move);
+            Optional<Piece> capturedPiece = move.getCapturedPiece();
+
+            long movedPieceHash = getPieceHash(movedPiece);
+            long destPieceHash = getPieceHash(destPiece);
+            key ^= movedPieceHash ^ destPieceHash;
+            if (capturedPiece.isPresent()) {
+                key ^= getPieceHash(capturedPiece.get());
+            }
+
+            return key;
+        }
+    }
+
     public static class BoardState {
+
         private String string;
         private Alliance currTurn;
 

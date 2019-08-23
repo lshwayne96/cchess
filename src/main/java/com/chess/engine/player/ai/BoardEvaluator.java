@@ -35,14 +35,13 @@ class BoardEvaluator {
     private static final int CHARIOT_ZERO_ADVISOR_BONUS = 350;
 
     /**
-     * Returns the heuristic value of the given board at the current search depth.
+     * Returns the heuristic value of the given board.
      * The higher the value, the better for the red player.
      * @param board The current board.
-     * @param depth The current search depth.
-     * @return The heuristic value of the given board at the current search depth.
+     * @return The heuristic value of the given board.
      */
-    static int evaluate(Board board, int depth) {
-        return board.isGameOver() ? getCheckmateValue(board, depth) : evaluate(board);
+    static int evaluate(Board board) {
+        return board.isGameOver() ? getCheckmateValue(board, 0) : getScoreDiff(board);
     }
 
     static int getCheckmateValue(Board board, int depth) {
@@ -50,12 +49,12 @@ class BoardEvaluator {
                 ? (-1 * CHECKMATE_VALUE) * (depth + 1) : CHECKMATE_VALUE * (depth + 1);
     }
 
-    private static int evaluate(Board board) {
+    private static int getScoreDiff(Board board) {
         BoardStatus boardStatus = board.getStatus();
         return getPieceScoreDiff(board, boardStatus)
                 + getRelationScoreDiff(board, boardStatus)
                 + getTotalMobilityValue(board.getRedPlayer()) - getTotalMobilityValue(board.getBlackPlayer())
-                + (Table.getInstance().isAIRandomised() ? rand.nextInt(5) : 0);
+                + (Table.getInstance().isAIRandomised() ? rand.nextInt(10) : 0);
     }
 
     /**

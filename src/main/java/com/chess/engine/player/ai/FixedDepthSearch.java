@@ -31,8 +31,8 @@ public class FixedDepthSearch extends MiniMax {
         }
 
         while (currDepth <= searchDepth) {
-            List<MoveEntry> newMoveEntries = new ArrayList<>();
-            bestMoveEntry = alphaBetaRoot(oldMoveEntries, newMoveEntries, currDepth, alpha, beta);
+            List<MoveEntry> newMoveEntries = alphaBetaRoot(oldMoveEntries, currDepth, alpha, beta);
+            bestMoveEntry = newMoveEntries.get(0);
 
             int bestVal = bestMoveEntry.val;
             if (bestVal <= alpha || bestVal >= beta) {

@@ -17,7 +17,7 @@ import static com.chess.engine.board.Board.*;
  * Represents a MiniMax algorithm.
  */
 abstract class MiniMax {
-//TODO: zobrist
+//TODO: hashtable, move ordering, clear table, eval
     static final int NEG_INF = Integer.MIN_VALUE + 1;
     static final int POS_INF = Integer.MAX_VALUE;
     static final int ASP_WINDOW = 50;
@@ -25,7 +25,7 @@ abstract class MiniMax {
 
     final Board startBoard;
     final Collection<Move> legalMoves;
-    private final Map<BoardState, TTEntry> transTable;
+    private final Map<Long, TTEntry> transTable;
 
     MiniMax(Board startBoard, Collection<Move> legalMoves) {
         this.startBoard = startBoard;
@@ -39,10 +39,11 @@ abstract class MiniMax {
      */
     public abstract Move search();
 
-    MoveEntry alphaBetaRoot(List<MoveEntry> oldMoveEntries, List<MoveEntry> newMoveEntries,
-                            int depth, int alpha, int beta) {
+    List<MoveEntry> alphaBetaRoot(List<MoveEntry> oldMoveEntries, int depth, int alpha, int beta) {
+        List<MoveEntry> newMoveEntries = new ArrayList<>();
         MoveEntry bestMoveEntry = null;
         int bestVal = NEG_INF;
+
         for (MoveEntry moveEntry : oldMoveEntries) {
             Move move = moveEntry.move;
             startBoard.makeMove(move);
@@ -57,9 +58,19 @@ abstract class MiniMax {
             }
             startBoard.unmakeMove(move);
         }
-        newMoveEntries.sort(MoveSorter.MOVE_ENTRY_COMPARATOR);
+        assert bestMoveEntry != null;
 
-        return bestMoveEntry;
+        newMoveEntries.sort(MoveSorter.MOVE_ENTRY_COMPARATOR);
+        int bestIndex = 0;
+        for (int i = 0; i < newMoveEntries.size(); i++) {
+            if (newMoveEntries.get(i).move.equals(bestMoveEntry.move)) {
+                bestIndex = i;
+                break;
+            }
+        }
+        Collections.swap(newMoveEntries, 0, bestIndex);
+
+        return Collections.unmodifiableList(newMoveEntries);
     }
 
     int alphaBeta(Board board, int depth, int alpha, int beta, boolean allowNull) {
@@ -67,8 +78,8 @@ abstract class MiniMax {
         Move bestMove = null;
 
         // look up transposition table
-        BoardState boardState = board.getState();
-        TTEntry ttEntry = transTable.get(boardState);
+        long zobristKey = board.getZobristKey();
+        TTEntry ttEntry = transTable.get(zobristKey);
         if (ttEntry != null) {
             bestMove = ttEntry.bestMove;
             if (ttEntry.depth >= depth) {
@@ -154,7 +165,7 @@ abstract class MiniMax {
                 flag = TTEntry.Flag.EXACT;
             }
             TTEntry newEntry = new TTEntry(depth, bestVal, flag, bestMove);
-            transTable.put(boardState, newEntry);
+            transTable.put(zobristKey, newEntry);
         }
 
         return bestVal;
@@ -192,7 +203,7 @@ abstract class MiniMax {
 
     private int quiescence(Board board, int alpha, int beta) {
         int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
-        int bestVal = BoardEvaluator.evaluate(board, 0) * color;
+        int bestVal = BoardEvaluator.evaluate(board) * color;
         alpha = Math.max(alpha, bestVal);
         if (alpha >= beta || board.isQuiet()) {
             return bestVal;
