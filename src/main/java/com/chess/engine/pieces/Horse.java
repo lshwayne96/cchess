@@ -68,6 +68,7 @@ public class Horse extends Piece {
      * @return true if this horse is in one of the starting positions, false otherwise.
      */
     public boolean isInStartingPosition() {
-        return alliance.isRed() ? STARTING_POSITIONS_RED.contains(position) : STARTING_POSITIONS_BLACK.contains(position);
+        return alliance.isRed() ? STARTING_POSITIONS_RED.contains(position)
+                : STARTING_POSITIONS_BLACK.contains(position);
     }
 }

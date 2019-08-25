@@ -106,7 +106,7 @@ public abstract class Piece {
      */
     public int getPositionValue() {
         return alliance.isRed() ? pieceType.positionValues[position.getRow()][position.getCol()]
-                : pieceType.positionValues[Board.NUM_ROWS - position.getRow() - 1][Board.NUM_COLS - position.getCol() - 1];
+                : pieceType.positionValues[Board.NUM_ROWS-position.getRow()-1][Board.NUM_COLS-position.getCol()-1];
     }
 
     @Override
@@ -142,20 +142,20 @@ public abstract class Piece {
      */
     public enum PieceType {
 
-        SOLDIER("S", true,
-                100, 150, 200, 30, 3, POSITION_VALUES_SOLDIER),
-        ADVISOR("A", false,
-                200, 225, 250, 2, 4, POSITION_VALUES_ADVISOR),
-        ELEPHANT("E", false,
-                200, 225, 250, 2, 4, POSITION_VALUES_ELEPHANT),
-        HORSE("H", true,
-                450, 500, 550, 24, 2, POSITION_VALUES_HORSE),
-        CANNON("C", true,
-                500, 525, 550, 8, 2, POSITION_VALUES_CANNON),
-        CHARIOT("R", true,
-                1000, 1000, 1000, 12, 1, POSITION_VALUES_CHARIOT),
-        GENERAL("G", false,
-                5000, 5000, 5000, 0, 5, POSITION_VALUES_GENERAL);
+        SOLDIER("S", true, 100, 150, 200, 30,
+                3, POSITION_VALUES_SOLDIER),
+        ADVISOR("A", false, 200, 225, 250, 2,
+                4, POSITION_VALUES_ADVISOR),
+        ELEPHANT("E", false, 200, 225, 250, 2,
+                4, POSITION_VALUES_ELEPHANT),
+        HORSE("H", true, 450, 500, 550, 24,
+                2, POSITION_VALUES_HORSE),
+        CANNON("C", true, 500, 525, 550, 8,
+                2, POSITION_VALUES_CANNON),
+        CHARIOT("R", true, 1000, 1000, 1000, 12,
+                1, POSITION_VALUES_CHARIOT),
+        GENERAL("G", false, 5000, 5000, 5000, 0,
+                5, POSITION_VALUES_GENERAL);
 
         private final String abbrev;
         private final boolean isAttacking;

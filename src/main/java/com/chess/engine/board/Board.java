@@ -334,7 +334,7 @@ public class Board {
      * @param position The position to mirror.
      * @return The mirrored version of the given position.
      */
-    public static Coordinate getMirroredPosition(Coordinate position) {
+    public static Coordinate getMirrorPosition(Coordinate position) {
         return new Coordinate(position.getRow(), NUM_COLS - 1 - position.getCol());
     }
 

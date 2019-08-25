@@ -18,6 +18,7 @@ public class FixedDepthSearch extends MiniMax {
         this.searchDepth = searchDepth;
     }
 
+    @Override
     public Move search() {
         MoveEntry bestMoveEntry = null;
 

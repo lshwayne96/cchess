@@ -71,8 +71,8 @@ public class MoveBook {
                     // store mirrored version of move
                     Board mirrorBoard = board.getMirrorBoard();
                     long mirrorZobristKey = mirrorBoard.getZobristKey();
-                    Coordinate mirrorSrcPosition = Board.getMirroredPosition(move.get().getMovedPiece().getPosition());
-                    Coordinate mirrorDestPosition = Board.getMirroredPosition(move.get().getDestPosition());
+                    Coordinate mirrorSrcPosition = Board.getMirrorPosition(move.get().getMovedPiece().getPosition());
+                    Coordinate mirrorDestPosition = Board.getMirrorPosition(move.get().getDestPosition());
                     Move mirrorMove = mirrorBoard.getMove(mirrorSrcPosition, mirrorDestPosition).get();
                     List<Move> mirrorCurrList = boardToMoves.get(mirrorZobristKey);
                     if (mirrorCurrList != null) {

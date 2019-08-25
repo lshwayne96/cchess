@@ -22,7 +22,8 @@ class HelpWindow extends Dialog {
         List<Node> nodes = new ArrayList<>();
 
         Label playHeader = GuiUtil.getHeader("Play mode");
-        Label lmbLabel = new Label("\u2022 LMB \u2014 Select piece to move | Choose destination (green dot) for selected piece");
+        Label lmbLabel = new Label("\u2022 LMB \u2014 Select piece to move | " +
+                "Choose destination (green dot) for selected piece");
         Label rmbLabel = new Label("\u2022 RMB \u2014 Cancel piece selection");
         Label replayHeader = GuiUtil.getHeader("Replay mode");
         Label prevLabel = new Label("\u2022 Left single arrow \u2014 Go to previous move");
@@ -31,9 +32,12 @@ class HelpWindow extends Dialog {
         Label endLabel = new Label("\u2022 Right double arrow \u2014 Go to last move");
         Label noteHeader = GuiUtil.getHeader("Notes");
         Label note1 = new Label("\u2022 Click the REPLAY button to toggle between Play and Replay mode");
-        Label note2 = new Label("\u2022 Replay mode can also be activated by clicking on a move in the move history");
-        Label note3 = new Label("\u2022 While in Replay mode, all controls from Play mode are disabled (and vice versa)");
-        Label note4 = new Label("\u2022 Starting/loading a new game or undoing a turn/move will automatically exit Replay mode");
+        Label note2 = new Label("\u2022 Replay mode can also be activated " +
+                "by clicking on a move in the move history");
+        Label note3 = new Label("\u2022 While in Replay mode, " +
+                "all controls from Play mode are disabled (and vice versa)");
+        Label note4 = new Label("\u2022 Starting/loading a new game or undoing a turn/move " +
+                "will automatically exit Replay mode");
         Label note5 = new Label("\u2022 Entering Setup or Replay mode will stop any thinking AI");
 
         ButtonType close = new ButtonType("Close", ButtonBar.ButtonData.CANCEL_CLOSE);

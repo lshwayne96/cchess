@@ -17,13 +17,15 @@ public class FixedTimeSearch extends MiniMax {
     private final PropertyChangeSupport support;
     private final long endTime;
 
-    public FixedTimeSearch(Board board, Collection<Move> legalMoves, FixedTimeAIPlayer fixedTimeAIPlayer, long endTime) {
+    public FixedTimeSearch(Board board, Collection<Move> legalMoves,
+                           FixedTimeAIPlayer fixedTimeAIPlayer, long endTime) {
         super(board, legalMoves, true);
         this.endTime = endTime;
         support = new PropertyChangeSupport(this);
         support.addPropertyChangeListener(fixedTimeAIPlayer);
     }
 
+    @Override
     public Move search() {
         MoveEntry bestMoveEntry = null;
 

@@ -58,6 +58,7 @@ public class Chariot extends Piece {
      * @return true if this chariot is in one of the starting positions, false otherwise.
      */
     public boolean isInStartingPosition() {
-        return alliance.isRed() ? STARTING_POSITIONS_RED.contains(position) : STARTING_POSITIONS_BLACK.contains(position);
+        return alliance.isRed() ? STARTING_POSITIONS_RED.contains(position)
+                : STARTING_POSITIONS_BLACK.contains(position);
     }
 }

@@ -170,9 +170,6 @@ abstract class MiniMax {
             bestVal = val;
             alpha = Math.max(alpha, val);
             if (val >= beta) {
-                if (depth > ttEntry.depth) {
-                    tTable.storeEntry(new TTEntry(zobristKey, depth, bestVal, Flag.LOWERBOUND, bestMove));
-                }
                 return val;
             }
         }
