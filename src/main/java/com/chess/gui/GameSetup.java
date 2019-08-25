@@ -1,6 +1,6 @@
 package com.chess.gui;
 
-import com.chess.engine.player.Player;
+import com.chess.engine.Alliance;
 import com.chess.gui.Table.PlayerType;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
@@ -35,6 +35,7 @@ class GameSetup extends Dialog {
     private static final int MAX_DEPTH = 10;
     private static final int MIN_TIME = 1;
     private static final int MAX_TIME = 180;
+    private static final GameSetup SETUP = new GameSetup();
 
     private PlayerType redPlayerType;
     private PlayerType blackPlayerType;
@@ -43,7 +44,7 @@ class GameSetup extends Dialog {
     private int searchTime;
     private boolean isAIRandomised;
 
-    GameSetup() {
+    private GameSetup() {
         // default settings
         redPlayerType = PlayerType.HUMAN;
         blackPlayerType = PlayerType.AI;
@@ -167,8 +168,12 @@ class GameSetup extends Dialog {
         hide();
     }
 
-    boolean isAIPlayer(Player player) {
-        return player.getAlliance().isRed() ? redPlayerType.isAI() : blackPlayerType.isAI();
+    static GameSetup getInstance() {
+        return SETUP;
+    }
+
+    boolean isAIPlayer(Alliance alliance) {
+        return alliance.isRed() ? redPlayerType.isAI() : blackPlayerType.isAI();
     }
 
     boolean isAITimeLimited() {

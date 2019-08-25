@@ -82,10 +82,10 @@ public class Table extends BorderPane {
     static final Map<String, Image> PIECE_IMAGE_MAP = getPieceImageMap();
     private static final Table TABLE_INSTANCE = new Table();
 
+    private final GameSetup gameSetup;
     private final BoardPane boardPane;
     private final MoveHistoryPane moveHistoryPane;
     private final InfoPane infoPane;
-    private final GameSetup gameSetup;
     private final HelpWindow helpWindow;
     private final AIObserver aiObserver;
     private final PropertyChangeSupport propertyChangeSupport;
@@ -100,12 +100,12 @@ public class Table extends BorderPane {
 
     private Table() {
         board = Board.initialiseBoard();
+        gameSetup = GameSetup.getInstance();
         boardPane = new BoardPane();
         moveHistoryPane = new MoveHistoryPane();
         infoPane = new InfoPane();
         fullMovelog = new MoveLog();
         infoPane.update(board, fullMovelog);
-        gameSetup = new GameSetup();
         helpWindow = new HelpWindow();
         aiObserver = new AIObserver();
         propertyChangeSupport = new PropertyChangeSupport(this);
@@ -679,7 +679,7 @@ public class Table extends BorderPane {
                         Optional<Piece> selectedPiece = sourcePoint.getPiece();
                         if (selectedPiece.isPresent()
                                 && selectedPiece.get().getAlliance() == board.getCurrPlayer().getAlliance()
-                                && !gameSetup.isAIPlayer(board.getCurrPlayer())) {
+                                && !gameSetup.isAIPlayer(board.getCurrPlayer().getAlliance())) {
                             Table.this.selectedPiece = selectedPiece.get();
                         } else {
                             sourcePoint = null;
@@ -820,7 +820,7 @@ public class Table extends BorderPane {
         @Override
         public void propertyChange(PropertyChangeEvent evt) {
             if (!Table.getInstance().moveHistoryPane.isInReplayMode()
-                    && getInstance().gameSetup.isAIPlayer(getInstance().board.getCurrPlayer())
+                    && getInstance().gameSetup.isAIPlayer(getInstance().board.getCurrPlayer().getAlliance())
                     && !getInstance().board.isCurrPlayerCheckmated()) {
                 Optional<Move> move = MoveBook.getRandomMove(getInstance().board.getZobristKey());
                 if (move.isPresent()) {
