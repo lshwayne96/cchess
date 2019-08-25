@@ -163,7 +163,8 @@ abstract class MiniMax {
 
         // search all moves
         int bestVal = NEG_INF;
-        if (bestMove != null) { // search best move with full window
+        boolean hasBestMove = bestMove != null;
+        if (hasBestMove) { // search best move with full window
             board.makeMove(bestMove);
             int val = -alphaBeta(board, depth - 1, -beta, -alpha, true);
             board.unmakeMove(bestMove);
@@ -179,7 +180,7 @@ abstract class MiniMax {
             board.makeMove(move);
             if (board.isStateAllowed()) {
                 int val;
-                if (bestMove != null) { // search remaining moves with null window
+                if (hasBestMove) { // search remaining moves with null window
                     val = -alphaBeta(board, depth - 1, -alpha - 1, -alpha, true);
                     if (val > alpha && val < beta) { // research with full window
                         val = -alphaBeta(board, depth - 1, -beta, -alpha, true);

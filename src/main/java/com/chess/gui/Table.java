@@ -253,6 +253,11 @@ public class Table extends BorderPane {
             clearSelections();
             aiObserver.stopAI();
             gameSetup.showAndWait();
+            if (partialMovelog != null) {
+                infoPane.update(board, partialMovelog);
+            } else {
+                infoPane.update(board, fullMovelog);
+            }
             notifyAIObserver("setup");
         });
 
