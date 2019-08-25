@@ -62,14 +62,18 @@ public class Cannon extends Piece {
     }
 
     /**
-     * Checks if this cannon is directly facing the opponent's general on the middle column.
+     * Checks if this cannon is directly facing the opponent's general in its starting position..
      * @param board The current board.
-     * @return true if this cannon is directly facing the opponent's general on the middle column, false otherwise.
+     * @return true if this cannon is directly facing the opponent's general in its starting position, false otherwise.
      */
     public boolean isMiddleFacingGeneral(Board board) {
         if (position.getCol() != 4
                 || (alliance.isRed() && position.getRow() < 3)
                 || (!alliance.isRed() && position.getRow() > 6)) return false;
+
+        Piece oppGeneral = alliance.isRed() ? board.getBlackPlayer().getPlayerGeneral()
+                : board.getRedPlayer().getPlayerGeneral();
+        if (!((General) oppGeneral).isInStartingPosition()) return false;
 
         Coordinate forwardVector = MOVE_VECTORS.get(2);
         Coordinate destPosition = position.add(forwardVector.scale(alliance.getDirection()));

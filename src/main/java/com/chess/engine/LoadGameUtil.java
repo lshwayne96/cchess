@@ -16,17 +16,15 @@ import java.util.Optional;
  */
 public class LoadGameUtil {
 
-    private List<Board> boardHistory;
+    private Board board;
     private List<Move> moves;
     private boolean isValid;
 
     public LoadGameUtil(File file) {
-        boardHistory = new ArrayList<>();
         moves = new ArrayList<>();
         isValid = true;
 
-        Board board = Board.initialiseBoard();
-        boardHistory.add(board);
+        board = Board.initialiseBoard();
         try {
             BufferedReader br = new BufferedReader(new FileReader(file));
             String str;
@@ -34,8 +32,7 @@ public class LoadGameUtil {
             while (isValid && (str = br.readLine()) != null) {
                 Optional<Move> move = Move.stringToMove(board, str);
                 if (move.isPresent()) {
-                    board = move.get().execute();
-                    boardHistory.add(board);
+                    board.makeMove(move.get());
                     moves.add(move.get());
                 } else {
                     isValid = false;
@@ -47,8 +44,8 @@ public class LoadGameUtil {
         }
     }
 
-    public List<Board> getBoardHistory() {
-        return boardHistory;
+    public Board getBoard() {
+        return board;
     }
 
     public List<Move> getMoves() {

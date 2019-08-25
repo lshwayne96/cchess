@@ -9,9 +9,7 @@ import com.chess.engine.pieces.General;
 import com.chess.engine.pieces.Horse;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.pieces.Soldier;
-import com.chess.engine.player.BlackPlayer;
 import com.chess.engine.player.Player;
-import com.chess.engine.player.RedPlayer;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,8 +17,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 
 /**
  * Represents a Chinese Chess board.
@@ -31,28 +29,22 @@ public class Board {
     public static final int NUM_COLS = 9;
     public static final int RIVER_ROW_RED = 5;
     public static final int RIVER_ROW_BLACK = 4;
-    private static final int MAX_PIECES_MIDGAME = 30;
+    private static final int MAX_PIECES_MIDGAME = 29;
     private static final int MAX_ATTACKING_UNITS_ENDGAME = 8;
-    private static final int MIN_PIECES_NULLMOVE = 5;
+    private static final Zobrist ZOBRIST = new Zobrist();
 
     private final List<Point> points;
-    private final Collection<Piece> redPieces;
-    private final Collection<Piece> blackPieces;
-    private final RedPlayer redPlayer;
-    private final BlackPlayer blackPlayer;
-    private final Player currPlayer;
+    private final List<PlayerInfo> playerInfoHistory;
+    private PlayerInfo playerInfo;
+    private Alliance currTurn;
+    private long zobristKey;
 
     private Board(Builder builder) {
         points = createBoard(builder);
-        redPieces = getActivePieces(points, Alliance.RED);
-        blackPieces = getActivePieces(points, Alliance.BLACK);
-
-        Collection<Move> redLegalMoves = getLegalMoves(redPieces);
-        Collection<Move> blackLegalMoves = getLegalMoves(blackPieces);
-
-        redPlayer = new RedPlayer(this, redLegalMoves, blackLegalMoves);
-        blackPlayer = new BlackPlayer(this, redLegalMoves, blackLegalMoves);
-        currPlayer = builder.currTurn.choosePlayer(redPlayer, blackPlayer);
+        playerInfoHistory = new ArrayList<>();
+        playerInfo = generatePlayerInfo();
+        currTurn = builder.currTurn;
+        zobristKey = ZOBRIST.getKey(points, currTurn);
     }
 
     /**
@@ -64,7 +56,9 @@ public class Board {
         for (int row = 0; row < NUM_ROWS; row++) {
             for (int col = 0; col < NUM_COLS; col++) {
                 Coordinate position = new Coordinate(row, col);
-                points.add(Point.getInstance(position, builder.boardConfig.get(position)));
+                Point point = new Point(position);
+                point.setPiece(builder.boardConfig.get(position));
+                points.add(point);
             }
         }
 
@@ -72,37 +66,32 @@ public class Board {
     }
 
     /**
-     * Returns a collection of active pieces in the given list of points belonging to the given alliance.
+     * Returns information related to both players on this board.
      */
-    private static Collection<Piece> getActivePieces(List<Point> pointList, Alliance alliance) {
-        List<Piece> activePieces = new ArrayList<>();
+    private PlayerInfo generatePlayerInfo() {
+        Collection<Piece> redPieces = new ArrayList<>();
+        Collection<Move> redLegalMoves = new ArrayList<>();
+        Collection<Piece> blackPieces = new ArrayList<>();
+        Collection<Move> blackLegalMoves = new ArrayList<>();
 
-        for (Point point : pointList) {
+        for (Point point : points) {
             point.getPiece().ifPresent(p -> {
-                if (p.getAlliance().equals(alliance)) {
-                    activePieces.add(p);
+                if (p.getAlliance().isRed()) {
+                    redPieces.add(p);
+                    redLegalMoves.addAll(p.getLegalMoves(this));
+                } else {
+                    blackPieces.add(p);
+                    blackLegalMoves.addAll(p.getLegalMoves(this));
                 }
             });
         }
 
-        return Collections.unmodifiableList(activePieces);
+        return new PlayerInfo(new Player(Alliance.RED, redPieces, redLegalMoves, blackLegalMoves),
+                new Player(Alliance.BLACK, blackPieces, blackLegalMoves, redLegalMoves));
     }
 
     /**
-     * Returns a collection of legal moves that can be made by the given collection of pieces.
-     */
-    private Collection<Move> getLegalMoves(Collection<Piece> pieces) {
-        List<Move> legalMoves = new ArrayList<>();
-
-        for (Piece piece : pieces) {
-            legalMoves.addAll(piece.getLegalMoves(this));
-        }
-
-        return Collections.unmodifiableList(legalMoves);
-    }
-
-    /**
-     * Returns the initial state of the board.
+     * Returns the original state of a board.
      */
     public static Board initialiseBoard() {
         Builder builder = new Builder();
@@ -147,6 +136,82 @@ public class Board {
     }
 
     /**
+     * Makes the given move on this board. Player information and zobrist key are updated.
+     * @param move The move to be made.
+     */
+    public void makeMove(Move move) {
+        assert getCurrPlayer().getLegalMoves().contains(move);
+
+        Piece movedPiece = move.getMovedPiece();
+        Coordinate srcPosition = movedPiece.getPosition();
+        Coordinate destPosition = move.getDestPosition();
+
+        Point srcPoint = points.get(positionToIndex(srcPosition));
+        srcPoint.removePiece();
+        Point destPoint = points.get(positionToIndex(destPosition));
+        destPoint.setPiece(movedPiece.movePiece(move));
+
+        playerInfoHistory.add(playerInfo);
+        playerInfo = generatePlayerInfo();
+        changeTurn();
+        zobristKey = ZOBRIST.updateKey(zobristKey, move);
+    }
+
+    /**
+     * Undoes the given move on this board. Player information and zobrist key are updated.
+     * @param move The move to be undone.
+     */
+    public void unmakeMove(Move move) {
+        Piece movedPiece = move.getMovedPiece();
+        Optional<Piece> capturedPiece = move.getCapturedPiece();
+        Coordinate srcPosition = movedPiece.getPosition();
+        Coordinate destPosition = move.getDestPosition();
+
+        Point srcPoint = points.get(positionToIndex(srcPosition));
+        srcPoint.setPiece(movedPiece);
+        Point destPoint = points.get(positionToIndex(destPosition));
+        destPoint.removePiece();
+        capturedPiece.ifPresent(destPoint::setPiece);
+
+        playerInfo = playerInfoHistory.isEmpty() ? generatePlayerInfo()
+                : playerInfoHistory.remove(playerInfoHistory.size() - 1);
+        changeTurn();
+        zobristKey = ZOBRIST.updateKey(zobristKey, move);
+    }
+
+    /**
+     * Changes the current turn on the board. Zobrist key is updated.
+     */
+    public void changeTurn() {
+        currTurn = currTurn.opposite();
+        zobristKey ^= ZOBRIST.side;
+    }
+
+    /**
+     * Checks if the current player's opponent is in check. Such a state is not allowed.
+     * @return true if the current player's opponent is NOT in check, false otherwise.
+     */
+    public boolean isStateAllowed() {
+        return !getOppPlayer().isInCheck();
+    }
+
+    /**
+     * Returns a move, if any, corresponding to the given source and destination positions on this board.
+     * @param srcPosition The source position.
+     * @param destPosition The destination position.
+     * @return A move, if any, corresponding to the given source and destination positions on this board.
+     */
+    public Optional<Move> getMove(Coordinate srcPosition, Coordinate destPosition) {
+        for (Move move : getCurrPlayer().getLegalMoves()) {
+            if (move.getMovedPiece().getPosition().equals(srcPosition)
+                    && move.getDestPosition().equals(destPosition)) {
+                return Optional.of(move);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
      * Returns the current status of this board.
      * @return The current status of this board.
      */
@@ -167,23 +232,31 @@ public class Board {
                 case HORSE:
                     attackingUnits++;
                     break;
-                default:
-                    break;
+            }
+            if (attackingUnits > MAX_ATTACKING_UNITS_ENDGAME) {
+                return BoardStatus.MIDDLE;
             }
         }
-        if (attackingUnits > MAX_ATTACKING_UNITS_ENDGAME) {
-            return BoardStatus.MIDDLE;
-        } else {
-            return BoardStatus.END;
-        }
+        return BoardStatus.END;
     }
 
     /**
-     * Checks if the game on this board is already over.
-     * @return true if the game is over, false otherwise.
+     * Checks if the current player has been checkmated.
+     * @return true if the current player has been checkmated, false otherwise.
      */
-    public boolean isGameOver() {
-        return currPlayer.isInCheckmate();
+    public boolean isCurrPlayerCheckmated() {
+        boolean isCheckmated = true;
+
+        for (Move move : getCurrPlayer().getLegalMoves()) {
+            makeMove(move);
+            if (isStateAllowed()) {
+                isCheckmated = false;
+            }
+            unmakeMove(move);
+            if (!isCheckmated) break;
+        }
+
+        return isCheckmated;
     }
 
     /**
@@ -191,9 +264,6 @@ public class Board {
      * @return true if the game is a draw, false otherwise.
      */
     public boolean isGameDraw() {
-        if (getRedPieces().size() > 5 || getBlackPieces().size() > 5) {
-            return false;
-        }
         for (Piece piece : getAllPieces()) {
             if (piece.getPieceType().isAttacking()) {
                 return false;
@@ -203,40 +273,37 @@ public class Board {
     }
 
     /**
-     * Checks if this board is quiet.
-     * @return true if this board is quiet (current player has no capture moves), false otherwise.
+     * Checks if the current player has no capture moves.
+     * @return true if the current player has no capture moves, false otherwise.
      */
     public boolean isQuiet() {
-        for (Move move : currPlayer.getLegalMoves()) {
-            if (move.getCapturedPiece().isPresent()) {
+        for (Move move : getCurrPlayer().getLegalMoves()) {
+            if (move.isCapture()) {
                 return false;
             }
         }
         return true;
     }
 
-    public boolean allowNullMove() {
-        return currPlayer.getActivePieces().size() >= MIN_PIECES_NULLMOVE;
-    }
-
     /**
-     * Returns the board after skipping a move. (For AI search only)
-     * @return The board after skipping a move.
+     * Returns a copy of this board.
+     * @return A copy of this board.
      */
-    public Board makeNullMove() {
+    public Board getCopy() {
         Builder builder = new Builder();
 
-        for (Piece piece : getAllPieces()) {
-            builder.putPiece(piece);
+        for (Point point : points) {
+            Optional<Piece> piece = point.getPiece();
+            piece.ifPresent(builder::putPiece);
         }
-        builder.setCurrTurn(currPlayer.getOpponent().getAlliance());
+        builder.setCurrTurn(currTurn);
 
         return builder.build();
     }
 
     /**
-     * Returns the mirrored version (about the middle column) of this board.
-     * @return The mirrored version of this board.
+     * Returns a mirrored copy (about the middle column) of this board.
+     * @return A mirrored copy of this board.
      */
     public Board getMirrorBoard() {
         Builder builder = new Builder();
@@ -245,22 +312,13 @@ public class Board {
             Optional<Piece> piece = point.getPiece();
             piece.ifPresent(p -> builder.putPiece(p.getMirrorPiece()));
         }
-        builder.setCurrTurn(currPlayer.getAlliance());
+        builder.setCurrTurn(currTurn);
 
         return builder.build();
     }
 
     /**
-     * Returns the point on this board with the given position.
-     * @param position The position of the point.
-     * @return The point on this board with the given position.
-     */
-    public Point getPoint(Coordinate position) {
-        return points.get(positionToIndex(position.getRow(), position.getCol()));
-    }
-
-    /**
-     * Checks if the given position is within bounds of the board.
+     * Checks if the given position is within bounds.
      * @param position The position to check.
      * @return true if the given position is within bounds, false otherwise.
      */
@@ -272,25 +330,32 @@ public class Board {
     }
 
     /**
-     * Returns the index of a position based on its row and column.
+     * Returns the mirrored version of the given position.
+     * @param position The position to mirror.
+     * @return The mirrored version of the given position.
      */
-    private static int positionToIndex(int row, int col) {
-        return row * NUM_COLS + col;
+    public static Coordinate getMirroredPosition(Coordinate position) {
+        return new Coordinate(position.getRow(), NUM_COLS - 1 - position.getCol());
     }
 
-    public Collection<Piece> getRedPieces() {
-        return redPieces;
+    /**
+     * Returns the point on this board with the given position.
+     * @param position The position of the point.
+     * @return The point on this board with the given position.
+     */
+    public Point getPoint(Coordinate position) {
+        return points.get(positionToIndex(position));
     }
 
-    public Collection<Piece> getBlackPieces() {
-        return blackPieces;
+    public long getZobristKey() {
+        return zobristKey;
     }
 
     public Collection<Piece> getAllPieces() {
         Collection<Piece> allPieces = new ArrayList<>();
 
-        allPieces.addAll(redPieces);
-        allPieces.addAll(blackPieces);
+        allPieces.addAll(getRedPlayer().getActivePieces());
+        allPieces.addAll(getBlackPlayer().getActivePieces());
 
         return allPieces;
     }
@@ -298,22 +363,40 @@ public class Board {
     public Collection<Move> getAllLegalMoves() {
         Collection<Move> allMoves = new ArrayList<>();
 
-        allMoves.addAll(redPlayer.getLegalMoves());
-        allMoves.addAll(blackPlayer.getLegalMoves());
+        allMoves.addAll(getRedPlayer().getLegalMoves());
+        allMoves.addAll(getBlackPlayer().getLegalMoves());
 
         return allMoves;
     }
 
     public Player getRedPlayer() {
-        return redPlayer;
+        return playerInfo.redPlayer;
     }
 
     public Player getBlackPlayer() {
-        return blackPlayer;
+        return playerInfo.blackPlayer;
     }
 
     public Player getCurrPlayer() {
-        return currPlayer;
+        return currTurn.isRed() ? getRedPlayer() : getBlackPlayer();
+    }
+
+    public Player getOppPlayer() {
+        return currTurn.isRed() ? getBlackPlayer() : getRedPlayer();
+    }
+
+    /**
+     * Returns the index of a position based on its row and column.
+     */
+    private static int positionToIndex(int row, int col) {
+        return row * NUM_COLS + col;
+    }
+
+    /**
+     * Returns the index of a given position.
+     */
+    private static int positionToIndex(Coordinate position) {
+        return positionToIndex(position.getRow(), position.getCol());
     }
 
     @Override
@@ -331,23 +414,86 @@ public class Board {
         return sb.toString();
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (!(obj instanceof Board)) {
-            return false;
-        }
+    /**
+     * Represents both players on this board.
+     */
+    private static class PlayerInfo {
+        private Player redPlayer;
+        private Player blackPlayer;
 
-        Board other = (Board) obj;
-        return this.toString().equals(other.toString())
-                && this.currPlayer.getAlliance().equals(other.currPlayer.getAlliance());
+        private PlayerInfo(Player redPlayer, Player blackPlayer) {
+            this.redPlayer = redPlayer;
+            this.blackPlayer = blackPlayer;
+        }
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(toString(), currPlayer.getAlliance());
+    /**
+     * Helper class for calculating and updating Zobrist keys.
+     */
+    private static class Zobrist {
+
+        private final long[][][] pieces;
+        private final long side;
+
+        private Zobrist() {
+            Random rand = new Random();
+            pieces = new long[7][2][90];
+            for (int i = 0; i < 7; i++) {
+                for (int j = 0; j < 2; j++) {
+                    for (int k = 0; k < 90; k++) {
+                        pieces[i][j][k] = rand.nextLong();
+                    }
+                }
+            }
+            side = rand.nextLong();
+        }
+
+        /**
+         * Returns the Zobrist hash of the given piece.
+         */
+        private long getPieceHash(Piece piece) {
+            int pieceIndex = piece.getPieceType().ordinal();
+            int sideIndex = piece.getAlliance().isRed() ? 0 : 1;
+            int posIndex = positionToIndex(piece.getPosition());
+
+            return pieces[pieceIndex][sideIndex][posIndex];
+        }
+
+        /**
+         * Returns the Zobrist key given a list of points and current turn.
+         */
+        private long getKey(List<Point> points, Alliance currTurn) {
+            long key = 0;
+
+            for (Point point : points) {
+                if (!point.isEmpty()) {
+                    key ^= getPieceHash(point.getPiece().get());
+                }
+            }
+            if (!currTurn.isRed()) {
+                key ^= side;
+            }
+
+            return key;
+        }
+
+        /**
+         * Returns the new Zobrist key given the old key and the move made.
+         */
+        private long updateKey(long key, Move move) {
+            Piece movedPiece = move.getMovedPiece();
+            Piece destPiece = movedPiece.movePiece(move);
+            Optional<Piece> capturedPiece = move.getCapturedPiece();
+
+            long movedPieceHash = getPieceHash(movedPiece);
+            long destPieceHash = getPieceHash(destPiece);
+            key ^= movedPieceHash ^ destPieceHash;
+            if (capturedPiece.isPresent()) {
+                key ^= getPieceHash(capturedPiece.get());
+            }
+
+            return key;
+        }
     }
 
     /**

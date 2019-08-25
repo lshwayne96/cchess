@@ -2,10 +2,9 @@ package com.chess.engine.player.ai;
 
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Move;
-import com.chess.engine.player.MoveTransition;
 
 import java.beans.PropertyChangeSupport;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static com.chess.gui.Table.*;
@@ -18,43 +17,43 @@ public class FixedTimeSearch extends MiniMax {
     private final PropertyChangeSupport support;
     private final long endTime;
 
-    public FixedTimeSearch(Board currBoard, List<Move> bannedMoves, FixedTimeAIPlayer fixedTimeAIPlayer, long endTime) {
-        super(currBoard, bannedMoves);
+    public FixedTimeSearch(Board board, Collection<Move> legalMoves, FixedTimeAIPlayer fixedTimeAIPlayer, long endTime) {
+        super(board, legalMoves, true);
         this.endTime = endTime;
         support = new PropertyChangeSupport(this);
         support.addPropertyChangeListener(fixedTimeAIPlayer);
     }
 
-    @Override
     public Move search() {
-        Move bestMove = null;
+        MoveEntry bestMoveEntry = null;
 
+        int alpha = NEG_INF;
+        int beta = POS_INF;
         int currDepth = 1;
-        List<Move> sortedMoves = MoveSorter.simpleSort(currBoard.getCurrPlayer().getLegalMoves());
+        List<MoveEntry> oldMoveEntries = getLegalMoveEntries(); // initialise move entries (simple-sorted)
 
         while (System.currentTimeMillis() < endTime) {
-            List<MoveEntry> moveEntries = new ArrayList<>();
-            int bestVal = NEG_INF;
-            for (Move move : sortedMoves) {
-                if (bannedMoves.contains(move)) continue;
+            // get value-sorted move entries for the current depth (best move at the front)
+            List<MoveEntry> newMoveEntries = alphaBetaRoot(oldMoveEntries, currDepth, alpha, beta);
+            bestMoveEntry = newMoveEntries.get(0);
 
-                MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
-                if (transition.getMoveStatus().isAllowed()) {
-                    int val = -alphaBeta(transition.getNextBoard(), currDepth - 1,
-                            NEG_INF, -bestVal, true);
-                    if (val > bestVal) {
-                        bestVal = val;
-                        bestMove = move;
-                    }
-                    moveEntries.add(new MoveEntry(move, val));
-                }
+            int bestVal = bestMoveEntry.val;
+            if (bestVal <= alpha || bestVal >= beta) { // reset aspiration window
+                alpha = NEG_INF;
+                beta = POS_INF;
+                continue;
             }
+            // narrow aspiration window
+            alpha = bestVal - ASP;
+            beta = bestVal + ASP;
 
-            support.firePropertyChange("currbestmove", currDepth, bestMove);
-            sortedMoves = MoveSorter.valueSort(moveEntries);
+            // notify AI with current best move
+            support.firePropertyChange("currbestmove", currDepth, bestMoveEntry.move);
+            oldMoveEntries = newMoveEntries;
             currDepth++;
         }
 
-        return bestMove;
+        assert bestMoveEntry != null;
+        return bestMoveEntry.move;
     }
 }

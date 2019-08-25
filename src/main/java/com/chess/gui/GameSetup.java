@@ -1,6 +1,6 @@
 package com.chess.gui;
 
-import com.chess.engine.player.Player;
+import com.chess.engine.Alliance;
 import com.chess.gui.Table.PlayerType;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
@@ -29,12 +29,13 @@ class GameSetup extends Dialog {
 
     private static final String HUMAN_TEXT = "Human";
     private static final String AI_TEXT = "AI";
-    private static final String FIXED_DEPTH_TEXT = "Fixed depth (levels)";
-    private static final String FIXED_TIME_TEXT = "Fixed time (seconds)";
-    private static final int MIN_DEPTH = 2;
-    private static final int MAX_DEPTH = 8;
+    private static final String FIXED_DEPTH_TEXT = "Depth (levels)";
+    private static final String FIXED_TIME_TEXT = "Time (seconds)";
+    private static final int MIN_DEPTH = 1;
+    private static final int MAX_DEPTH = 10;
     private static final int MIN_TIME = 1;
     private static final int MAX_TIME = 180;
+    private static final GameSetup SETUP = new GameSetup();
 
     private PlayerType redPlayerType;
     private PlayerType blackPlayerType;
@@ -43,13 +44,13 @@ class GameSetup extends Dialog {
     private int searchTime;
     private boolean isAIRandomised;
 
-    GameSetup() {
+    private GameSetup() {
         // default settings
         redPlayerType = PlayerType.HUMAN;
         blackPlayerType = PlayerType.AI;
         aiType = AIType.DEPTH;
         searchDepth = 5;
-        searchTime = 30;
+        searchTime = 10;
         isAIRandomised = false;
 
         DialogPane dialogPane = new DialogPane();
@@ -167,8 +168,12 @@ class GameSetup extends Dialog {
         hide();
     }
 
-    boolean isAIPlayer(Player player) {
-        return player.getAlliance().isRed() ? redPlayerType.isAI() : blackPlayerType.isAI();
+    static GameSetup getInstance() {
+        return SETUP;
+    }
+
+    boolean isAIPlayer(Alliance alliance) {
+        return alliance.isRed() ? redPlayerType.isAI() : blackPlayerType.isAI();
     }
 
     boolean isAITimeLimited() {

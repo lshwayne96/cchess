@@ -19,9 +19,9 @@ import java.util.Optional;
  */
 public abstract class Piece {
 
-    protected final Coordinate position;
     protected final Alliance alliance;
     private final PieceType pieceType;
+    protected Coordinate position;
     private final int hashCode;
 
     Piece(PieceType pieceType, Coordinate position, Alliance alliance) {
@@ -46,8 +46,8 @@ public abstract class Piece {
     public abstract Piece movePiece(Move move);
 
     /**
-     * Returns the mirrored version (about the middle column) of this piece.
-     * @return the mirrored version of this piece.
+     * Returns a mirrored copy (about the middle column) of this piece.
+     * @return A mirrored copy of this piece.
      */
     public abstract Piece getMirrorPiece();
 
@@ -64,9 +64,9 @@ public abstract class Piece {
             Optional<Piece> destPiece = destPoint.getPiece();
             destPiece.ifPresentOrElse(p -> {
                 if (this.alliance != p.alliance) {
-                    legalMoves.add(new Move(board, this, destPosition, p));
+                    legalMoves.add(new Move(board.getZobristKey(), this, destPosition, p));
                 }
-            }, () -> legalMoves.add(new Move(board, this, destPosition)));
+            }, () -> legalMoves.add(new Move(board.getZobristKey(), this, destPosition)));
         }
 
         return Collections.unmodifiableList(legalMoves);
@@ -85,18 +85,19 @@ public abstract class Piece {
     }
 
     /**
-     * Returns the material value of this piece, given the current board status.
+     * Returns the material value of this piece given the current board status.
      * @param boardStatus The current board status.
-     * @return The material value of this piece, given the current board status.
+     * @return The material value of this piece given the current board status.
      */
     public int getMaterialValue(BoardStatus boardStatus) {
-        if (boardStatus.equals(BoardStatus.OPENING)) {
-            return pieceType.openingValue;
+        switch (boardStatus) {
+            case OPENING:
+                return pieceType.openingValue;
+            case MIDDLE:
+                return pieceType.midValue;
+            default:
+                return pieceType.endValue;
         }
-        if (boardStatus.equals(BoardStatus.MIDDLE)) {
-            return pieceType.midValue;
-        }
-        return pieceType.endValue;
     }
 
     /**
@@ -121,7 +122,6 @@ public abstract class Piece {
         if (!(obj instanceof Piece)) {
             return false;
         }
-
         Piece other = (Piece) obj;
         return this.position.equals(other.position)
                 && this.alliance.equals(other.alliance)
@@ -151,7 +151,7 @@ public abstract class Piece {
         HORSE("H", true,
                 450, 500, 550, 24, 2, POSITION_VALUES_HORSE),
         CANNON("C", true,
-                500, 525, 550, 10, 2, POSITION_VALUES_CANNON),
+                500, 525, 550, 8, 2, POSITION_VALUES_CANNON),
         CHARIOT("R", true,
                 1000, 1000, 1000, 12, 1, POSITION_VALUES_CHARIOT),
         GENERAL("G", false,

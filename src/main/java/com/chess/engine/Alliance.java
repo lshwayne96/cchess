@@ -1,9 +1,5 @@
 package com.chess.engine;
 
-import com.chess.engine.player.BlackPlayer;
-import com.chess.engine.player.Player;
-import com.chess.engine.player.RedPlayer;
-
 /**
  * Represents a player's side in the game.
  */
@@ -20,8 +16,8 @@ public enum Alliance {
         }
 
         @Override
-        public Player choosePlayer(RedPlayer redPlayer, BlackPlayer blackPlayer) {
-            return redPlayer;
+        public Alliance opposite() {
+            return BLACK;
         }
     },
     BLACK {
@@ -36,8 +32,8 @@ public enum Alliance {
         }
 
         @Override
-        public Player choosePlayer(RedPlayer redPlayer, BlackPlayer blackPlayer) {
-            return blackPlayer;
+        public Alliance opposite() {
+            return RED;
         }
     };
 
@@ -45,5 +41,5 @@ public enum Alliance {
 
     public abstract int getDirection();
 
-    public abstract Player choosePlayer(RedPlayer redPlayer, BlackPlayer blackPlayer);
+    public abstract Alliance opposite();
 }

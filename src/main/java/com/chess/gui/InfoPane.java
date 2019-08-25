@@ -124,7 +124,7 @@ class InfoPane extends BorderPane {
 
         private static final int STATUS_PANE_HEIGHT = 100;
         private static final Font TOP_FONT =
-                Font.font("System", FontWeight.MEDIUM, Font.getDefault().getSize() + 4);
+                Font.font("System", FontWeight.MEDIUM, Font.getDefault().getSize() + 2);
         private static final Font BOTTOM_FONT =
                 Font.font("System", FontWeight.BOLD, Font.getDefault().getSize() + 4);
         private static final Label CHECK_LABEL = getCheckLabel();
@@ -177,9 +177,9 @@ class InfoPane extends BorderPane {
         private void update(Board board) {
             getChildren().clear();
 
-            if (board.isGameOver()) {
+            if (board.isCurrPlayerCheckmated()) {
                 Label gameOverLabel =
-                        new Label(board.getCurrPlayer().getOpponent().getAlliance().toString() + " wins");
+                        new Label(board.getOppPlayer().getAlliance().toString() + " wins");
                 gameOverLabel.setFont(TOP_FONT);
                 gameOverLabel.setAlignment(Pos.CENTER);
                 gameOverLabel.setPrefSize(INFO_PANE_WIDTH, STATUS_PANE_HEIGHT / 2);
@@ -189,7 +189,11 @@ class InfoPane extends BorderPane {
                 return;
             }
 
-            Label moveLabel = new Label(board.getCurrPlayer().getAlliance().toString() + "'s move");
+            String moveString = board.getCurrPlayer().getAlliance().toString() + "'s move";
+            if (GameSetup.getInstance().isAIPlayer(board.getCurrPlayer().getAlliance())) {
+                moveString += " (AI)";
+            }
+            Label moveLabel = new Label(moveString);
             moveLabel.setFont(TOP_FONT);
             moveLabel.setAlignment(Pos.CENTER);
             moveLabel.setPrefSize(INFO_PANE_WIDTH, STATUS_PANE_HEIGHT / 2);

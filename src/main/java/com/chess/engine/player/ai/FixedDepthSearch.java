@@ -2,9 +2,8 @@ package com.chess.engine.player.ai;
 
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Move;
-import com.chess.engine.player.MoveTransition;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -14,91 +13,39 @@ public class FixedDepthSearch extends MiniMax {
 
     private final int searchDepth;
 
-    public FixedDepthSearch(Board currBoard, List<Move> bannedMoves, int searchDepth) {
-        super(currBoard, bannedMoves);
+    public FixedDepthSearch(Board board, Collection<Move> legalMoves, int searchDepth) {
+        super(board, legalMoves, searchDepth > 6);
         this.searchDepth = searchDepth;
     }
 
     public Move search() {
-        Move bestMove = null;
-        int bestVal = NEG_INF;
+        MoveEntry bestMoveEntry = null;
 
-        for (Move move : MoveSorter.simpleSort(currBoard.getCurrPlayer().getLegalMoves())) {
-            if (bannedMoves.contains(move)) continue;
-
-            MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                int val = -alphaBeta(transition.getNextBoard(), searchDepth - 1,
-                        NEG_INF, -bestVal, true);
-                if (val > bestVal) {
-                    bestVal = val;
-                    bestMove = move;
-                }
-            }
-        }
-
-        return bestMove;
-    }
-
-    public Move search1() {
-        Move bestMove = null;
-
+        int alpha = NEG_INF;
+        int beta = POS_INF;
         int currDepth = 1;
-        List<Move> sortedMoves = MoveSorter.simpleSort(currBoard.getCurrPlayer().getLegalMoves());
+        List<MoveEntry> oldMoveEntries = getLegalMoveEntries(); // initialise move entries (simple-sorted)
 
         while (currDepth <= searchDepth) {
-            List<MoveEntry> moveEntries = new ArrayList<>();
-            int bestVal = NEG_INF;
+            // get value-sorted move entries for the current depth (best move at the front)
+            List<MoveEntry> newMoveEntries = alphaBetaRoot(oldMoveEntries, currDepth, alpha, beta);
+            bestMoveEntry = newMoveEntries.get(0);
 
-            for (Move move : sortedMoves) {
-                if (bannedMoves.contains(move)) continue;
-                MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
-                if (transition.getMoveStatus().isAllowed()) {
-                    int val = -alphaBeta(transition.getNextBoard(), currDepth - 1,
-                            NEG_INF, -bestVal, true);
-                    if (val > bestVal) {
-                        bestVal = val;
-                        bestMove = move;
-                    }
-                    moveEntries.add(new MoveEntry(move, val));
-                }
+            int bestVal = bestMoveEntry.val;
+            if (bestVal <= alpha || bestVal >= beta) { // reset aspiration window
+                alpha = NEG_INF;
+                beta = POS_INF;
+                continue;
             }
-            sortedMoves = MoveSorter.valueSort(moveEntries);
+            // narrow aspiration window
+            alpha = bestVal - ASP;
+            beta = bestVal + ASP;
+
+            oldMoveEntries = newMoveEntries;
             currDepth++;
         }
 
-        return bestMove;
-    }
-
-    public Move search2() {
-        Move bestMove = null;
-
-        int maxValue = NEG_INF;
-        int minValue = POS_INF;
-
-        for (Move move : MoveSorter.simpleSort(currBoard.getCurrPlayer().getLegalMoves())) {
-            if (bannedMoves.contains(move)) continue;
-
-            MoveTransition transition = currBoard.getCurrPlayer().makeMove(move);
-            if (transition.getMoveStatus().isAllowed()) {
-                Board nextBoard = transition.getNextBoard();
-                int currValue;
-                if (currBoard.getCurrPlayer().getAlliance().isRed()) {
-                    currValue = min(nextBoard, searchDepth - 1, maxValue, minValue);
-                    if (currValue > maxValue) {
-                        maxValue = currValue;
-                        bestMove = move;
-                    }
-                } else {
-                    currValue = max(nextBoard, searchDepth - 1, maxValue, minValue);
-                    if (currValue < minValue) {
-                        minValue = currValue;
-                        bestMove = move;
-                    }
-                }
-            }
-        }
-
-        return bestMove;
+        assert bestMoveEntry != null;
+        return bestMoveEntry.move;
     }
 }

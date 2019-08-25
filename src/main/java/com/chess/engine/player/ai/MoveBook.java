@@ -1,6 +1,7 @@
 package com.chess.engine.player.ai;
 
 import com.chess.engine.board.Board;
+import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
 
 import java.io.BufferedReader;
@@ -19,18 +20,17 @@ import java.util.Random;
  */
 public class MoveBook {
 
-    private static final Board INITIAL_BOARD = Board.initialiseBoard();
     private static final String AI_MOVEBOOK_PATH = "/ai/movebook.txt";
-    private static final Map<Board, List<Move>> MOVE_BOOK = readMoveBook();
+    private static final Map<Long, List<Move>> MOVE_BOOK = readMoveBook();
     private static final Random rand = new Random();
 
     /**
-     * Returns a random move in the book, if any, based on the given board.
-     * @param board The current board.
-     * @return A random move in the book, if any, based on the given board.
+     * Returns a random move in the book, if any, based on the given zobrist key.
+     * @param zobristKey The zobrist key of the board.
+     * @return A random move in the book, if any, based on the given zobrist key.
      */
-    public static Optional<Move> getRandomMove(Board board) {
-        List<Move> moves = MOVE_BOOK.get(board);
+    public static Optional<Move> getRandomMove(long zobristKey) {
+        List<Move> moves = MOVE_BOOK.get(zobristKey);
         if (moves == null) {
             return Optional.empty();
         }
@@ -40,22 +40,24 @@ public class MoveBook {
     /**
      * Reads the text file containing moves into a map.
      */
-    private static Map<Board, List<Move>> readMoveBook() {
-        Map<Board, List<Move>> boardToMoves = new HashMap<>();
-        Board board = INITIAL_BOARD;
+    private static Map<Long, List<Move>> readMoveBook() {
+        Map<Long, List<Move>> boardToMoves = new HashMap<>();
+        Board board = Board.initialiseBoard();
         String str;
 
-        BufferedReader br = new BufferedReader(new InputStreamReader(MoveBook.class.getResourceAsStream(AI_MOVEBOOK_PATH)));
+        BufferedReader br =
+                new BufferedReader(new InputStreamReader(MoveBook.class.getResourceAsStream(AI_MOVEBOOK_PATH)));
         try {
             while ((str = br.readLine()) != null) {
                 if (str.trim().isEmpty()) { // next opening
-                    board = INITIAL_BOARD;
+                    board = Board.initialiseBoard();
                     continue;
                 }
 
+                long zobristKey = board.getZobristKey();
                 Optional<Move> move = Move.stringToMove(board, str);
                 if (move.isPresent()) {
-                    List<Move> currList = boardToMoves.get(board);
+                    List<Move> currList = boardToMoves.get(zobristKey);
                     if (currList != null) {
                         if (!currList.contains(move.get())) {
                             currList.add(move.get());
@@ -63,25 +65,29 @@ public class MoveBook {
                     } else {
                         List<Move> newList = new ArrayList<>();
                         newList.add(move.get());
-                        boardToMoves.put(board, newList);
+                        boardToMoves.put(zobristKey, newList);
                     }
 
-                    Board mirroredBoard = board.getMirrorBoard();
-                    Move mirroredMove = move.get().getMirroredMove();
-                    List<Move> currListMirrored = boardToMoves.get(mirroredBoard);
-                    if (currListMirrored != null) {
-                        if (!currListMirrored.contains(mirroredMove)) {
-                            currListMirrored.add(mirroredMove);
+                    // store mirrored version of move
+                    Board mirrorBoard = board.getMirrorBoard();
+                    long mirrorZobristKey = mirrorBoard.getZobristKey();
+                    Coordinate mirrorSrcPosition = Board.getMirroredPosition(move.get().getMovedPiece().getPosition());
+                    Coordinate mirrorDestPosition = Board.getMirroredPosition(move.get().getDestPosition());
+                    Move mirrorMove = mirrorBoard.getMove(mirrorSrcPosition, mirrorDestPosition).get();
+                    List<Move> mirrorCurrList = boardToMoves.get(mirrorZobristKey);
+                    if (mirrorCurrList != null) {
+                        if (!mirrorCurrList.contains(mirrorMove)) {
+                            mirrorCurrList.add(mirrorMove);
                         }
                     } else {
-                        List<Move> newListMirrored = new ArrayList<>();
-                        newListMirrored.add(mirroredMove);
-                        boardToMoves.put(mirroredBoard, newListMirrored);
+                        List<Move> mirrorNewList = new ArrayList<>();
+                        mirrorNewList.add(mirrorMove);
+                        boardToMoves.put(mirrorZobristKey, mirrorNewList);
                     }
                 } else {
                     continue;
                 }
-                board = move.get().execute();
+                board.makeMove(move.get());
             }
         } catch (IOException e) {
             e.printStackTrace();

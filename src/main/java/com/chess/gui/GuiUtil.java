@@ -6,6 +6,9 @@ import javafx.scene.control.Separator;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
+/**
+ * A utility class for the GUI.
+ */
 class GuiUtil {
 
     static final String GRAPHICS_MISC_PATH = "/graphics/misc/";
