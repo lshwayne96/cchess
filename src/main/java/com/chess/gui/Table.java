@@ -438,7 +438,7 @@ public class Table extends BorderPane {
             Table.getInstance().notifyAIObserver("exitreplay");
         } else {
             aiObserver.stopAI();
-            int currIndex = partialMovelog == null ? fullMovelog.getSize() - 1: partialMovelog.getSize() - 1;
+            int currIndex = partialMovelog == null ? fullMovelog.getSize() - 1 : partialMovelog.getSize() - 1;
             partialMovelog = fullMovelog.getPartialLog(moveIndex);
             clearSelections();
             for (int i = currIndex + 1; i <= moveIndex; i++) {
@@ -479,7 +479,7 @@ public class Table extends BorderPane {
     /**
      * Creates an alert given the alert type, title and content strings.
      */
-    private Optional<ButtonType> showAlert(AlertType alertType, String title, String content) {
+    private static Optional<ButtonType> showAlert(AlertType alertType, String title, String content) {
         Alert alert = new Alert(alertType, content);
         alert.setTitle(title);
         return alert.showAndWait();
@@ -821,7 +821,7 @@ public class Table extends BorderPane {
         public void propertyChange(PropertyChangeEvent evt) {
             if (!Table.getInstance().moveHistoryPane.isInReplayMode()
                     && getInstance().gameSetup.isAIPlayer(getInstance().board.getCurrPlayer())
-                    && !getInstance().board.getCurrPlayer().isInCheckmate()) {
+                    && !getInstance().board.isCurrPlayerCheckmated()) {
                 Optional<Move> move = MoveBook.getRandomMove(getInstance().board.getZobristKey());
                 if (move.isPresent()) {
                     task = getTimerTask(move.get());

@@ -1,7 +1,9 @@
 package com.chess.engine.board;
 
+import java.util.Objects;
+
 /**
- * Represents a position on the board OR a movement vector.
+ * Represents a position on the board or a movement vector.
  */
 public class Coordinate {
 
@@ -47,13 +49,12 @@ public class Coordinate {
         if (!(obj instanceof Coordinate)) {
             return false;
         }
-
         Coordinate other = (Coordinate) obj;
         return (this.row == other.row) && (this.col == other.col);
     }
 
     @Override
     public int hashCode() {
-        return 31*row + col;
+        return Objects.hash(row, col);
     }
 }

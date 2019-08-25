@@ -177,9 +177,9 @@ class InfoPane extends BorderPane {
         private void update(Board board) {
             getChildren().clear();
 
-            if (board.isGameOver()) {
+            if (board.isCurrPlayerCheckmated()) {
                 Label gameOverLabel =
-                        new Label(board.getCurrPlayer().getOpponent().getAlliance().toString() + " wins");
+                        new Label(board.getOppPlayer().getAlliance().toString() + " wins");
                 gameOverLabel.setFont(TOP_FONT);
                 gameOverLabel.setAlignment(Pos.CENTER);
                 gameOverLabel.setPrefSize(INFO_PANE_WIDTH, STATUS_PANE_HEIGHT / 2);

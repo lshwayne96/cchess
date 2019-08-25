@@ -4,6 +4,9 @@ import com.chess.engine.pieces.Piece;
 
 import java.util.Optional;
 
+/**
+ * Represents a point on the board.
+ */
 public class Point {
 
     private final Coordinate position;

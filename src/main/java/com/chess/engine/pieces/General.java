@@ -17,6 +17,8 @@ public class General extends Piece {
     private static final List<Coordinate> MOVE_VECTORS =
             List.of(new Coordinate(-1, 0), new Coordinate(0, -1),
                     new Coordinate(1, 0), new Coordinate(0, 1));
+    private static final Coordinate STARTING_POSITION_RED = new Coordinate(9, 4);
+    private static final Coordinate STARTING_POSITION_BLACK = new Coordinate(0, 4);
 
     public General(Coordinate position, Alliance alliance) {
         super(PieceType.GENERAL, position, alliance);
@@ -74,5 +76,13 @@ public class General extends Piece {
         } else {
             return (row >= 0 && row <= 2) && (col >= 3 && col <= 5);
         }
+    }
+
+    /**
+     * Checks if this general is in the starting position.
+     * @return true if this general is in the starting position, false otherwise.
+     */
+    boolean isInStartingPosition() {
+        return alliance.isRed() ? STARTING_POSITION_RED.equals(position) : STARTING_POSITION_BLACK.equals(position);
     }
 }

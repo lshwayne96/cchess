@@ -1,6 +1,7 @@
 package com.chess.engine.player.ai;
 
 import com.chess.engine.board.Board;
+import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
 
 import java.io.BufferedReader;
@@ -44,7 +45,8 @@ public class MoveBook {
         Board board = Board.initialiseBoard();
         String str;
 
-        BufferedReader br = new BufferedReader(new InputStreamReader(MoveBook.class.getResourceAsStream(AI_MOVEBOOK_PATH)));
+        BufferedReader br =
+                new BufferedReader(new InputStreamReader(MoveBook.class.getResourceAsStream(AI_MOVEBOOK_PATH)));
         try {
             while ((str = br.readLine()) != null) {
                 if (str.trim().isEmpty()) { // next opening
@@ -66,18 +68,21 @@ public class MoveBook {
                         boardToMoves.put(zobristKey, newList);
                     }
 
-                    Board mirroredBoard = board.getMirrorBoard();
-                    long mirroredZobristKey = mirroredBoard.getZobristKey();
-                    Move mirroredMove = move.get().getMirroredMove();
-                    List<Move> currListMirrored = boardToMoves.get(mirroredZobristKey);
-                    if (currListMirrored != null) {
-                        if (!currListMirrored.contains(mirroredMove)) {
-                            currListMirrored.add(mirroredMove);
+                    // store mirrored version of move
+                    Board mirrorBoard = board.getMirrorBoard();
+                    long mirrorZobristKey = mirrorBoard.getZobristKey();
+                    Coordinate mirrorSrcPosition = Board.getMirroredPosition(move.get().getMovedPiece().getPosition());
+                    Coordinate mirrorDestPosition = Board.getMirroredPosition(move.get().getDestPosition());
+                    Move mirrorMove = mirrorBoard.getMove(mirrorSrcPosition, mirrorDestPosition).get();
+                    List<Move> mirrorCurrList = boardToMoves.get(mirrorZobristKey);
+                    if (mirrorCurrList != null) {
+                        if (!mirrorCurrList.contains(mirrorMove)) {
+                            mirrorCurrList.add(mirrorMove);
                         }
                     } else {
-                        List<Move> newListMirrored = new ArrayList<>();
-                        newListMirrored.add(mirroredMove);
-                        boardToMoves.put(mirroredZobristKey, newListMirrored);
+                        List<Move> mirrorNewList = new ArrayList<>();
+                        mirrorNewList.add(mirrorMove);
+                        boardToMoves.put(mirrorZobristKey, mirrorNewList);
                     }
                 } else {
                     continue;

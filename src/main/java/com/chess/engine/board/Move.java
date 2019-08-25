@@ -6,7 +6,6 @@ import com.chess.engine.pieces.Piece;
 import java.util.Objects;
 import java.util.Optional;
 
-import static com.chess.engine.board.Board.*;
 import static com.chess.engine.pieces.Piece.*;
 
 /**
@@ -14,36 +13,24 @@ import static com.chess.engine.pieces.Piece.*;
  */
 public class Move {
 
-    private final Board board;
+    private final long zobristKey;
     private final Piece movedPiece;
     private final Coordinate destPosition;
     private final Piece capturedPiece;
 
-    public Move(Board board, Piece movedPiece, Coordinate destPosition, Piece capturedPiece) {
-        this.board = board;
+    public Move(long zobristKey, Piece movedPiece, Coordinate destPosition, Piece capturedPiece) {
+        this.zobristKey = zobristKey;
         this.movedPiece = movedPiece;
         this.destPosition = destPosition;
         this.capturedPiece = capturedPiece;
     }
 
-    public Move(Board board, Piece movedPiece, Coordinate destPosition) {
-        this(board, movedPiece, destPosition, null);
+    public Move(long zobristKey, Piece movedPiece, Coordinate destPosition) {
+        this(zobristKey, movedPiece, destPosition, null);
     }
 
-    /**
-     * Returns the mirrored equivalent (about the middle column) of this move
-     * @return The mirrored equivalent of this move.
-     */
-    public Move getMirroredMove() {
-        int srcRow = movedPiece.getPosition().getRow();
-        int srcCol = Board.NUM_COLS - 1 - movedPiece.getPosition().getCol();
-        Coordinate mirroredSrcPosition = new Coordinate(srcRow, srcCol);
-
-        int destRow = destPosition.getRow();
-        int destCol = Board.NUM_COLS - 1 - destPosition.getCol();
-        Coordinate mirroredDestPosition = new Coordinate(destRow, destCol);
-
-        return board.getMirrorBoard().getMove(mirroredSrcPosition, mirroredDestPosition).get();
+    public boolean isCapture() {
+        return capturedPiece != null;
     }
 
     /**
@@ -160,16 +147,15 @@ public class Move {
         if (!(obj instanceof Move)) {
             return false;
         }
-
         Move other = (Move) obj;
-        return this.movedPiece.equals(other.movedPiece)
+        return this.zobristKey == other.zobristKey
+                && this.movedPiece.equals(other.movedPiece)
                 && this.destPosition.equals(other.destPosition)
-                && this.getCapturedPiece().equals(other.getCapturedPiece())
-                && this.board.toString().equals(other.board.toString());
+                && this.getCapturedPiece().equals(other.getCapturedPiece());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(movedPiece, destPosition, getCapturedPiece(), board.toString());
+        return Objects.hash(zobristKey, movedPiece, destPosition, getCapturedPiece());
     }
 }

@@ -13,25 +13,24 @@ import java.util.List;
  * Represents a MiniMax algorithm.
  */
 abstract class MiniMax {
-//TODO: hashtable, eval, PV
-    static final int NEG_INF = Integer.MIN_VALUE + 1;
-    static final int POS_INF = Integer.MAX_VALUE;
+
+    static final int NEG_INF = Integer.MIN_VALUE + 1; // represents negative infinity
+    static final int POS_INF = Integer.MAX_VALUE; // represents positive infinity
     static final int ASP = 50; // aspiration window
-    private static final int R = 3; // depth reduction for null move pruning
-    private static final int TT_SIZE = 1000003;
+    private static final int R_LOW = 2; // low depth reduction
+    private static final int R_HIGH = 3; // high depth reduction
+    private static final int TT_SIZE = 1000003; // transposition table size
 
-    private final Board startBoard;
-    private final List<Move> legalMoves;
-    private final TTable tTable;
-    int calls;
-    int hits;
+    private final Board startBoard; // initial board
+    private final List<Move> legalMoves; // initial legal moves (simple-sorted)
+    private final TTable tTable; // transposition table
+    private final int R; // variable depth reduction for null move pruning
 
-    MiniMax(Board startBoard, Collection<Move> legalMoves) {
+    MiniMax(Board startBoard, Collection<Move> legalMoves, boolean high) {
         this.startBoard = startBoard;
         this.legalMoves = MoveSorter.simpleSort(legalMoves);
         tTable = new TTable();
-        calls = 0;
-        hits = 0;
+        R = high ? R_HIGH : R_LOW;
     }
 
     /**
@@ -40,14 +39,26 @@ abstract class MiniMax {
      */
     public abstract Move search();
 
+    /**
+     * Returns a simple-sorted list of move entries of the initial legal moves.
+     * @return A simple-sorted list of move entries of the initial legal moves.
+     */
     List<MoveEntry> getLegalMoveEntries() {
         List<MoveEntry> legalMoveEntries = new ArrayList<>();
         for (Move move : legalMoves) {
             legalMoveEntries.add(new MoveEntry(move, 0));
         }
-        return legalMoveEntries;
+        return Collections.unmodifiableList(legalMoveEntries);
     }
 
+    /**
+     * The root method of alpha-beta search.
+     * @param oldMoveEntries The list of move entries to search, with the best move at the front.
+     * @param depth The search depth.
+     * @param alpha The lower bound.
+     * @param beta The upper bound.
+     * @return A value-sorted list of move entries at the given search depth, with the best move at the front.
+     */
     List<MoveEntry> alphaBetaRoot(List<MoveEntry> oldMoveEntries, int depth, int alpha, int beta) {
         List<MoveEntry> newMoveEntries = new ArrayList<>();
         MoveEntry bestMoveEntry = null;
@@ -59,11 +70,11 @@ abstract class MiniMax {
             startBoard.makeMove(move);
             if (startBoard.isStateAllowed()) {
                 int val;
-                if (searchedMoves == 0) {
+                if (searchedMoves == 0) { // search best move with full window
                     val = -alphaBeta(startBoard, depth - 1, -beta, -alpha, true);
-                } else {
+                } else { // search remaining moves with null window
                     val = -alphaBeta(startBoard, depth - 1, -alpha - 1, -alpha, true);
-                    if (val > alpha && val < beta) {
+                    if (val > alpha && val < beta) { // research with full window
                         val = -alphaBeta(startBoard, depth - 1, -beta, -alpha, true);
                     }
                 }
@@ -93,14 +104,22 @@ abstract class MiniMax {
         return Collections.unmodifiableList(newMoveEntries);
     }
 
+    /**
+     * The inner method of alpha-beta search.
+     * @param board The current board.
+     * @param depth The current depth.
+     * @param alpha The current lower bound.
+     * @param beta The current upper bound.
+     * @param allowNull Whether a null move is allowed here.
+     */
     private int alphaBeta(Board board, int depth, int alpha, int beta, boolean allowNull) {
         int alphaOrig = alpha;
         Move bestMove = null;
-calls++;
+
         // look up transposition table
         long zobristKey = board.getZobristKey();
         TTEntry ttEntry = tTable.getEntry(zobristKey);
-        if (ttEntry != null) { hits++;
+        if (ttEntry != null) {
             bestMove = ttEntry.bestMove;
             if (ttEntry.depth >= depth) {
                 switch (ttEntry.flag) {
@@ -119,17 +138,21 @@ calls++;
             }
         }
 
-        // evaluate board if ready
+        // evaluate board
         int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
         if (depth <= 0) {
-            return quiescence(board, -beta, -alpha);
+            int val = quiescence(board, -beta, -alpha);
+            if (ttEntry == null) {
+                tTable.storeEntry(new TTEntry(zobristKey, 0, val, Flag.EXACT, null));
+            }
+            return val;
         }
-        if (board.isGameOver()) {
-            return BoardEvaluator.getCheckmateValue(board, depth) * color;
+        if (board.isCurrPlayerCheckmated()) {
+            return BoardEvaluator.getCheckmateValue(board.getCurrPlayer().getAlliance(), depth) * color;
         }
 
-        // null move pruning if possible
-        if (allowNull && board.allowNullMove()) {
+        // null move pruning
+        if (allowNull && !board.getCurrPlayer().isInCheck()) {
             board.changeTurn();
             int val = -alphaBeta(board, depth - 1 - R, -beta, -beta + 1, false);
             board.changeTurn();
@@ -140,31 +163,33 @@ calls++;
 
         // search all moves
         int bestVal = NEG_INF;
-        if (bestMove != null) {
+        if (bestMove != null) { // search best move with full window
             board.makeMove(bestMove);
             int val = -alphaBeta(board, depth - 1, -beta, -alpha, true);
             board.unmakeMove(bestMove);
             bestVal = val;
             alpha = Math.max(alpha, val);
             if (val >= beta) {
+                if (depth > ttEntry.depth) {
+                    tTable.storeEntry(new TTEntry(zobristKey, depth, bestVal, Flag.LOWERBOUND, bestMove));
+                }
                 return val;
             }
         }
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
             if (move.equals(bestMove)) continue;
+
             board.makeMove(move);
             if (board.isStateAllowed()) {
                 int val;
-                if (bestMove != null) {
+                if (bestMove != null) { // search remaining moves with null window
                     val = -alphaBeta(board, depth - 1, -alpha - 1, -alpha, true);
-                    if (val > alpha && val < beta) {
+                    if (val > alpha && val < beta) { // research with full window
                         val = -alphaBeta(board, depth - 1, -beta, -alpha, true);
                     }
                 } else {
                     val = -alphaBeta(board, depth - 1, -beta, -alpha, true);
                 }
-
-                board.unmakeMove(move);
                 if (val > bestVal) {
                     bestVal = val;
                     if (val > alphaOrig) {
@@ -172,23 +197,23 @@ calls++;
                     }
                     alpha = Math.max(alpha, val);
                 }
-                if (val >= beta) {
-                    break;
-                }
-            } else {
-                board.unmakeMove(move);
+            }
+            board.unmakeMove(move);
+
+            if (bestVal >= beta) {
+                break;
             }
         }
 
-        // store into transposition table if necessary
+        // store into transposition table
         if (ttEntry == null || depth > ttEntry.depth) {
-            TTEntry.Flag flag;
+            Flag flag;
             if (bestVal <= alphaOrig) {
-                flag = TTEntry.Flag.UPPERBOUND;
+                flag = Flag.UPPERBOUND;
             } else if (bestVal >= beta) {
-                flag = TTEntry.Flag.LOWERBOUND;
+                flag = Flag.LOWERBOUND;
             } else {
-                flag = TTEntry.Flag.EXACT;
+                flag = Flag.EXACT;
             }
             tTable.storeEntry(new TTEntry(zobristKey, depth, bestVal, flag, bestMove));
         }
@@ -196,35 +221,41 @@ calls++;
         return bestVal;
     }
 
+    /**
+     * The quiescence call when depth reaches 0.
+     */
     private int quiescence(Board board, int alpha, int beta) {
         int color = board.getCurrPlayer().getAlliance().isRed() ? 1 : -1;
-        int bestVal = BoardEvaluator.evaluate(board) * color;
+        int bestVal = BoardEvaluator.evaluate(board) * color; // "stand-pat"
         alpha = Math.max(alpha, bestVal);
         if (alpha >= beta || board.isQuiet()) {
             return bestVal;
         }
 
         for (Move move : MoveSorter.simpleSort(board.getCurrPlayer().getLegalMoves())) {
-            if (!move.getCapturedPiece().isPresent()) break;
+            if (!move.isCapture()) break; // capture moves are at the front
+
             board.makeMove(move);
             if (board.isStateAllowed()) {
                 int val = -quiescence(board, -beta, -alpha);
-                board.unmakeMove(move);
-                if (val >= beta) {
-                    return val;
-                }
                 if (val > bestVal) {
                     bestVal = val;
                     alpha = Math.max(alpha, val);
                 }
-            } else {
-                board.unmakeMove(move);
+            }
+            board.unmakeMove(move);
+
+            if (bestVal >= beta) {
+                break;
             }
         }
 
         return bestVal;
     }
 
+    /**
+     * Represents a transposition table (TT).
+     */
     private static class TTable {
 
         private final TTEntry[] arr;
@@ -233,6 +264,9 @@ calls++;
             arr = new TTEntry[TT_SIZE];
         }
 
+        /**
+         * Returns a TT entry given the Zobrist key.
+         */
         private TTEntry getEntry(long zobristKey) {
             int index = (int) Math.abs(zobristKey % TT_SIZE);
             TTEntry entry = arr[index];
@@ -243,6 +277,9 @@ calls++;
             }
         }
 
+        /**
+         * Stores the given entry into this TT.
+         */
         private void storeEntry(TTEntry entry) {
             if (entry == null) return;
             int index = (int) Math.abs(entry.zobristKey % TT_SIZE);
@@ -251,7 +288,7 @@ calls++;
     }
 
     /**
-     * Represents a transposition table entry.
+     * Represents an entry in the TT.
      */
     private static class TTEntry {
 
@@ -268,15 +305,15 @@ calls++;
             this.flag = flag;
             this.bestMove = bestMove;
         }
+    }
 
-        /**
-         * Represents the relationship of value with alpha/beta.
-         */
-        enum Flag {
-            EXACT,
-            LOWERBOUND,
-            UPPERBOUND
-        }
+    /**
+     * Represents the relationship of value with alpha/beta.
+     */
+    private enum Flag {
+        EXACT,
+        LOWERBOUND,
+        UPPERBOUND
     }
 
     /**
@@ -285,21 +322,22 @@ calls++;
     static class MoveSorter {
 
         private static final Comparator<Move> MOVE_COMPARATOR = (m1, m2) -> {
-            int cpValue1 = m1.getCapturedPiece().isPresent()
+            int cpValue1 = m1.isCapture()
                     ? m1.getCapturedPiece().get().getPieceType().getDefaultValue() : 0;
-            int cpValue2 = m2.getCapturedPiece().isPresent()
+            int cpValue2 = m2.isCapture()
                     ? m2.getCapturedPiece().get().getPieceType().getDefaultValue() : 0;
-            if (cpValue1 == 0 && cpValue2 == 0) {
+            if (cpValue1 == 0 && cpValue2 == 0) { // both non-captures, compare move priority
                 return m1.getMovedPiece().getPieceType().getMovePriority()
                         - m2.getMovedPiece().getPieceType().getMovePriority();
             }
 
             int pValue1 = m1.getMovedPiece().getPieceType().getDefaultValue();
             int pValue2 = m2.getMovedPiece().getPieceType().getDefaultValue();
-            if (cpValue1 != 0 && cpValue2 != 0) {
+            if (cpValue1 != 0 && cpValue2 != 0) { // both captures, compare difference of capture profits
                 return (cpValue2 - pValue2) - (cpValue1 - pValue1);
             }
 
+            // captures first
             return cpValue2 - cpValue1;
         };
         static final Comparator<MoveEntry> MOVE_ENTRY_COMPARATOR = (e1, e2) -> {
