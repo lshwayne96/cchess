@@ -4,7 +4,7 @@ Chinese Chess（象棋）engine with AI
 Features:
 - Full GUI (requires JavaFX)
   - Chess board
-  - Game status (turn and check notification)
+  - Game status (move and check notification)
   - Captured pieces
   - Move log
 - Customisable players
@@ -12,13 +12,26 @@ Features:
   - Human vs AI 
   - AI vs AI
 - AI
-  - Thorough board evaluation
   - Adjustable search depth and time
+  - Move banning
   - Move randomisation
 - Others
   - Undo last move/turn
   - Highlight player's legal moves
   - Highlight opponent's last move
-  - Flip board direction
   - Save/load game
   - Watch replay
+  - Flip board direction
+  
+AI details:
+  - Basic board evaluation
+  - Move book (first 2 moves)
+  - MiniMax search algorithm
+    - Iterative deepening
+    - Aspiration windows
+    - Principal variation search
+    - Alpha-beta pruning
+    - Adaptive null move pruning
+    - Quiescence search
+    - Transposition table with Zobrist hashing
+    - Move sorting
