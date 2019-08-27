@@ -225,7 +225,7 @@ class BoardEvaluator {
 
             Player player = piece.getAlliance().isRed() ? board.getRedPlayer() : board.getBlackPlayer();
             int index = player.getAlliance().isRed() ? 0 : 1;
-            int pieceValue = piece.getMaterialValue(boardStatus) + piece.getPositionValue();
+            int pieceValue = piece.getValue(isEndgame);
 
             int oppTotalAttack = 0;
             int oppMinAttack = Integer.MAX_VALUE;
@@ -241,7 +241,7 @@ class BoardEvaluator {
             if (attackMoves != null) {
                 for (Move move : attackMoves) {
                     Piece oppPiece = move.getMovedPiece();
-                    int attackValue = oppPiece.getMaterialValue(boardStatus) + oppPiece.getPositionValue();
+                    int attackValue = oppPiece.getValue(isEndgame);
                     if (attackValue < pieceValue && attackValue < flagValue) {
                         flagValue = attackValue;
                     }
@@ -255,7 +255,7 @@ class BoardEvaluator {
             Collection<Piece> defendingPieces = defendingPiecesMap.get(piece);
             if (defendingPieces != null) {
                 for (Piece defendingPiece : defendingPieces) {
-                    int defendingValue = defendingPiece.getMaterialValue(boardStatus);
+                    int defendingValue = defendingPiece.getValue(isEndgame);
                     playerMinDefense = Math.min(playerMinDefense, defendingValue);
                     playerMaxDefense = Math.max(playerMaxDefense, defendingValue);
                     playerTotalDefense += defendingValue;
@@ -265,7 +265,7 @@ class BoardEvaluator {
             // calculate scores
             boolean isCurrTurn = board.getCurrPlayer().getAlliance().equals(player.getAlliance());
             if (attackMoves == null) {
-                scores[index] += defendingPieces == null ? 0 : 10 * defendingPieces.size();
+                scores[index] += defendingPieces == null ? 0 : 2 * defendingPieces.size();
             } else {
                 if (defendingPieces == null) {
                     scores[index] -= isCurrTurn ? unitValue : 5 * unitValue;
