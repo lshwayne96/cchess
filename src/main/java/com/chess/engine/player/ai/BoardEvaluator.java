@@ -55,86 +55,43 @@ class BoardEvaluator {
      * Returns the score difference between the two players.
      */
     private static int getScoreDiff(Board board) {
-        BoardStatus boardStatus = board.getStatus();
-        return getPieceScoreDiff(board, boardStatus)
-                + getRelationScoreDiff(board, boardStatus)
+        return getPieceScoreDiff(board)
+                + getRelationScoreDiff(board)
                 + getTotalMobilityValue(board.getRedPlayer()) - getTotalMobilityValue(board.getBlackPlayer())
-                + (Table.getInstance().isAIRandomised() ? rand.nextInt(10) : 0);
+                + (Table.getInstance().isAIRandomised() ? rand.nextInt(2) : 0);
     }
 
     /**
      * Returns the piece score difference between the two players on the given board.
      */
-    private static int getPieceScoreDiff(Board board, BoardStatus boardStatus) {
+    private static int getPieceScoreDiff(Board board) {
         int redScore = 0, blackScore = 0;
+        Player redPlayer = board.getRedPlayer();
+        Player blackPlayer = board.getBlackPlayer();
+        boolean isEndgame = board.isEndgame();
+        for (Piece piece : redPlayer.getActivePieces()) {
+            redScore += piece.getValue(isEndgame);
+            if (piece.getPieceType().equals(PieceType.CANNON)) {
+                redScore += (((Cannon) piece).isMiddleFacingGeneral(board) ? CANNON_HOLLOW_BONUS : 0);
+            }
+        }
+        for (Piece piece : blackPlayer.getActivePieces()) {
+            blackScore += piece.getValue(isEndgame);
+            if (piece.getPieceType().equals(PieceType.CANNON)) {
+                blackScore += (((Cannon) piece).isMiddleFacingGeneral(board) ? CANNON_HOLLOW_BONUS : 0);
+            }
+        }
 
-        // tabulate pieces for each player
-        int redChariotCount = 0, redCannonCount = 0, redHorseCount = 0,
-                redElephantCount = 0, redAdvisorCount = 0;
-        for (Piece piece : board.getRedPlayer().getActivePieces()) {
-            redScore += piece.getMaterialValue(boardStatus) + piece.getPositionValue();
-            switch (piece.getPieceType()) {
-                case CHARIOT:
-                    redChariotCount++;
-                    if (((Chariot) piece).isInStartingPosition()) {
-                        redScore -= CHARIOT_PENALTY;
-                    }
-                    break;
-                case CANNON:
-                    redCannonCount++;
-                    if (!boardStatus.equals(BoardStatus.END) && ((Cannon) piece).isMiddleFacingGeneral(board)) {
-                        redScore += CANNON_HOLLOW_BONUS;
-                    }
-                    break;
-                case HORSE:
-                    if (((Horse) piece).isInStartingPosition()) {
-                        redScore -= HORSE_PENALTY;
-                    }
-                    redHorseCount++;
-                    break;
-                case ELEPHANT:
-                    redElephantCount++;
-                    break;
-                case ADVISOR:
-                    redAdvisorCount++;
-                    break;
-                default:
-                    break;
-            }
-        }
-        int blackChariotCount = 0, blackCannonCount = 0, blackHorseCount = 0,
-                blackElephantCount = 0, blackAdvisorCount = 0;
-        for (Piece piece : board.getBlackPlayer().getActivePieces()) {
-            blackScore += piece.getMaterialValue(boardStatus) + piece.getPositionValue();
-            switch (piece.getPieceType()) {
-                case CHARIOT:
-                    blackChariotCount++;
-                    if (((Chariot) piece).isInStartingPosition()) {
-                        blackScore -= CHARIOT_PENALTY;
-                    }
-                    break;
-                case CANNON:
-                    blackCannonCount++;
-                    if (!boardStatus.equals(BoardStatus.END) && ((Cannon) piece).isMiddleFacingGeneral(board)) {
-                        blackScore += CANNON_HOLLOW_BONUS;
-                    }
-                    break;
-                case HORSE:
-                    if (((Horse) piece).isInStartingPosition()) {
-                        blackScore -= HORSE_PENALTY;
-                    }
-                    blackHorseCount++;
-                    break;
-                case ELEPHANT:
-                    blackElephantCount++;
-                    break;
-                case ADVISOR:
-                    blackAdvisorCount++;
-                    break;
-                default:
-                    break;
-            }
-        }
+        int redChariotCount = redPlayer.getPieceCount(PieceType.CHARIOT);
+        int redCannonCount = redPlayer.getPieceCount(PieceType.CANNON);
+        int redHorseCount = redPlayer.getPieceCount(PieceType.HORSE);
+        int redElephantCount = redPlayer.getPieceCount(PieceType.ELEPHANT);
+        int redAdvisorCount = redPlayer.getPieceCount(PieceType.ADVISOR);
+        int blackChariotCount = blackPlayer.getPieceCount(PieceType.CHARIOT);
+        int blackCannonCount = blackPlayer.getPieceCount(PieceType.CANNON);
+        int blackHorseCount = blackPlayer.getPieceCount(PieceType.HORSE);
+        int blackElephantCount = blackPlayer.getPieceCount(PieceType.ELEPHANT);
+        int blackAdvisorCount = blackPlayer.getPieceCount(PieceType.ADVISOR);
 
         // cannon+horse might be better than cannon+cannon or horse+horse
         if (redCannonCount > 0 && redHorseCount > 0) {
@@ -185,12 +142,13 @@ class BoardEvaluator {
     /**
      * Returns the relationship score difference between the two players on the given board.
      */
-    private static int getRelationScoreDiff(Board board, BoardStatus boardStatus) {
+    private static int getRelationScoreDiff(Board board) {
         int[] scores = new int[2];
         Map<Piece, Collection<Move>> incomingAttacksMap = new HashMap<>();
         Map<Piece, Collection<Piece>> defendingPiecesMap = new HashMap<>();
         Collection<Move> allLegalMoves = board.getAllLegalMoves();
         Collection<Piece> allPieces = board.getAllPieces();
+        boolean isEndgame = board.isEndgame();
 
         // calculate all attacks and defenses on the board
         for (Move move : allLegalMoves) {

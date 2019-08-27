@@ -12,6 +12,7 @@ import com.chess.engine.pieces.Soldier;
 import com.chess.engine.player.Player;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,8 +30,7 @@ public class Board {
     public static final int NUM_COLS = 9;
     public static final int RIVER_ROW_RED = 5;
     public static final int RIVER_ROW_BLACK = 4;
-    private static final int MAX_PIECES_MIDGAME = 29;
-    private static final int MAX_ATTACKING_UNITS_ENDGAME = 8;
+    private static final int MAX_ATTACKING_UNITS_ENDGAME = 4;
     private static final Zobrist ZOBRIST = new Zobrist();
 
     private final List<Point> points;
@@ -63,31 +63,6 @@ public class Board {
         }
 
         return Collections.unmodifiableList(points);
-    }
-
-    /**
-     * Returns information related to both players on this board.
-     */
-    private PlayerInfo generatePlayerInfo() {
-        Collection<Piece> redPieces = new ArrayList<>();
-        Collection<Move> redLegalMoves = new ArrayList<>();
-        Collection<Piece> blackPieces = new ArrayList<>();
-        Collection<Move> blackLegalMoves = new ArrayList<>();
-
-        for (Point point : points) {
-            point.getPiece().ifPresent(p -> {
-                if (p.getAlliance().isRed()) {
-                    redPieces.add(p);
-                    redLegalMoves.addAll(p.getLegalMoves(this));
-                } else {
-                    blackPieces.add(p);
-                    blackLegalMoves.addAll(p.getLegalMoves(this));
-                }
-            });
-        }
-
-        return new PlayerInfo(new Player(Alliance.RED, redPieces, redLegalMoves, blackLegalMoves),
-                new Player(Alliance.BLACK, blackPieces, blackLegalMoves, redLegalMoves));
     }
 
     /**
@@ -135,13 +110,98 @@ public class Board {
         return builder.build();
     }
 
+
+    /**
+     * Generates information related to both players on this board from scratch.
+     */
+    private PlayerInfo generatePlayerInfo() {
+        Collection<Piece> redPieces = new ArrayList<>();
+        Collection<Move> redLegalMoves = new ArrayList<>();
+        int[] redPieceCount = new int[7];
+
+        Collection<Piece> blackPieces = new ArrayList<>();
+        Collection<Move> blackLegalMoves = new ArrayList<>();
+        int[] blackPieceCount = new int[7];
+
+        for (Point point : points) {
+            if (point.isEmpty()) continue;
+            Piece piece = point.getPiece().get();
+
+            if (piece.getAlliance().isRed()) {
+                redPieces.add(piece);
+                redLegalMoves.addAll(piece.getLegalMoves(this));
+                redPieceCount[piece.getPieceType().ordinal()]++;
+            } else {
+                blackPieces.add(piece);
+                blackLegalMoves.addAll(piece.getLegalMoves(this));
+                blackPieceCount[piece.getPieceType().ordinal()]++;
+            }
+        }
+
+        Player redPlayer = new Player(Alliance.RED, redPieces, redLegalMoves, blackLegalMoves, redPieceCount);
+        Player blackPlayer = new Player(Alliance.BLACK, blackPieces, blackLegalMoves, redLegalMoves, blackPieceCount);
+        return new PlayerInfo(redPlayer, blackPlayer);
+    }
+
+    /**
+     * Generates information related to both players on this board from existing information.
+     */
+    private PlayerInfo updatePlayerInfo(Move move) {
+        Piece movedPiece = move.getMovedPiece();
+        Piece destPiece = movedPiece.movePiece(move);
+        Piece capturedPiece = move.isCapture() ? move.getCapturedPiece().get() : null;
+
+        Collection<Piece> redPieces = new ArrayList<>();
+        Collection<Move> redLegalMoves = new ArrayList<>();
+        int[] redPieceCount;
+
+        Collection<Piece> blackPieces = new ArrayList<>();
+        Collection<Move> blackLegalMoves = new ArrayList<>();
+        int[] blackPieceCount;
+
+        for (Piece piece : getRedPlayer().getActivePieces()) {
+            if (piece.equals(movedPiece) || piece.equals(capturedPiece)) continue;
+            redPieces.add(piece);
+            redLegalMoves.addAll(piece.getLegalMoves(this));
+        }
+        for (Piece piece : getBlackPlayer().getActivePieces()) {
+            if (piece.equals(movedPiece) || piece.equals(capturedPiece)) continue;
+            blackPieces.add(piece);
+            blackLegalMoves.addAll(piece.getLegalMoves(this));
+        }
+        if (destPiece.getAlliance().isRed()) {
+            redPieces.add(destPiece);
+            redLegalMoves.addAll(destPiece.getLegalMoves(this));
+        } else {
+            blackPieces.add(destPiece);
+            blackLegalMoves.addAll(destPiece.getLegalMoves(this));
+        }
+
+        if (capturedPiece == null) {
+            redPieceCount = getRedPlayer().getPieceCountArray();
+            blackPieceCount = getBlackPlayer().getPieceCountArray();
+        } else {
+            if (capturedPiece.getAlliance().isRed()) {
+                redPieceCount = Arrays.copyOf(getRedPlayer().getPieceCountArray(), 7);
+                redPieceCount[capturedPiece.getPieceType().ordinal()]--;
+                blackPieceCount = getBlackPlayer().getPieceCountArray();
+            } else {
+                blackPieceCount = Arrays.copyOf(getBlackPlayer().getPieceCountArray(), 7);
+                blackPieceCount[capturedPiece.getPieceType().ordinal()]--;
+                redPieceCount = getRedPlayer().getPieceCountArray();
+            }
+        }
+
+        Player redPlayer = new Player(Alliance.RED, redPieces, redLegalMoves, blackLegalMoves, redPieceCount);
+        Player blackPlayer = new Player(Alliance.BLACK, blackPieces, blackLegalMoves, redLegalMoves, blackPieceCount);
+        return new PlayerInfo(redPlayer, blackPlayer);
+    }
+
     /**
      * Makes the given move on this board. Player information and zobrist key are updated.
      * @param move The move to be made.
      */
     public void makeMove(Move move) {
-        assert getCurrPlayer().getLegalMoves().contains(move);
-
         Piece movedPiece = move.getMovedPiece();
         Coordinate srcPosition = movedPiece.getPosition();
         Coordinate destPosition = move.getDestPosition();
@@ -152,7 +212,7 @@ public class Board {
         destPoint.setPiece(movedPiece.movePiece(move));
 
         playerInfoHistory.add(playerInfo);
-        playerInfo = generatePlayerInfo();
+        playerInfo = updatePlayerInfo(move);
         changeTurn();
         zobristKey = ZOBRIST.updateKey(zobristKey, move);
     }
@@ -188,14 +248,6 @@ public class Board {
     }
 
     /**
-     * Checks if the current player's opponent is in check. Such a state is not allowed.
-     * @return true if the current player's opponent is NOT in check, false otherwise.
-     */
-    public boolean isStateAllowed() {
-        return !getOppPlayer().isInCheck();
-    }
-
-    /**
      * Returns a move, if any, corresponding to the given source and destination positions on this board.
      * @param srcPosition The source position.
      * @param destPosition The destination position.
@@ -212,32 +264,20 @@ public class Board {
     }
 
     /**
-     * Returns the current status of this board.
-     * @return The current status of this board.
+     * Checks if the current player's opponent is in check. Such a state is not allowed.
+     * @return true if the current player's opponent is NOT in check, false otherwise.
      */
-    public BoardStatus getStatus() {
-        Collection<Piece> allPieces = getAllPieces();
+    public boolean isStateAllowed() {
+        return !getOppPlayer().isInCheck();
+    }
 
-        if (allPieces.size() > MAX_PIECES_MIDGAME) {
-            return BoardStatus.OPENING;
-        }
-
-        int attackingUnits = 0;
-        for (Piece piece : allPieces) {
-            switch (piece.getPieceType()) {
-                case CHARIOT:
-                    attackingUnits += 2;
-                    break;
-                case CANNON:
-                case HORSE:
-                    attackingUnits++;
-                    break;
-            }
-            if (attackingUnits > MAX_ATTACKING_UNITS_ENDGAME) {
-                return BoardStatus.MIDDLE;
-            }
-        }
-        return BoardStatus.END;
+    /**
+     * Checks if this board is currently in endgame.
+     * @return true if this board is currently in endgame, false otherwise.
+     */
+    public boolean isEndgame() {
+        return getRedPlayer().getTotalAttackingUnits() <= MAX_ATTACKING_UNITS_ENDGAME
+                && getBlackPlayer().getTotalAttackingUnits() <= MAX_ATTACKING_UNITS_ENDGAME;
     }
 
     /**
