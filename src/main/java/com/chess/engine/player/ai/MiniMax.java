@@ -16,7 +16,7 @@ abstract class MiniMax {
 
     static final int NEG_INF = Integer.MIN_VALUE + 1; // represents negative infinity
     static final int POS_INF = Integer.MAX_VALUE; // represents positive infinity
-    static final int ASP = 50; // aspiration window
+    static final int ASP = 10; // aspiration window
     private static final int R_LOW = 2; // low depth reduction
     private static final int R_HIGH = 3; // high depth reduction
     private static final int TT_SIZE = 1000003; // transposition table size
@@ -321,16 +321,16 @@ abstract class MiniMax {
 
         private static final Comparator<Move> MOVE_COMPARATOR = (m1, m2) -> {
             int cpValue1 = m1.isCapture()
-                    ? m1.getCapturedPiece().get().getPieceType().getDefaultValue() : 0;
+                    ? m1.getCapturedPiece().get().getValue(false) : 0;
             int cpValue2 = m2.isCapture()
-                    ? m2.getCapturedPiece().get().getPieceType().getDefaultValue() : 0;
+                    ? m2.getCapturedPiece().get().getValue(false) : 0;
             if (cpValue1 == 0 && cpValue2 == 0) { // both non-captures, compare move priority
                 return m1.getMovedPiece().getPieceType().getMovePriority()
                         - m2.getMovedPiece().getPieceType().getMovePriority();
             }
 
-            int pValue1 = m1.getMovedPiece().getPieceType().getDefaultValue();
-            int pValue2 = m2.getMovedPiece().getPieceType().getDefaultValue();
+            int pValue1 = m1.getMovedPiece().getValue(false);
+            int pValue2 = m2.getMovedPiece().getValue(false);
             if (cpValue1 != 0 && cpValue2 != 0) { // both captures, compare difference of capture profits
                 return (cpValue2 - pValue2) - (cpValue1 - pValue1);
             }

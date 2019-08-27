@@ -82,7 +82,7 @@ public class General extends Piece {
      * Checks if this general is in the starting position.
      * @return true if this general is in the starting position, false otherwise.
      */
-    boolean isInStartingPosition() {
+    public boolean isInStartingPosition() {
         return alliance.isRed() ? STARTING_POSITION_RED.equals(position) : STARTING_POSITION_BLACK.equals(position);
     }
 }

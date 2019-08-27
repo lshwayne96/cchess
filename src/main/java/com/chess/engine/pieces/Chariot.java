@@ -9,17 +9,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 public class Chariot extends Piece {
 
     private static final List<Coordinate> MOVE_VECTORS =
             List.of(new Coordinate(-1, 0), new Coordinate(0, -1),
                     new Coordinate(1, 0), new Coordinate(0, 1));
-    private static final Set<Coordinate> STARTING_POSITIONS_RED =
-            Set.of(new Coordinate(9, 0), new Coordinate(9, 8));
-    private static final Set<Coordinate> STARTING_POSITIONS_BLACK =
-            Set.of(new Coordinate(0, 0), new Coordinate(0, 8));
 
     public Chariot(Coordinate position, Alliance alliance) {
         super(PieceType.CHARIOT, position, alliance);
@@ -51,14 +46,5 @@ public class Chariot extends Piece {
     public Chariot getMirrorPiece() {
         Coordinate mirrorPosition = new Coordinate(position.getRow(), Board.NUM_COLS - 1 - position.getCol());
         return new Chariot(mirrorPosition, alliance);
-    }
-
-    /**
-     * Checks if this chariot is in one of the starting positions.
-     * @return true if this chariot is in one of the starting positions, false otherwise.
-     */
-    public boolean isInStartingPosition() {
-        return alliance.isRed() ? STARTING_POSITIONS_RED.contains(position)
-                : STARTING_POSITIONS_BLACK.contains(position);
     }
 }

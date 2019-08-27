@@ -5,8 +5,6 @@ import com.chess.engine.board.Board;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
 import com.chess.engine.pieces.Cannon;
-import com.chess.engine.pieces.Chariot;
-import com.chess.engine.pieces.Horse;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.Player;
 import com.chess.gui.Table;
@@ -17,23 +15,20 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-import static com.chess.engine.board.Board.*;
 import static com.chess.engine.pieces.Piece.*;
 
 /**
  * A helper class for evaluating a board.
  */
 class BoardEvaluator {
-
+//TODO: piece value/count + boardstatus update when making move, hollow cannon, central horse, soldier value, trap, mobility
     private static final Random rand = new Random();
-    private static final int CHECKMATE_VALUE = PieceType.GENERAL.getDefaultValue();
-    private static final int HORSE_PENALTY = 40;
-    private static final int CHARIOT_PENALTY = 20;
-    private static final int CANNON_HOLLOW_BONUS = 200;
-    private static final int CANNON_HORSE_BONUS = 30;
-    private static final int CANNON_ELEPHANT_BONUS = 50;
-    private static final int CHARIOT_ONE_ADVISOR_BONUS = 150;
-    private static final int CHARIOT_ZERO_ADVISOR_BONUS = 350;
+    private static final int CHECKMATE_VALUE = 10000;
+    private static final int CANNON_HOLLOW_BONUS = 50;
+    private static final int CANNON_HORSE_BONUS = 5;
+    private static final int CANNON_ELEPHANT_BONUS = 10;
+    private static final int CHARIOT_ONE_ADVISOR_BONUS = 35;
+    private static final int CHARIOT_ZERO_ADVISOR_BONUS = 70;
 
     /**
      * Returns the heuristic value of the given board.

@@ -497,15 +497,6 @@ public class Board {
     }
 
     /**
-     * Represents the current status of a board.
-     */
-    public enum BoardStatus {
-        OPENING,
-        MIDDLE,
-        END,
-    }
-
-    /**
      * A helper class for building a board.
      */
     static class Builder {
