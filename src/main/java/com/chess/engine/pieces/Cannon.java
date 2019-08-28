@@ -2,6 +2,7 @@ package com.chess.engine.pieces;
 
 import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
+import com.chess.engine.board.BoardUtil;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
 import com.chess.engine.board.Point;
@@ -30,7 +31,7 @@ public class Cannon extends Piece {
             Coordinate destPosition = position.add(vector);
             boolean jumped = false;
 
-            while (Board.isWithinBounds(destPosition)) {
+            while (BoardUtil.isWithinBounds(destPosition)) {
                 Point destPoint = board.getPoint(destPosition);
                 Optional<Piece> destPiece = destPoint.getPiece();
 
@@ -59,32 +60,5 @@ public class Cannon extends Piece {
     public Cannon getMirrorPiece() {
         Coordinate mirrorPosition = new Coordinate(position.getRow(), Board.NUM_COLS - 1 - position.getCol());
         return new Cannon(mirrorPosition, alliance);
-    }
-
-    /**
-     * Checks if this cannon is directly facing the opponent's general in its starting position..
-     * @param board The current board.
-     * @return true if this cannon is directly facing the opponent's general in its starting position, false otherwise.
-     */
-    public boolean isMiddleFacingGeneral(Board board) {
-        if (position.getCol() != 4
-                || (alliance.isRed() && position.getRow() < 3)
-                || (!alliance.isRed() && position.getRow() > 6)) return false;
-
-        Piece oppGeneral = alliance.isRed() ? board.getBlackPlayer().getPlayerGeneral()
-                : board.getRedPlayer().getPlayerGeneral();
-        if (!((General) oppGeneral).isInStartingPosition()) return false;
-
-        Coordinate forwardVector = MOVE_VECTORS.get(2);
-        Coordinate destPosition = position.add(forwardVector.scale(alliance.getDirection()));
-        while (Board.isWithinBounds(destPosition)) {
-            Point destPoint = board.getPoint(destPosition);
-            if (destPoint.getPiece().isPresent()) {
-                Piece destPiece = destPoint.getPiece().get();
-                return destPiece.getPieceType().equals(PieceType.GENERAL);
-            }
-            destPosition = destPosition.add(forwardVector.scale(alliance.getDirection()));
-        }
-        return false;
     }
 }

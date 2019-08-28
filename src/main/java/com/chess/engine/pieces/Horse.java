@@ -2,6 +2,7 @@ package com.chess.engine.pieces;
 
 import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
+import com.chess.engine.board.BoardUtil;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
 
@@ -33,12 +34,12 @@ public class Horse extends Piece {
 
         for (int i = 0; i < FIRST_MOVE_VECTORS.size(); i++) {
             Coordinate firstPosition = position.add(FIRST_MOVE_VECTORS.get(i));
-            if (!(Board.isWithinBounds(firstPosition)
+            if (!(BoardUtil.isWithinBounds(firstPosition)
                     && board.getPoint(firstPosition).isEmpty())) continue;
 
             for (Coordinate second : SECOND_MOVE_VECTORS_LIST.get(i)) {
                 Coordinate destPosition = firstPosition.add(second);
-                if (Board.isWithinBounds(destPosition)) {
+                if (BoardUtil.isWithinBounds(destPosition)) {
                     destPositions.add(destPosition);
                 }
             }

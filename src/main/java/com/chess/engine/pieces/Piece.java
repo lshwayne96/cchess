@@ -134,8 +134,8 @@ public abstract class Piece {
         SOLDIER("S", true, MIDGAME_VALUES_SOLDIER, ENDGAME_VALUES_SOLDIER, 5, 3, 0),
         ADVISOR("A", false, VALUES_ADVISOR, VALUES_ADVISOR, 0, 4, 0),
         ELEPHANT("E", false, VALUES_ELEPHANT, VALUES_ELEPHANT, 0, 4, 0),
-        HORSE("H", true, MIDGAME_VALUES_HORSE, ENDGAME_VALUES_HORSE, 4, 2, 1),
-        CANNON("C", true, MIDGAME_VALUES_CANNON, ENDGAME_VALUES_CANNON, 1, 2, 1),
+        HORSE("H", true, MIDGAME_VALUES_HORSE, ENDGAME_VALUES_HORSE, 5, 2, 1),
+        CANNON("C", true, MIDGAME_VALUES_CANNON, ENDGAME_VALUES_CANNON, 2, 2, 1),
         CHARIOT("R", true, MIDGAME_VALUES_CHARIOT, ENDGAME_VALUES_CHARIOT, 2, 1, 2),
         GENERAL("G", false, MIDGAME_VALUES_GENERAL, ENDGAME_VALUES_GENERAL, 0, 5, 0);
 
@@ -186,10 +186,10 @@ public abstract class Piece {
        for midgame and endgame on all positions of the board (adapted from EleEye) */
     private static int[][] MIDGAME_VALUES_SOLDIER = {
             {  9,  9,  9, 11, 13, 11,  9,  9,  9},
-            { 19, 24, 34, 42, 44, 42, 34, 24, 19},
-            { 19, 24, 32, 37, 37, 37, 32, 24, 19},
-            { 19, 23, 27, 29, 30, 29, 27, 23, 19},
-            { 14, 18, 20, 27, 29, 27, 20, 18, 14},
+            { 29, 36, 51, 63, 66, 63, 51, 36, 29},
+            { 29, 36, 48, 55, 55, 55, 48, 36, 29},
+            { 29, 34, 40, 44, 45, 44, 40, 34, 29},
+            { 21, 27, 30, 40, 44, 40, 30, 27, 21},
             {  7,  0, 13,  0, 16,  0, 13,  0,  7},
             {  7,  0,  7,  0, 15,  0,  7,  0,  7},
             {  0,  0,  0,  0,  0,  0,  0,  0,  0},
@@ -198,12 +198,12 @@ public abstract class Piece {
     };
     private static int[][] ENDGAME_VALUES_SOLDIER = {
             { 10, 10, 10, 15, 15, 15, 10, 10, 10},
-            { 10, 15, 20, 45, 60, 45, 20, 15, 10},
-            { 25, 30, 30, 35, 35, 35, 30, 30, 25},
-            { 35, 40, 40, 45, 45, 45, 40, 40, 35},
-            { 25, 30, 30, 35, 35, 35, 30, 30, 25},
-            { 25,  0, 25,  0, 25,  0, 25,  0, 25},
-            { 20,  0, 20,  0, 20,  0, 20,  0, 20},
+            { 30, 35, 40, 65, 80, 65, 40, 35, 30},
+            { 45, 50, 50, 55, 55, 55, 50, 50, 45},
+            { 55, 60, 60, 62, 62, 62, 60, 60, 55},
+            { 47, 50, 47, 52, 52, 52, 47, 50, 47},
+            { 35,  0, 32,  0, 35,  0, 32,  0, 35},
+            { 30,  0, 27,  0, 30,  0, 27,  0, 30},
             {  0,  0,  0,  0,  0,  0,  0,  0,  0},
             {  0,  0,  0,  0,  0,  0,  0,  0,  0},
             {  0,  0,  0,  0,  0,  0,  0,  0,  0}
@@ -324,7 +324,7 @@ public abstract class Piece {
             {  0,  0,  0,  0,  0,  0,  0,  0,  0},
             {  0,  0,  0,  0,  0,  0,  0,  0,  0},
             {  0,  0,  0,  0,  0,  0,  0,  0,  0},
-            {  0,  0,  0,  5, 13,  5,  0,  0,  0},
+            {  0,  0,  0,  5, 14,  5,  0,  0,  0},
             {  0,  0,  0,  3, 12,  3,  0,  0,  0},
             {  0,  0,  0,  1, 11,  1,  0,  0,  0}
     };

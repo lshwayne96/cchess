@@ -1,6 +1,7 @@
 package com.chess.engine.player.ai;
 
 import com.chess.engine.board.Board;
+import com.chess.engine.board.BoardUtil;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
 
@@ -71,8 +72,8 @@ public class MoveBook {
                     // store mirrored version of move
                     Board mirrorBoard = board.getMirrorBoard();
                     long mirrorZobristKey = mirrorBoard.getZobristKey();
-                    Coordinate mirrorSrcPosition = Board.getMirrorPosition(move.get().getMovedPiece().getPosition());
-                    Coordinate mirrorDestPosition = Board.getMirrorPosition(move.get().getDestPosition());
+                    Coordinate mirrorSrcPosition = BoardUtil.getMirrorPosition(move.get().getMovedPiece().getPosition());
+                    Coordinate mirrorDestPosition = BoardUtil.getMirrorPosition(move.get().getDestPosition());
                     Move mirrorMove = mirrorBoard.getMove(mirrorSrcPosition, mirrorDestPosition).get();
                     List<Move> mirrorCurrList = boardToMoves.get(mirrorZobristKey);
                     if (mirrorCurrList != null) {

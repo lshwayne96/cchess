@@ -2,6 +2,7 @@ package com.chess.engine.pieces;
 
 import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
+import com.chess.engine.board.BoardUtil;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
 
@@ -37,7 +38,7 @@ public class Elephant extends Piece {
 
         for (Coordinate vector : MOVE_VECTORS) {
             Coordinate firstPosition = position.add(vector);
-            if (!(Board.isWithinBounds(firstPosition)
+            if (!(BoardUtil.isWithinBounds(firstPosition)
                     && board.getPoint(firstPosition).isEmpty())) continue;
 
             Coordinate destPosition = firstPosition.add(vector);

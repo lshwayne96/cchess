@@ -45,10 +45,10 @@ public class Move {
         }
 
         Alliance alliance = board.getCurrPlayer().getAlliance();
-        int formerRow = rankToRow(charToRank(str.charAt(1)), alliance);
-        int formerCol = fileToCol(Character.getNumericValue(str.charAt(2)), alliance);
-        int newRow = rankToRow(charToRank(str.charAt(4)), alliance);
-        int newCol = fileToCol(Character.getNumericValue(str.charAt(5)), alliance);
+        int formerRow = BoardUtil.rankToRow(charToRank(str.charAt(1)), alliance);
+        int formerCol = BoardUtil.fileToCol(Character.getNumericValue(str.charAt(2)), alliance);
+        int newRow = BoardUtil.rankToRow(charToRank(str.charAt(4)), alliance);
+        int newCol = BoardUtil.fileToCol(Character.getNumericValue(str.charAt(5)), alliance);
 
         Coordinate srcPosition = new Coordinate(formerRow, formerCol);
         Coordinate destPosition = new Coordinate(newRow, newCol);
@@ -61,34 +61,6 @@ public class Move {
      */
     private static String getPieceAbbrev(PieceType pieceType, Alliance alliance) {
         return alliance.isRed() ? pieceType.toString() : pieceType.toString().toLowerCase();
-    }
-
-    /**
-     * Converts a column number to its corresponding file number based on the given alliance.
-     */
-    private static int colToFile(int col, Alliance alliance) {
-        return alliance.isRed() ? Board.NUM_COLS - col : col + 1;
-    }
-
-    /**
-     * Converts a file number to its corresponding column number based on the given alliance.
-     */
-    private static int fileToCol(int file, Alliance alliance) {
-        return alliance.isRed() ? Board.NUM_COLS - file : file - 1;
-    }
-
-    /**
-     * Converts a row number to its corresponding rank number based on the given alliance.
-     */
-    private static int rowToRank(int row, Alliance alliance) {
-        return alliance.isRed() ? Board.NUM_ROWS - row : row + 1;
-    }
-
-    /**
-     * Converts rank number to its corresponding row number based on the given alliance.
-     */
-    private static int rankToRow(int rank, Alliance alliance) {
-        return alliance.isRed() ? Board.NUM_ROWS - rank : rank - 1;
     }
 
     /**
@@ -128,10 +100,10 @@ public class Move {
         Alliance alliance = movedPiece.getAlliance();
         PieceType pieceType = movedPiece.getPieceType();
 
-        String formerRank = rankToString(rowToRank(srcPosition.getRow(), alliance));
-        String formerFile = Integer.toString(colToFile(srcPosition.getCol(), alliance));
-        String newRank = rankToString(rowToRank(destPosition.getRow(), alliance));
-        String newFile = Integer.toString(colToFile(destPosition.getCol(), alliance));
+        String formerRank = rankToString(BoardUtil.rowToRank(srcPosition.getRow(), alliance));
+        String formerFile = Integer.toString(BoardUtil.colToFile(srcPosition.getCol(), alliance));
+        String newRank = rankToString(BoardUtil.rowToRank(destPosition.getRow(), alliance));
+        String newFile = Integer.toString(BoardUtil.colToFile(destPosition.getCol(), alliance));
 
         return getPieceAbbrev(pieceType, alliance) +
                 formerRank + formerFile +

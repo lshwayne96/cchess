@@ -2,6 +2,7 @@ package com.chess.engine.pieces;
 
 import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
+import com.chess.engine.board.BoardUtil;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
 
@@ -32,7 +33,7 @@ public class Soldier extends Piece {
         } else {
             for (Coordinate vector : MOVE_VECTORS_AFTER_RIVER) {
                 Coordinate destPosition = position.add(vector.scale(alliance.getDirection()));
-                if (Board.isWithinBounds(destPosition)) {
+                if (BoardUtil.isWithinBounds(destPosition)) {
                     destPositions.add(destPosition);
                 }
             }

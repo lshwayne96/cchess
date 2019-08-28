@@ -2,6 +2,7 @@ package com.chess.engine.pieces;
 
 import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
+import com.chess.engine.board.BoardUtil;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
 import com.chess.engine.board.Point;
@@ -38,7 +39,7 @@ public class General extends Piece {
         // flying general move (only used for enforcing check)
         Coordinate vector = new Coordinate(1, 0).scale(alliance.getDirection());
         Coordinate currPosition = position.add(vector);
-        while (Board.isWithinBounds(currPosition)) {
+        while (BoardUtil.isWithinBounds(currPosition)) {
             Point currPoint = board.getPoint(currPosition);
             Optional<Piece> piece = currPoint.getPiece();
             if (piece.isPresent()) {
@@ -78,11 +79,7 @@ public class General extends Piece {
         }
     }
 
-    /**
-     * Checks if this general is in the starting position.
-     * @return true if this general is in the starting position, false otherwise.
-     */
-    public boolean isInStartingPosition() {
-        return alliance.isRed() ? STARTING_POSITION_RED.equals(position) : STARTING_POSITION_BLACK.equals(position);
+    public static Coordinate getStartingPosition(Alliance alliance) {
+        return alliance.isRed() ? STARTING_POSITION_RED : STARTING_POSITION_BLACK;
     }
 }

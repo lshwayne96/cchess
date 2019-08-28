@@ -206,9 +206,9 @@ public class Board {
         Coordinate srcPosition = movedPiece.getPosition();
         Coordinate destPosition = move.getDestPosition();
 
-        Point srcPoint = points.get(positionToIndex(srcPosition));
+        Point srcPoint = points.get(BoardUtil.positionToIndex(srcPosition));
         srcPoint.removePiece();
-        Point destPoint = points.get(positionToIndex(destPosition));
+        Point destPoint = points.get(BoardUtil.positionToIndex(destPosition));
         destPoint.setPiece(movedPiece.movePiece(move));
 
         playerInfoHistory.add(playerInfo);
@@ -227,9 +227,9 @@ public class Board {
         Coordinate srcPosition = movedPiece.getPosition();
         Coordinate destPosition = move.getDestPosition();
 
-        Point srcPoint = points.get(positionToIndex(srcPosition));
+        Point srcPoint = points.get(BoardUtil.positionToIndex(srcPosition));
         srcPoint.setPiece(movedPiece);
-        Point destPoint = points.get(positionToIndex(destPosition));
+        Point destPoint = points.get(BoardUtil.positionToIndex(destPosition));
         destPoint.removePiece();
         capturedPiece.ifPresent(destPoint::setPiece);
 
@@ -358,33 +358,12 @@ public class Board {
     }
 
     /**
-     * Checks if the given position is within bounds.
-     * @param position The position to check.
-     * @return true if the given position is within bounds, false otherwise.
-     */
-    public static boolean isWithinBounds(Coordinate position) {
-        int row = position.getRow();
-        int col = position.getCol();
-
-        return (row >= 0 && row < NUM_ROWS) && (col >= 0 && col < NUM_COLS);
-    }
-
-    /**
-     * Returns the mirrored version of the given position.
-     * @param position The position to mirror.
-     * @return The mirrored version of the given position.
-     */
-    public static Coordinate getMirrorPosition(Coordinate position) {
-        return new Coordinate(position.getRow(), NUM_COLS - 1 - position.getCol());
-    }
-
-    /**
      * Returns the point on this board with the given position.
      * @param position The position of the point.
      * @return The point on this board with the given position.
      */
     public Point getPoint(Coordinate position) {
-        return points.get(positionToIndex(position));
+        return points.get(BoardUtil.positionToIndex(position));
     }
 
     public long getZobristKey() {
@@ -425,27 +404,13 @@ public class Board {
         return currTurn.isRed() ? getBlackPlayer() : getRedPlayer();
     }
 
-    /**
-     * Returns the index of a position based on its row and column.
-     */
-    private static int positionToIndex(int row, int col) {
-        return row * NUM_COLS + col;
-    }
-
-    /**
-     * Returns the index of a given position.
-     */
-    private static int positionToIndex(Coordinate position) {
-        return positionToIndex(position.getRow(), position.getCol());
-    }
-
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
 
         for (int row = 0; row < NUM_ROWS; row++) {
             for (int col = 0; col < NUM_COLS; col++) {
-                String pointText = points.get(positionToIndex(row, col)).toString();
+                String pointText = points.get(BoardUtil.positionToIndex(row, col)).toString();
                 sb.append(String.format("%3s", pointText));
             }
             sb.append("\n");
@@ -494,7 +459,7 @@ public class Board {
         private long getPieceHash(Piece piece) {
             int pieceIndex = piece.getPieceType().ordinal();
             int sideIndex = piece.getAlliance().isRed() ? 0 : 1;
-            int posIndex = positionToIndex(piece.getPosition());
+            int posIndex = BoardUtil.positionToIndex(piece.getPosition());
 
             return pieces[pieceIndex][sideIndex][posIndex];
         }

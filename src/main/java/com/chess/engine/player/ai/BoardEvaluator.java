@@ -2,8 +2,12 @@ package com.chess.engine.player.ai;
 
 import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
+import com.chess.engine.board.BoardUtil;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
+import com.chess.engine.board.Point;
+import com.chess.engine.pieces.Advisor;
+import com.chess.engine.pieces.General;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.Player;
 import com.chess.gui.Table;
@@ -20,13 +24,16 @@ import static com.chess.engine.pieces.Piece.*;
  * A helper class for evaluating a board.
  */
 class BoardEvaluator {
-//TODO: hollow cannon, central horse, soldier value, trap, mobility
+
     private static final Random rand = new Random();
-    private static final int CHECKMATE_VALUE = 10000;
+    private static final int CHECKMATE_VALUE = 5000;
     private static final int CANNON_HORSE_BONUS = 5;
-    private static final int CANNON_ELEPHANT_BONUS = 10;
+    private static final int CANNON_ELEPHANT_BONUS = 8;
     private static final int CHARIOT_ONE_ADVISOR_BONUS = 35;
     private static final int CHARIOT_ZERO_ADVISOR_BONUS = 70;
+    private static final int[] CANNON_HOLLOW_BONUS = {80, 80, 80, 75, 70, 65, 60, 0, 0, 0};
+    private static final int[] CANNON_CENTRE_BONUS = {30, 30, 30, 35, 40, 45, 50, 0, 0, 0};
+    private static final Coordinate FORWARD_VECTOR = new Coordinate(1, 0);
 
     /**
      * Returns the heuristic value of the given board.
@@ -53,8 +60,9 @@ class BoardEvaluator {
      * Returns the score difference between the two players.
      */
     private static int getScoreDiff(Board board) {
-        return getPieceScoreDiff(board)
-                + getRelationScoreDiff(board)
+        boolean isEndgame = board.isEndgame();
+        return getPieceScoreDiff(board, isEndgame)
+                + getRelationScoreDiff(board, isEndgame)
                 + getTotalMobilityValue(board.getRedPlayer()) - getTotalMobilityValue(board.getBlackPlayer())
                 + (Table.getInstance().isAIRandomised() ? rand.nextInt(2) : 0);
     }
@@ -62,16 +70,22 @@ class BoardEvaluator {
     /**
      * Returns the piece score difference between the two players on the given board.
      */
-    private static int getPieceScoreDiff(Board board) {
+    private static int getPieceScoreDiff(Board board, boolean isEndgame) {
         int redScore = 0, blackScore = 0;
         Player redPlayer = board.getRedPlayer();
         Player blackPlayer = board.getBlackPlayer();
-        boolean isEndgame = board.isEndgame();
+
         for (Piece piece : redPlayer.getActivePieces()) {
             redScore += piece.getValue(isEndgame);
+            if (piece.getPieceType().equals(PieceType.CANNON)) {
+                redScore += getCannonBonus(piece, board, isEndgame);
+            }
         }
         for (Piece piece : blackPlayer.getActivePieces()) {
             blackScore += piece.getValue(isEndgame);
+            if (piece.getPieceType().equals(PieceType.CANNON)) {
+                blackScore += getCannonBonus(piece, board, isEndgame);
+            }
         }
 
         int redChariotCount = redPlayer.getPieceCount(PieceType.CHARIOT);
@@ -134,13 +148,12 @@ class BoardEvaluator {
     /**
      * Returns the relationship score difference between the two players on the given board.
      */
-    private static int getRelationScoreDiff(Board board) {
+    private static int getRelationScoreDiff(Board board, boolean isEndgame) {
         int[] scores = new int[2];
         Map<Piece, Collection<Move>> incomingAttacksMap = new HashMap<>();
         Map<Piece, Collection<Piece>> defendingPiecesMap = new HashMap<>();
         Collection<Move> allLegalMoves = board.getAllLegalMoves();
         Collection<Piece> allPieces = board.getAllPieces();
-        boolean isEndgame = board.isEndgame();
 
         // calculate all attacks and defenses on the board
         for (Move move : allLegalMoves) {
@@ -247,5 +260,79 @@ class BoardEvaluator {
         }
 
         return scores[0] - scores[1];
+    }
+
+    /**
+     * Returns the bonus value of the given cannon on the given board.
+     */
+    private static int getCannonBonus(Piece cannon, Board board, boolean isEndgame) {
+        Coordinate cannonPosition = cannon.getPosition();
+        Alliance cannonAlliance = cannon.getAlliance();
+
+        // check position of cannon
+        int cannonFile = BoardUtil.colToFile(cannonPosition.getCol(), cannonAlliance);
+        int cannonRank = BoardUtil.rowToRank(cannonPosition.getRow(), cannonAlliance);
+        if (cannonFile != 5 || cannonRank > 7) {
+            return 0;
+        }
+
+        // check if opponent general is in starting position
+        Point oppGeneralStartPoint = board.getPoint(General.getStartingPosition(cannonAlliance.opposite()));
+        if (oppGeneralStartPoint.isEmpty()
+                || !oppGeneralStartPoint.getPiece().get().getPieceType().equals(PieceType.GENERAL)) {
+            return 0;
+        }
+
+        // check pieces between cannon and opponent general
+        int pieceCount = 0;
+        boolean hasOppCannon = false;
+        Coordinate position = cannonPosition.add(FORWARD_VECTOR.scale(cannonAlliance.getDirection()));
+        while (BoardUtil.isWithinBounds(position)) {
+            Point point = board.getPoint(position);
+            if (!point.isEmpty()) {
+                Piece piece = point.getPiece().get();
+                if (piece.getPieceType().equals(PieceType.GENERAL)) break;
+                pieceCount++;
+                if (pieceCount == 2 && piece.getAlliance().equals(cannonAlliance.opposite())
+                        && piece.getPieceType().equals(PieceType.CANNON)) {
+                    hasOppCannon = true;
+                }
+            }
+            position = position.add(FORWARD_VECTOR.scale(cannonAlliance.getDirection()));
+        }
+        if (pieceCount > 2 || hasOppCannon) {
+            return 0;
+        }
+
+        // check if opponent advisors are in starting positions
+        boolean oppStartingAdvisors = true;
+        for (Coordinate pos : Advisor.getStartingPositions(cannon.getAlliance().opposite())) {
+            Point oppAdvisorStartPoint = board.getPoint(pos);
+            if (oppAdvisorStartPoint.isEmpty()
+                    || !oppAdvisorStartPoint.getPiece().get().getPieceType().equals(PieceType.ADVISOR)) {
+                oppStartingAdvisors = false;
+                break;
+            }
+        }
+
+        if (pieceCount == 0) {
+            if (oppStartingAdvisors) {
+                return isEndgame ? CANNON_HOLLOW_BONUS[cannonRank - 1] / 2
+                        : CANNON_HOLLOW_BONUS[cannonRank - 1];
+            } else {
+                return 0;
+            }
+        }
+
+        // pieceCount == 2
+        int centreHorseRow = BoardUtil.rankToRow(9, cannonAlliance);
+        int centreHorseCol = BoardUtil.fileToCol(5, cannonAlliance);
+        Point centralHorsePoint = board.getPoint(new Coordinate(centreHorseRow, centreHorseCol));
+        if (oppStartingAdvisors && !centralHorsePoint.isEmpty()
+                && centralHorsePoint.getPiece().get().getPieceType().equals(PieceType.HORSE)) {
+            return CANNON_CENTRE_BONUS[cannonRank - 1];
+        } else {
+            return CANNON_CENTRE_BONUS[cannonRank - 1] / 4;
+        }
     }
 }

@@ -2,6 +2,7 @@ package com.chess.engine.pieces;
 
 import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
+import com.chess.engine.board.BoardUtil;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
 
@@ -27,7 +28,7 @@ public class Chariot extends Piece {
         for (Coordinate vector : MOVE_VECTORS) {
             Coordinate destPosition = position.add(vector);
 
-            while (Board.isWithinBounds(destPosition)) {
+            while (BoardUtil.isWithinBounds(destPosition)) {
                 destPositions.add(destPosition);
                 if (board.getPoint(destPosition).getPiece().isPresent()) break;
                 destPosition = destPosition.add(vector);
