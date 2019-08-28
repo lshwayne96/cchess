@@ -4,7 +4,6 @@ import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
-import com.chess.engine.pieces.Cannon;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.Player;
 import com.chess.gui.Table;
@@ -21,10 +20,9 @@ import static com.chess.engine.pieces.Piece.*;
  * A helper class for evaluating a board.
  */
 class BoardEvaluator {
-//TODO: piece value/count + boardstatus update when making move, hollow cannon, central horse, soldier value, trap, mobility
+//TODO: hollow cannon, central horse, soldier value, trap, mobility
     private static final Random rand = new Random();
     private static final int CHECKMATE_VALUE = 10000;
-    private static final int CANNON_HOLLOW_BONUS = 50;
     private static final int CANNON_HORSE_BONUS = 5;
     private static final int CANNON_ELEPHANT_BONUS = 10;
     private static final int CHARIOT_ONE_ADVISOR_BONUS = 35;
@@ -71,15 +69,9 @@ class BoardEvaluator {
         boolean isEndgame = board.isEndgame();
         for (Piece piece : redPlayer.getActivePieces()) {
             redScore += piece.getValue(isEndgame);
-            if (piece.getPieceType().equals(PieceType.CANNON)) {
-                redScore += (((Cannon) piece).isMiddleFacingGeneral(board) ? CANNON_HOLLOW_BONUS : 0);
-            }
         }
         for (Piece piece : blackPlayer.getActivePieces()) {
             blackScore += piece.getValue(isEndgame);
-            if (piece.getPieceType().equals(PieceType.CANNON)) {
-                blackScore += (((Cannon) piece).isMiddleFacingGeneral(board) ? CANNON_HOLLOW_BONUS : 0);
-            }
         }
 
         int redChariotCount = redPlayer.getPieceCount(PieceType.CHARIOT);
