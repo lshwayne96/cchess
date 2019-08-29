@@ -28,9 +28,9 @@ class BoardEvaluator {
     private static final Random rand = new Random();
     private static final int CHECKMATE_VALUE = 5000;
     private static final int CANNON_HORSE_BONUS = 5;
-    private static final int CANNON_ELEPHANT_BONUS = 8;
-    private static final int CHARIOT_ONE_ADVISOR_BONUS = 35;
-    private static final int CHARIOT_ZERO_ADVISOR_BONUS = 70;
+    private static final int CANNON_ELEPHANT_BONUS = 10;
+    private static final int CHARIOT_ONE_ADVISOR_BONUS = 40;
+    private static final int CHARIOT_ZERO_ADVISOR_BONUS = 80;
     private static final int[] CANNON_HOLLOW_BONUS = {80, 80, 80, 75, 70, 65, 60, 0, 0, 0};
     private static final int[] CANNON_CENTRE_BONUS = {30, 30, 30, 35, 40, 45, 50, 0, 0, 0};
     private static final Coordinate FORWARD_VECTOR = new Coordinate(1, 0);
@@ -64,7 +64,7 @@ class BoardEvaluator {
         return getPieceScoreDiff(board, isEndgame)
                 + getRelationScoreDiff(board, isEndgame)
                 + getTotalMobilityValue(board.getRedPlayer()) - getTotalMobilityValue(board.getBlackPlayer())
-                + (Table.getInstance().isAIRandomised() ? rand.nextInt(2) : 0);
+                + (Table.getInstance().isAIRandomised() ? rand.nextInt(3) : 0);
     }
 
     /**
