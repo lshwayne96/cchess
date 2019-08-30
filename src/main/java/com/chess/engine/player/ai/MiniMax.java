@@ -16,7 +16,7 @@ abstract class MiniMax {
 
     static final int NEG_INF = Integer.MIN_VALUE + 1; // represents negative infinity
     static final int POS_INF = Integer.MAX_VALUE; // represents positive infinity
-    static final int ASP = 10; // aspiration window
+    static final int ASP = 50; // aspiration window
     private static final int R_LOW = 2; // low depth reduction
     private static final int R_HIGH = 3; // high depth reduction
     private static final int TT_SIZE = 1000003; // transposition table size

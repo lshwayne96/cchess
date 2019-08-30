@@ -6,8 +6,6 @@ public class BoardUtil {
 
     /**
      * Checks if the given position is within bounds.
-     * @param position The position to check.
-     * @return true if the given position is within bounds, false otherwise.
      */
     public static boolean isWithinBounds(Coordinate position) {
         int row = position.getRow();
@@ -18,8 +16,6 @@ public class BoardUtil {
 
     /**
      * Returns the mirrored version of the given position.
-     * @param position The position to mirror.
-     * @return The mirrored version of the given position.
      */
     public static Coordinate getMirrorPosition(Coordinate position) {
         return new Coordinate(position.getRow(), Board.NUM_COLS - 1 - position.getCol());
@@ -65,5 +61,25 @@ public class BoardUtil {
      */
     public static int rankToRow(int rank, Alliance alliance) {
         return alliance.isRed() ? Board.NUM_ROWS - rank : rank - 1;
+    }
+
+    /**
+     * Checks if the given positions are in the same row or column.
+     */
+    public static boolean sameColOrRow(Coordinate first, Coordinate... others) {
+        boolean sameRow = true;
+        boolean sameCol = true;
+        for (Coordinate position : others) {
+            if (position.getRow() != first.getRow()) {
+                sameRow = false;
+            }
+            if (position.getCol() != first.getCol()) {
+                sameCol = false;
+            }
+            if (!(sameRow || sameCol)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

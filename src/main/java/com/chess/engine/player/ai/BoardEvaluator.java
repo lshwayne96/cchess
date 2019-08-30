@@ -15,6 +15,7 @@ import com.chess.gui.Table;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -26,13 +27,16 @@ import static com.chess.engine.pieces.Piece.*;
 class BoardEvaluator {
 
     private static final Random rand = new Random();
-    private static final int CHECKMATE_VALUE = 5000;
-    private static final int CANNON_HORSE_BONUS = 5;
-    private static final int CANNON_ELEPHANT_BONUS = 10;
-    private static final int CHARIOT_ONE_ADVISOR_BONUS = 40;
-    private static final int CHARIOT_ZERO_ADVISOR_BONUS = 80;
-    private static final int[] CANNON_HOLLOW_BONUS = {80, 80, 80, 75, 70, 65, 60, 0, 0, 0};
-    private static final int[] CANNON_CENTRE_BONUS = {30, 30, 30, 35, 40, 45, 50, 0, 0, 0};
+    private static final int CHECKMATE_VALUE = 10000;
+    private static final int CHARIOT_BONUS = 100;
+    private static final int CANNON_HORSE_BONUS = 20;
+    private static final int CANNON_ELEPHANT_BONUS = 40;
+    private static final int CHARIOT_ONE_ADVISOR_BONUS = 150;
+    private static final int CHARIOT_ZERO_ADVISOR_BONUS = 350;
+    private static final int CHARIOT_PIN_FACTOR = 12;
+    private static final int CANNON_PIN_FACTOR = 8;
+    private static final int[] CANNON_HOLLOW_BONUS = {350, 350, 350, 325, 300, 275, 250, 0, 0, 0};
+    private static final int[] CANNON_CENTRAL_HORSE_BONUS = {100, 100, 100, 125, 150, 175, 200, 0, 0, 0};
     private static final Coordinate FORWARD_VECTOR = new Coordinate(1, 0);
 
     /**
@@ -64,7 +68,7 @@ class BoardEvaluator {
         return getPieceScoreDiff(board, isEndgame)
                 + getRelationScoreDiff(board, isEndgame)
                 + getTotalMobilityValue(board.getRedPlayer()) - getTotalMobilityValue(board.getBlackPlayer())
-                + (Table.getInstance().isAIRandomised() ? rand.nextInt(3) : 0);
+                + (Table.getInstance().isAIRandomised() ? rand.nextInt(10) : 0);
     }
 
     /**
@@ -99,6 +103,13 @@ class BoardEvaluator {
         int blackElephantCount = blackPlayer.getPieceCount(PieceType.ELEPHANT);
         int blackAdvisorCount = blackPlayer.getPieceCount(PieceType.ADVISOR);
 
+        // chariot(s) might be strong against no chariot
+        if (redChariotCount > 0 && blackChariotCount == 0 && (blackCannonCount + blackHorseCount) <= 2) {
+            redScore += CHARIOT_BONUS;
+        }
+        if (blackChariotCount > 0 && redChariotCount == 0 && (redCannonCount + redHorseCount) <= 2) {
+            blackScore += CHARIOT_BONUS;
+        }
         // cannon+horse might be better than cannon+cannon or horse+horse
         if (redCannonCount > 0 && redHorseCount > 0) {
             redScore += CANNON_HORSE_BONUS;
@@ -150,8 +161,8 @@ class BoardEvaluator {
      */
     private static int getRelationScoreDiff(Board board, boolean isEndgame) {
         int[] scores = new int[2];
-        Map<Piece, Collection<Move>> incomingAttacksMap = new HashMap<>();
-        Map<Piece, Collection<Piece>> defendingPiecesMap = new HashMap<>();
+        Map<Piece, List<Move>> incomingAttacksMap = new HashMap<>();
+        Map<Piece, List<Piece>> defendingPiecesMap = new HashMap<>();
         Collection<Move> allLegalMoves = board.getAllLegalMoves();
         Collection<Piece> allPieces = board.getAllPieces();
 
@@ -160,7 +171,7 @@ class BoardEvaluator {
             if (!move.isCapture()) continue;
             Piece capturedPiece = move.getCapturedPiece().get();
             if (!incomingAttacksMap.containsKey(capturedPiece)) {
-                Collection<Move> attackMoves = new ArrayList<>();
+                List<Move> attackMoves = new ArrayList<>();
                 attackMoves.add(move);
                 incomingAttacksMap.put(capturedPiece, attackMoves);
             } else {
@@ -172,7 +183,7 @@ class BoardEvaluator {
                 board.getPoint(destPosition).getPiece().ifPresent(p -> {
                     if (p.getAlliance().equals(piece.getAlliance())) {
                         if (!defendingPiecesMap.containsKey(p)) {
-                            Collection<Piece> defendingPieces = new ArrayList<>();
+                            List<Piece> defendingPieces = new ArrayList<>();
                             defendingPieces.add(piece);
                             defendingPiecesMap.put(p, defendingPieces);
                         } else {
@@ -185,6 +196,10 @@ class BoardEvaluator {
 
         for (Piece piece : allPieces) {
             if (piece.getPieceType().equals(PieceType.GENERAL)) continue;
+
+            List<Move> attackMoves = incomingAttacksMap.get(piece);
+            List<Piece> defendingPieces = defendingPiecesMap.get(piece);
+            if (attackMoves == null && defendingPieces == null) continue;
 
             Player player = piece.getAlliance().isRed() ? board.getRedPlayer() : board.getBlackPlayer();
             int index = player.getAlliance().isRed() ? 0 : 1;
@@ -200,7 +215,6 @@ class BoardEvaluator {
             int unitValue = pieceValue >> 3;
 
             // tabulate incoming attacks
-            Collection<Move> attackMoves = incomingAttacksMap.get(piece);
             if (attackMoves != null) {
                 for (Move move : attackMoves) {
                     Piece oppPiece = move.getMovedPiece();
@@ -215,7 +229,6 @@ class BoardEvaluator {
             }
 
             // tabulate defenses
-            Collection<Piece> defendingPieces = defendingPiecesMap.get(piece);
             if (defendingPieces != null) {
                 for (Piece defendingPiece : defendingPieces) {
                     int defendingValue = defendingPiece.getValue(isEndgame);
@@ -225,10 +238,28 @@ class BoardEvaluator {
                 }
             }
 
+            // check pins
+            if (!piece.getPieceType().equals(PieceType.CHARIOT) && attackMoves != null && defendingPieces != null) {
+                if (defendingPieces.size() == 1 && defendingPieces.get(0).getPieceType().equals(PieceType.CHARIOT)) {
+                    for (Move move : attackMoves) {
+                        Piece oppPiece = move.getMovedPiece();
+                        if (BoardUtil.sameColOrRow(piece.getPosition(), oppPiece.getPosition(),
+                                defendingPieces.get(0).getPosition())) {
+                            if (oppPiece.getPieceType().equals(PieceType.CHARIOT)
+                                    && defendingPiecesMap.get(defendingPieces.get(0)) == null) {
+                                scores[index] -= pieceValue / CHARIOT_PIN_FACTOR;
+                            } else if (oppPiece.getPieceType().equals(PieceType.CANNON)) {
+                                scores[index] -= pieceValue / CANNON_PIN_FACTOR;
+                            }
+                        }
+                    }
+                }
+            }
+
             // calculate scores
             boolean isCurrTurn = board.getCurrPlayer().getAlliance().equals(player.getAlliance());
             if (attackMoves == null) {
-                scores[index] += defendingPieces == null ? 0 : 2 * defendingPieces.size();
+                scores[index] += defendingPieces == null ? 0 : 10 * defendingPieces.size();
             } else {
                 if (defendingPieces == null) {
                     scores[index] -= isCurrTurn ? unitValue : 5 * unitValue;
@@ -276,16 +307,22 @@ class BoardEvaluator {
             return 0;
         }
 
-        // check if opponent general is in starting position
+        // check if opponent general and advisors are in starting positions
         Point oppGeneralStartPoint = board.getPoint(General.getStartingPosition(cannonAlliance.opposite()));
         if (oppGeneralStartPoint.isEmpty()
                 || !oppGeneralStartPoint.getPiece().get().getPieceType().equals(PieceType.GENERAL)) {
             return 0;
         }
+        for (Coordinate pos : Advisor.getStartingPositions(cannon.getAlliance().opposite())) {
+            Point oppAdvisorStartPoint = board.getPoint(pos);
+            if (oppAdvisorStartPoint.isEmpty()
+                    || !oppAdvisorStartPoint.getPiece().get().getPieceType().equals(PieceType.ADVISOR)) {
+                return 0;
+            }
+        }
 
         // check pieces between cannon and opponent general
         int pieceCount = 0;
-        boolean hasOppCannon = false;
         Coordinate position = cannonPosition.add(FORWARD_VECTOR.scale(cannonAlliance.getDirection()));
         while (BoardUtil.isWithinBounds(position)) {
             Point point = board.getPoint(position);
@@ -293,46 +330,26 @@ class BoardEvaluator {
                 Piece piece = point.getPiece().get();
                 if (piece.getPieceType().equals(PieceType.GENERAL)) break;
                 pieceCount++;
-                if (pieceCount == 2 && piece.getAlliance().equals(cannonAlliance.opposite())
-                        && piece.getPieceType().equals(PieceType.CANNON)) {
-                    hasOppCannon = true;
+                if (pieceCount > 2) {
+                    return 0;
                 }
             }
             position = position.add(FORWARD_VECTOR.scale(cannonAlliance.getDirection()));
         }
-        if (pieceCount > 2 || hasOppCannon) {
-            return 0;
-        }
-
-        // check if opponent advisors are in starting positions
-        boolean oppStartingAdvisors = true;
-        for (Coordinate pos : Advisor.getStartingPositions(cannon.getAlliance().opposite())) {
-            Point oppAdvisorStartPoint = board.getPoint(pos);
-            if (oppAdvisorStartPoint.isEmpty()
-                    || !oppAdvisorStartPoint.getPiece().get().getPieceType().equals(PieceType.ADVISOR)) {
-                oppStartingAdvisors = false;
-                break;
-            }
-        }
 
         if (pieceCount == 0) {
-            if (oppStartingAdvisors) {
-                return isEndgame ? CANNON_HOLLOW_BONUS[cannonRank - 1] / 2
-                        : CANNON_HOLLOW_BONUS[cannonRank - 1];
-            } else {
-                return 0;
-            }
+            return isEndgame ? CANNON_HOLLOW_BONUS[cannonRank - 1] / 2 : CANNON_HOLLOW_BONUS[cannonRank - 1];
         }
 
         // pieceCount == 2
-        int centreHorseRow = BoardUtil.rankToRow(9, cannonAlliance);
-        int centreHorseCol = BoardUtil.fileToCol(5, cannonAlliance);
-        Point centralHorsePoint = board.getPoint(new Coordinate(centreHorseRow, centreHorseCol));
-        if (oppStartingAdvisors && !centralHorsePoint.isEmpty()
+        int centralHorseRow = BoardUtil.rankToRow(9, cannonAlliance);
+        int centralHorseCol = BoardUtil.fileToCol(5, cannonAlliance);
+        Point centralHorsePoint = board.getPoint(new Coordinate(centralHorseRow, centralHorseCol));
+        if (!centralHorsePoint.isEmpty()
                 && centralHorsePoint.getPiece().get().getPieceType().equals(PieceType.HORSE)) {
-            return CANNON_CENTRE_BONUS[cannonRank - 1];
-        } else {
-            return CANNON_CENTRE_BONUS[cannonRank - 1] / 4;
+            return CANNON_CENTRAL_HORSE_BONUS[cannonRank - 1];
         }
+
+        return 0;
     }
 }
