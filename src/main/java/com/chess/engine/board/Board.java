@@ -30,7 +30,7 @@ public class Board {
     public static final int NUM_COLS = 9;
     public static final int RIVER_ROW_RED = 5;
     public static final int RIVER_ROW_BLACK = 4;
-    private static final int MAX_ATTACKING_UNITS_ENDGAME = 4;
+    private static final int MAX_VALUE_UNITS_ENDGAME = 4;
     private static final Zobrist ZOBRIST = new Zobrist();
 
     private final List<Point> points;
@@ -112,7 +112,7 @@ public class Board {
 
 
     /**
-     * Generates information related to both players on this board from scratch.
+     * Generates information related to both players on this board.
      */
     private PlayerInfo generatePlayerInfo() {
         Collection<Piece> redPieces = new ArrayList<>();
@@ -144,7 +144,7 @@ public class Board {
     }
 
     /**
-     * Generates information related to both players on this board from existing information.
+     * Updates information related to both players on this board from existing information.
      */
     private PlayerInfo updatePlayerInfo(Move move) {
         Piece movedPiece = move.getMovedPiece();
@@ -198,7 +198,7 @@ public class Board {
     }
 
     /**
-     * Makes the given move on this board. Player information and zobrist key are updated.
+     * Makes the given move on this board. Player information and Zobrist key are updated.
      * @param move The move to be made.
      */
     public void makeMove(Move move) {
@@ -218,7 +218,7 @@ public class Board {
     }
 
     /**
-     * Undoes the given move on this board. Player information and zobrist key are updated.
+     * Undoes the given move on this board. Player information and Zobrist key are updated.
      * @param move The move to be undone.
      */
     public void unmakeMove(Move move) {
@@ -240,7 +240,7 @@ public class Board {
     }
 
     /**
-     * Changes the current turn on the board. Zobrist key is updated.
+     * Switches the current turn on the board. Zobrist key is updated.
      */
     public void changeTurn() {
         currTurn = currTurn.opposite();
@@ -276,8 +276,8 @@ public class Board {
      * @return true if this board is currently in endgame, false otherwise.
      */
     public boolean isEndgame() {
-        return getRedPlayer().getTotalAttackingUnits() <= MAX_ATTACKING_UNITS_ENDGAME
-                && getBlackPlayer().getTotalAttackingUnits() <= MAX_ATTACKING_UNITS_ENDGAME;
+        return getRedPlayer().getTotalValueUnits() <= MAX_VALUE_UNITS_ENDGAME
+                && getBlackPlayer().getTotalValueUnits() <= MAX_VALUE_UNITS_ENDGAME;
     }
 
     /**

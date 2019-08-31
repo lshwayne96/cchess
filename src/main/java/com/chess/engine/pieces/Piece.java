@@ -98,6 +98,14 @@ public abstract class Piece {
         }
     }
 
+    /**
+     * Checks if this piece has crossed its side of the river.
+     * @return true if this piece has crossed its side of the river, false otherwise.
+     */
+    public boolean crossedRiver() {
+        return alliance.isRed() ? position.getRow() < Board.RIVER_ROW_RED : position.getRow() > Board.RIVER_ROW_BLACK;
+    }
+
     @Override
     public String toString() {
         return pieceType.toString();
@@ -131,33 +139,42 @@ public abstract class Piece {
      */
     public enum PieceType {
 
-        SOLDIER("S", true, MIDGAME_VALUES_SOLDIER, ENDGAME_VALUES_SOLDIER, 1, 3, 0),
-        ADVISOR("A", false, VALUES_ADVISOR, VALUES_ADVISOR, 1, 4, 0),
-        ELEPHANT("E", false, VALUES_ELEPHANT, VALUES_ELEPHANT, 1, 4, 0),
-        HORSE("H", true, MIDGAME_VALUES_HORSE, ENDGAME_VALUES_HORSE, 18, 2, 1),
-        CANNON("C", true, MIDGAME_VALUES_CANNON, ENDGAME_VALUES_CANNON, 3, 2, 1),
-        CHARIOT("R", true, MIDGAME_VALUES_CHARIOT, ENDGAME_VALUES_CHARIOT, 5, 1, 2),
-        GENERAL("G", false, MIDGAME_VALUES_GENERAL, ENDGAME_VALUES_GENERAL, 0, 5, 0);
+        SOLDIER("S", true, MIDGAME_VALUES_SOLDIER, ENDGAME_VALUES_SOLDIER,
+                1, 3, 0, 1),
+        ADVISOR("A", false, VALUES_ADVISOR, VALUES_ADVISOR,
+                1, 4, 0, 0),
+        ELEPHANT("E", false, VALUES_ELEPHANT, VALUES_ELEPHANT,
+                1, 4, 0, 0),
+        HORSE("H", true, MIDGAME_VALUES_HORSE, ENDGAME_VALUES_HORSE,
+                18, 2, 1, 2),
+        CANNON("C", true, MIDGAME_VALUES_CANNON, ENDGAME_VALUES_CANNON,
+                3, 2, 1, 1),
+        CHARIOT("R", true, MIDGAME_VALUES_CHARIOT, ENDGAME_VALUES_CHARIOT,
+                5, 1, 2, 2),
+        GENERAL("G", false, MIDGAME_VALUES_GENERAL, ENDGAME_VALUES_GENERAL,
+                0, 5, 0, 0);
 
         public static final PieceType[] pieceTypes = PieceType.values();
 
         private final String abbrev;
-        private final boolean isAttacking; // to determine draw
+        private final boolean isAttacking;
         private final int[][] midGameValues;
         private final int[][] endGameValues;
         private final int mobilityValue;
         private final int movePriority;
-        private final int attackingUnits; // to determine endgame
+        private final int valueUnits;
+        private final int attackUnits;
 
         PieceType(String abbrev, boolean isAttacking, int[][] midGameValues, int[][] endGameValues,
-                  int mobilityValue, int movePriority, int attackingUnits) {
+                  int mobilityValue, int movePriority, int valueUnits, int attackUnits) {
             this.abbrev = abbrev;
             this.isAttacking = isAttacking;
             this.midGameValues = midGameValues;
             this.endGameValues = endGameValues;
             this.mobilityValue = mobilityValue;
             this.movePriority = movePriority;
-            this.attackingUnits = attackingUnits;
+            this.valueUnits = valueUnits;
+            this.attackUnits = attackUnits;
         }
 
         public boolean isAttacking() {
@@ -172,8 +189,12 @@ public abstract class Piece {
             return movePriority;
         }
 
-        public int getAttackingUnits() {
-            return attackingUnits;
+        public int getValueUnits() {
+            return valueUnits;
+        }
+
+        public int getAttackUnits() {
+            return attackUnits;
         }
 
         @Override

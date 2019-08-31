@@ -52,15 +52,4 @@ public class Soldier extends Piece {
         Coordinate mirrorPosition = new Coordinate(position.getRow(), Board.NUM_COLS - 1 - position.getCol());
         return new Soldier(mirrorPosition, alliance);
     }
-
-    /**
-     * Checks if this soldier has crossed his side of the river.
-     */
-    private boolean crossedRiver() {
-        if (alliance.isRed()) {
-            return position.getRow() < Board.RIVER_ROW_RED;
-        } else {
-            return position.getRow() > Board.RIVER_ROW_BLACK;
-        }
-    }
 }

@@ -29,10 +29,6 @@ public class Move {
         this(zobristKey, movedPiece, destPosition, null);
     }
 
-    public boolean isCapture() {
-        return capturedPiece != null;
-    }
-
     /**
      * Returns a move, if any, corresponding to the given string notation.
      * @param board The board to make a move on.
@@ -87,6 +83,10 @@ public class Move {
 
     public Optional<Piece> getCapturedPiece() {
         return Optional.ofNullable(capturedPiece);
+    }
+
+    public boolean isCapture() {
+        return capturedPiece != null;
     }
 
     /**

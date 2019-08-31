@@ -27,17 +27,24 @@ import static com.chess.engine.pieces.Piece.*;
 class BoardEvaluator {
 
     private static final Random rand = new Random();
+    private static final int RANDOM_BOUND = 10;
     private static final int CHECKMATE_VALUE = 10000;
+    private static final Coordinate FORWARD_VECTOR = new Coordinate(1, 0);
+
     private static final int CHARIOT_BONUS = 100;
     private static final int CANNON_HORSE_BONUS = 20;
-    private static final int CANNON_ELEPHANT_BONUS = 40;
-    private static final int CHARIOT_ONE_ADVISOR_BONUS = 150;
-    private static final int CHARIOT_ZERO_ADVISOR_BONUS = 350;
-    private static final int CHARIOT_PIN_FACTOR = 12;
-    private static final int CANNON_PIN_FACTOR = 8;
-    private static final int[] CANNON_HOLLOW_BONUS = {350, 350, 350, 325, 300, 275, 250, 0, 0, 0};
-    private static final int[] CANNON_CENTRAL_HORSE_BONUS = {100, 100, 100, 125, 150, 175, 200, 0, 0, 0};
-    private static final Coordinate FORWARD_VECTOR = new Coordinate(1, 0);
+    private static final int DEFENSE_BONUS = 10;
+
+    private static final int CANNON_ELEPHANT_BONUS = 100;
+    private static final int CHARIOT_ONE_ADVISOR_BONUS = 400;
+    private static final int CHARIOT_ZERO_ADVISOR_BONUS = 600;
+    private static final int MAX_ATTACK_VALUE = 8;
+
+    private static final int CHARIOT_PIN_FACTOR = 7;
+    private static final int CANNON_PIN_FACTOR = 5;
+
+    private static final int[] CANNON_HOLLOW_BONUS = {400, 400, 400, 375, 350, 325, 300, 0, 0, 0};
+    private static final int[] CANNON_CENTRAL_BONUS = {150, 150, 150, 175, 200, 225, 250, 0, 0, 0};
 
     /**
      * Returns the heuristic value of the given board.
@@ -61,37 +68,48 @@ class BoardEvaluator {
     }
 
     /**
-     * Returns the score difference between the two players.
+     * Returns the score difference between the two players on the given board.
      */
     private static int getScoreDiff(Board board) {
-        boolean isEndgame = board.isEndgame();
-        return getPieceScoreDiff(board, isEndgame)
-                + getRelationScoreDiff(board, isEndgame)
-                + getTotalMobilityValue(board.getRedPlayer()) - getTotalMobilityValue(board.getBlackPlayer())
-                + (Table.getInstance().isAIRandomised() ? rand.nextInt(10) : 0);
-    }
-
-    /**
-     * Returns the piece score difference between the two players on the given board.
-     */
-    private static int getPieceScoreDiff(Board board, boolean isEndgame) {
-        int redScore = 0, blackScore = 0;
         Player redPlayer = board.getRedPlayer();
         Player blackPlayer = board.getBlackPlayer();
+        boolean isEndgame = board.isEndgame();
+        int redScore = 0, blackScore = 0;
 
+
+        // calculate total basic piece value and player attack value
+        int redAttackValue = 0, blackAttackValue = 0;
         for (Piece piece : redPlayer.getActivePieces()) {
             redScore += piece.getValue(isEndgame);
+            if (piece.crossedRiver()) {
+                redAttackValue += piece.getPieceType().getAttackUnits();
+            }
             if (piece.getPieceType().equals(PieceType.CANNON)) {
                 redScore += getCannonBonus(piece, board, isEndgame);
             }
         }
         for (Piece piece : blackPlayer.getActivePieces()) {
             blackScore += piece.getValue(isEndgame);
+            if (piece.crossedRiver()) {
+                blackAttackValue += piece.getPieceType().getAttackUnits();
+            }
             if (piece.getPieceType().equals(PieceType.CANNON)) {
                 blackScore += getCannonBonus(piece, board, isEndgame);
             }
         }
 
+        // adjust player attack value according to difference in value units
+        int redValueUnits = redPlayer.getTotalValueUnits();
+        int blackValueUnits = blackPlayer.getTotalValueUnits();
+        if (redValueUnits > blackValueUnits) {
+            redAttackValue += (redValueUnits - blackValueUnits) * 2;
+        } else {
+            blackAttackValue += (blackValueUnits - redValueUnits) * 2;
+        }
+        redAttackValue = Math.min(redAttackValue, MAX_ATTACK_VALUE);
+        blackAttackValue = Math.min(blackAttackValue, MAX_ATTACK_VALUE);
+
+        // get piece counts
         int redChariotCount = redPlayer.getPieceCount(PieceType.CHARIOT);
         int redCannonCount = redPlayer.getPieceCount(PieceType.CANNON);
         int redHorseCount = redPlayer.getPieceCount(PieceType.HORSE);
@@ -118,42 +136,32 @@ class BoardEvaluator {
             blackScore += CANNON_HORSE_BONUS;
         }
         // cannon might be strong against lack of elephants
-        if (blackElephantCount == 0) {
-            redScore += CANNON_ELEPHANT_BONUS * redCannonCount;
+        if (redCannonCount > blackElephantCount) {
+            redScore += (redCannonCount - blackElephantCount) * CANNON_ELEPHANT_BONUS
+                    * redAttackValue / MAX_ATTACK_VALUE;
         }
-        if (redElephantCount == 0) {
-            blackScore += CANNON_ELEPHANT_BONUS * blackCannonCount;
+        if (blackCannonCount > redElephantCount) {
+            blackScore += (blackCannonCount - redElephantCount) * CANNON_ELEPHANT_BONUS
+                    * blackAttackValue / MAX_ATTACK_VALUE;
         }
         // double chariots might be strong against lack of advisors
         if (redChariotCount == 2) {
             if (blackAdvisorCount == 1) {
-                redScore += CHARIOT_ONE_ADVISOR_BONUS;
+                redScore += CHARIOT_ONE_ADVISOR_BONUS * redAttackValue / MAX_ATTACK_VALUE;
             } else if (blackAdvisorCount == 0) {
-                redScore += CHARIOT_ZERO_ADVISOR_BONUS;
+                redScore += CHARIOT_ZERO_ADVISOR_BONUS * redAttackValue / MAX_ATTACK_VALUE;
             }
         }
         if (blackChariotCount == 2) {
             if (redAdvisorCount == 1) {
-                blackScore += CHARIOT_ONE_ADVISOR_BONUS;
+                blackScore += CHARIOT_ONE_ADVISOR_BONUS * blackAttackValue / MAX_ATTACK_VALUE;
             } else if (redAdvisorCount == 0) {
-                blackScore += CHARIOT_ZERO_ADVISOR_BONUS;
+                blackScore += CHARIOT_ZERO_ADVISOR_BONUS * blackAttackValue / MAX_ATTACK_VALUE;
             }
         }
 
-        return redScore - blackScore;
-    }
 
-    /**
-     * Returns the total mobility value of the given player.
-     */
-    private static int getTotalMobilityValue(Player player) {
-        int totalMobilityValue = 0;
-
-        for (Move move : player.getLegalMoves()) {
-            totalMobilityValue += move.getMovedPiece().getPieceType().getMobilityValue();
-        }
-
-        return totalMobilityValue;
+        return redScore - blackScore + (Table.getInstance().isAIRandomised() ? rand.nextInt(RANDOM_BOUND) : 0);
     }
 
     /**
@@ -248,7 +256,8 @@ class BoardEvaluator {
                             if (oppPiece.getPieceType().equals(PieceType.CHARIOT)
                                     && defendingPiecesMap.get(defendingPieces.get(0)) == null) {
                                 scores[index] -= pieceValue / CHARIOT_PIN_FACTOR;
-                            } else if (oppPiece.getPieceType().equals(PieceType.CANNON)) {
+                            } else if (oppPiece.getPieceType().equals(PieceType.CANNON)
+                                    && !piece.getPieceType().equals(PieceType.CANNON)) {
                                 scores[index] -= pieceValue / CANNON_PIN_FACTOR;
                             }
                         }
@@ -259,7 +268,7 @@ class BoardEvaluator {
             // calculate scores
             boolean isCurrTurn = board.getCurrPlayer().getAlliance().equals(player.getAlliance());
             if (attackMoves == null) {
-                scores[index] += defendingPieces == null ? 0 : 10 * defendingPieces.size();
+                scores[index] += defendingPieces == null ? 0 : DEFENSE_BONUS * defendingPieces.size();
             } else {
                 if (defendingPieces == null) {
                     scores[index] -= isCurrTurn ? unitValue : 5 * unitValue;
@@ -347,7 +356,7 @@ class BoardEvaluator {
         Point centralHorsePoint = board.getPoint(new Coordinate(centralHorseRow, centralHorseCol));
         if (!centralHorsePoint.isEmpty()
                 && centralHorsePoint.getPiece().get().getPieceType().equals(PieceType.HORSE)) {
-            return CANNON_CENTRAL_HORSE_BONUS[cannonRank - 1];
+            return CANNON_CENTRAL_BONUS[cannonRank - 1];
         }
 
         return 0;

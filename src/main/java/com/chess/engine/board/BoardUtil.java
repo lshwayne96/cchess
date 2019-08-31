@@ -69,6 +69,7 @@ public class BoardUtil {
     public static boolean sameColOrRow(Coordinate first, Coordinate... others) {
         boolean sameRow = true;
         boolean sameCol = true;
+
         for (Coordinate position : others) {
             if (position.getRow() != first.getRow()) {
                 sameRow = false;
@@ -80,6 +81,7 @@ public class BoardUtil {
                 return false;
             }
         }
+
         return true;
     }
 }
