@@ -166,7 +166,7 @@ class BoardEvaluator {
 
     /**
      * Returns the relationship score difference between the two players on the given board.
-     */
+     *//*
     private static int getRelationScoreDiff(Board board, boolean isEndgame) {
         int[] scores = new int[2];
         Map<Piece, List<Move>> incomingAttacksMap = new HashMap<>();
@@ -300,7 +300,7 @@ class BoardEvaluator {
         }
 
         return scores[0] - scores[1];
-    }
+    }*/
 
     /**
      * Returns the bonus value of the given cannon on the given board.

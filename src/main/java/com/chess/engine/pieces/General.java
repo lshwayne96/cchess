@@ -5,7 +5,6 @@ import com.chess.engine.board.Board;
 import com.chess.engine.board.BoardUtil;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
-import com.chess.engine.board.Point;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,6 +17,7 @@ public class General extends Piece {
     private static final List<Coordinate> MOVE_VECTORS =
             List.of(new Coordinate(-1, 0), new Coordinate(0, -1),
                     new Coordinate(1, 0), new Coordinate(0, 1));
+    private static final Coordinate FORWARD_VECTOR = MOVE_VECTORS.get(2);
     private static final Coordinate STARTING_POSITION_RED = new Coordinate(9, 4);
     private static final Coordinate STARTING_POSITION_BLACK = new Coordinate(0, 4);
 
@@ -26,32 +26,36 @@ public class General extends Piece {
     }
 
     @Override
-    public Collection<Coordinate> getDestPositions(Board board) {
-        List<Coordinate> destPositions = new ArrayList<>();
+    public Collection<Move> getLegalMoves(Board board) {
+        List<Move> legalMoves = new ArrayList<>();
 
         for (Coordinate vector : MOVE_VECTORS) {
             Coordinate destPosition = position.add(vector);
             if (isValidPosition(destPosition)) {
-                destPositions.add(destPosition);
+                Optional<Piece> destPiece = board.getPoint(destPosition).getPiece();
+                destPiece.ifPresentOrElse(p -> {
+                    if (!p.alliance.equals(this.alliance)) {
+                        legalMoves.add(new Move(board.getZobristKey(), this, destPosition, p));
+                    }
+                }, () -> legalMoves.add(new Move(board.getZobristKey(), this, destPosition)));
             }
         }
 
         // flying general move (only used for enforcing check)
-        Coordinate vector = new Coordinate(1, 0).scale(alliance.getDirection());
+        Coordinate vector = FORWARD_VECTOR.scale(alliance.getDirection());
         Coordinate currPosition = position.add(vector);
         while (BoardUtil.isWithinBounds(currPosition)) {
-            Point currPoint = board.getPoint(currPosition);
-            Optional<Piece> piece = currPoint.getPiece();
+            Optional<Piece> piece = board.getPoint(currPosition).getPiece();
             if (piece.isPresent()) {
                 if (piece.get().getPieceType().equals(PieceType.GENERAL)) {
-                    destPositions.add(currPosition);
+                    legalMoves.add(new Move(board.getZobristKey(), this, currPosition, piece.get()));
                 }
                 break;
             }
             currPosition = currPosition.add(vector);
         }
 
-        return Collections.unmodifiableList(destPositions);
+        return Collections.unmodifiableList(legalMoves);
     }
 
     @Override

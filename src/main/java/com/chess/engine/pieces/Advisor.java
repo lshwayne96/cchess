@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public class Advisor extends Piece {
@@ -38,17 +39,22 @@ public class Advisor extends Piece {
     }
 
     @Override
-    public Collection<Coordinate> getDestPositions(Board board) {
-        List<Coordinate> destPositions = new ArrayList<>();
+    public Collection<Move> getLegalMoves(Board board) {
+        List<Move> legalMoves = new ArrayList<>();
 
         for (Coordinate vector : MOVE_VECTORS) {
             Coordinate destPosition = position.add(vector);
             if (isValidPosition(destPosition)) {
-                destPositions.add(destPosition);
+                Optional<Piece> destPiece = board.getPoint(destPosition).getPiece();
+                destPiece.ifPresentOrElse(p -> {
+                    if (!p.alliance.equals(this.alliance)) {
+                        legalMoves.add(new Move(board.getZobristKey(), this, destPosition, p));
+                    }
+                }, () -> legalMoves.add(new Move(board.getZobristKey(), this, destPosition)));
             }
         }
 
-        return Collections.unmodifiableList(destPositions);
+        return Collections.unmodifiableList(legalMoves);
     }
 
     @Override

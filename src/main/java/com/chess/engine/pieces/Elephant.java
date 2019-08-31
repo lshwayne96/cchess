@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public class Elephant extends Piece {
@@ -33,6 +34,29 @@ public class Elephant extends Piece {
     }
 
     @Override
+    public Collection<Move> getLegalMoves(Board board) {
+        List<Move> legalMoves = new ArrayList<>();
+
+        for (Coordinate vector : MOVE_VECTORS) {
+            Coordinate firstPosition = position.add(vector);
+            if (!(BoardUtil.isWithinBounds(firstPosition)
+                    && board.getPoint(firstPosition).isEmpty())) continue;
+
+            Coordinate destPosition = firstPosition.add(vector);
+            if (isValidPosition(destPosition)) {
+                Optional<Piece> destPiece = board.getPoint(destPosition).getPiece();
+                destPiece.ifPresentOrElse(p -> {
+                    if (!p.alliance.equals(this.alliance)) {
+                        legalMoves.add(new Move(board.getZobristKey(), this, destPosition, p));
+                    }
+                }, () -> legalMoves.add(new Move(board.getZobristKey(), this, destPosition)));
+            }
+        }
+
+        return Collections.unmodifiableList(legalMoves);
+    }
+
+
     public Collection<Coordinate> getDestPositions(Board board) {
         List<Coordinate> destPositions = new ArrayList<>();
 

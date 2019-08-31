@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 public class Horse extends Piece {
 
@@ -29,8 +30,8 @@ public class Horse extends Piece {
     }
 
     @Override
-    public Collection<Coordinate> getDestPositions(Board board) {
-        List<Coordinate> destPositions = new ArrayList<>();
+    public Collection<Move> getLegalMoves(Board board) {
+        List<Move> legalMoves = new ArrayList<>();
 
         for (int i = 0; i < FIRST_MOVE_VECTORS.size(); i++) {
             Coordinate firstPosition = position.add(FIRST_MOVE_VECTORS.get(i));
@@ -40,12 +41,17 @@ public class Horse extends Piece {
             for (Coordinate second : SECOND_MOVE_VECTORS_LIST.get(i)) {
                 Coordinate destPosition = firstPosition.add(second);
                 if (BoardUtil.isWithinBounds(destPosition)) {
-                    destPositions.add(destPosition);
+                    Optional<Piece> destPiece = board.getPoint(destPosition).getPiece();
+                    destPiece.ifPresentOrElse(p -> {
+                        if (!p.alliance.equals(this.alliance)) {
+                            legalMoves.add(new Move(board.getZobristKey(), this, destPosition, p));
+                        }
+                    }, () -> legalMoves.add(new Move(board.getZobristKey(), this, destPosition)));
                 }
             }
         }
 
-        return Collections.unmodifiableList(destPositions);
+        return Collections.unmodifiableList(legalMoves);
     }
 
     @Override

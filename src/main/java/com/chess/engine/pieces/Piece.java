@@ -4,14 +4,9 @@ import com.chess.engine.Alliance;
 import com.chess.engine.board.Board;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
-import com.chess.engine.board.Point;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Represents a Chinese Chess piece.
@@ -31,11 +26,11 @@ public abstract class Piece {
     }
 
     /**
-     * Returns a collection of positions reachable by this piece.
-     * @param board The board this piece is on.
-     * @return A collection of positions reachable by this piece.
+     * Returns a collection of legal moves that can be made by this piece on the given board.
+     * @param board The current board.
+     * @return a collection of legal moves that can be made by this piece on the given board.
      */
-    public abstract Collection<Coordinate> getDestPositions(Board board);
+    public abstract Collection<Move> getLegalMoves(Board board);
 
     /**
      * Moves this piece based on the given move and returns the new piece.
@@ -49,27 +44,6 @@ public abstract class Piece {
      * @return A mirrored copy of this piece.
      */
     public abstract Piece getMirrorPiece();
-
-    /**
-     * Returns a collection of legal moves that can be made by this piece on the given board.
-     * @param board The current board.
-     * @return a collection of legal moves that can be made by this piece on the given board.
-     */
-    public Collection<Move> getLegalMoves(Board board) {
-        List<Move> legalMoves = new ArrayList<>();
-
-        for (Coordinate destPosition : getDestPositions(board)) {
-            Point destPoint = board.getPoint(destPosition);
-            Optional<Piece> destPiece = destPoint.getPiece();
-            destPiece.ifPresentOrElse(p -> {
-                if (this.alliance != p.alliance) {
-                    legalMoves.add(new Move(board.getZobristKey(), this, destPosition, p));
-                }
-            }, () -> legalMoves.add(new Move(board.getZobristKey(), this, destPosition)));
-        }
-
-        return Collections.unmodifiableList(legalMoves);
-    }
 
     public PieceType getPieceType() {
         return pieceType;

@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 public class Soldier extends Piece {
 
@@ -24,22 +25,32 @@ public class Soldier extends Piece {
     }
 
     @Override
-    public Collection<Coordinate> getDestPositions(Board board) {
-        List<Coordinate> destPositions = new ArrayList<>();
+    public Collection<Move> getLegalMoves(Board board) {
+        List<Move> legalMoves = new ArrayList<>();
 
         if (!crossedRiver()) {
             Coordinate destPosition = position.add(MOVE_VECTOR_BEFORE_RIVER.scale(alliance.getDirection()));
-            destPositions.add(destPosition);
+            Optional<Piece> destPiece = board.getPoint(destPosition).getPiece();
+            destPiece.ifPresentOrElse(p -> {
+                if (!p.alliance.equals(this.alliance)) {
+                    legalMoves.add(new Move(board.getZobristKey(), this, destPosition, p));
+                }
+            }, () -> legalMoves.add(new Move(board.getZobristKey(), this, destPosition)));
         } else {
             for (Coordinate vector : MOVE_VECTORS_AFTER_RIVER) {
                 Coordinate destPosition = position.add(vector.scale(alliance.getDirection()));
                 if (BoardUtil.isWithinBounds(destPosition)) {
-                    destPositions.add(destPosition);
+                    Optional<Piece> destPiece = board.getPoint(destPosition).getPiece();
+                    destPiece.ifPresentOrElse(p -> {
+                        if (!p.alliance.equals(this.alliance)) {
+                            legalMoves.add(new Move(board.getZobristKey(), this, destPosition, p));
+                        }
+                    }, () -> legalMoves.add(new Move(board.getZobristKey(), this, destPosition)));
                 }
             }
         }
 
-        return Collections.unmodifiableList(destPositions);
+        return Collections.unmodifiableList(legalMoves);
     }
 
     @Override

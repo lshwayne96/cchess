@@ -5,7 +5,6 @@ import com.chess.engine.board.Board;
 import com.chess.engine.board.BoardUtil;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Move;
-import com.chess.engine.board.Point;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,31 +23,30 @@ public class Cannon extends Piece {
     }
 
     @Override
-    public Collection<Coordinate> getDestPositions(Board board) {
-        List<Coordinate> destPositions = new ArrayList<>();
+    public Collection<Move> getLegalMoves(Board board) {
+        List<Move> legalMoves = new ArrayList<>();
 
         for (Coordinate vector : MOVE_VECTORS) {
             Coordinate destPosition = position.add(vector);
             boolean jumped = false;
 
             while (BoardUtil.isWithinBounds(destPosition)) {
-                Point destPoint = board.getPoint(destPosition);
-                Optional<Piece> destPiece = destPoint.getPiece();
-
+                Optional<Piece> destPiece = board.getPoint(destPosition).getPiece();
                 if (!jumped && !destPiece.isPresent()) { // before first piece
-                    destPositions.add(destPosition);
+                    legalMoves.add(new Move(board.getZobristKey(), this, destPosition));
                 } else if (!jumped) { // reached first piece
                     jumped = true;
                 } else if (destPiece.isPresent()) { // after first piece
-                    destPositions.add(destPosition);
+                    if (!destPiece.get().alliance.equals(this.alliance)) {
+                        legalMoves.add(new Move(board.getZobristKey(), this, destPosition, destPiece.get()));
+                    }
                     break;
                 }
-
                 destPosition = destPosition.add(vector);
             }
         }
 
-        return Collections.unmodifiableList(destPositions);
+        return Collections.unmodifiableList(legalMoves);
     }
 
     @Override

@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 public class Chariot extends Piece {
 
@@ -22,20 +23,27 @@ public class Chariot extends Piece {
     }
 
     @Override
-    public Collection<Coordinate> getDestPositions(Board board) {
-        List<Coordinate> destPositions = new ArrayList<>();
+    public Collection<Move> getLegalMoves(Board board) {
+        List<Move> legalMoves = new ArrayList<>();
 
         for (Coordinate vector : MOVE_VECTORS) {
             Coordinate destPosition = position.add(vector);
 
             while (BoardUtil.isWithinBounds(destPosition)) {
-                destPositions.add(destPosition);
-                if (board.getPoint(destPosition).getPiece().isPresent()) break;
+                Optional<Piece> destPiece = board.getPoint(destPosition).getPiece();
+                if (destPiece.isPresent()) {
+                    if (!destPiece.get().alliance.equals(this.alliance)) {
+                        legalMoves.add(new Move(board.getZobristKey(), this, destPosition, destPiece.get()));
+                    }
+                    break;
+                } else {
+                    legalMoves.add(new Move(board.getZobristKey(), this, destPosition));
+                }
                 destPosition = destPosition.add(vector);
             }
         }
 
-        return Collections.unmodifiableList(destPositions);
+        return Collections.unmodifiableList(legalMoves);
     }
 
     @Override
