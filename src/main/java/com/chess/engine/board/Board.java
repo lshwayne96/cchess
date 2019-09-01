@@ -118,10 +118,12 @@ public class Board {
         Collection<Piece> redPieces = new ArrayList<>();
         Collection<Move> redLegalMoves = new ArrayList<>();
         int[] redPieceCount = new int[7];
+        int redMobilityValue = 0;
 
         Collection<Piece> blackPieces = new ArrayList<>();
         Collection<Move> blackLegalMoves = new ArrayList<>();
         int[] blackPieceCount = new int[7];
+        int blackMobilityValue = 0;
 
         for (Point point : points) {
             if (point.isEmpty()) continue;
@@ -129,17 +131,23 @@ public class Board {
 
             if (piece.getAlliance().isRed()) {
                 redPieces.add(piece);
-                redLegalMoves.addAll(piece.getLegalMoves(this));
+                Collection<Move> moves = piece.getLegalMoves(this);
+                redLegalMoves.addAll(moves);
                 redPieceCount[piece.getPieceType().ordinal()]++;
+                redMobilityValue += piece.getPieceType().getMobilityValue() * moves.size();
             } else {
                 blackPieces.add(piece);
-                blackLegalMoves.addAll(piece.getLegalMoves(this));
+                Collection<Move> moves = piece.getLegalMoves(this);
+                blackLegalMoves.addAll(moves);
                 blackPieceCount[piece.getPieceType().ordinal()]++;
+                blackMobilityValue += piece.getPieceType().getMobilityValue() * moves.size();
             }
         }
 
-        Player redPlayer = new Player(Alliance.RED, redPieces, redLegalMoves, blackLegalMoves, redPieceCount);
-        Player blackPlayer = new Player(Alliance.BLACK, blackPieces, blackLegalMoves, redLegalMoves, blackPieceCount);
+        Player redPlayer = new Player(Alliance.RED, redPieces, redLegalMoves,
+                blackLegalMoves, redPieceCount, redMobilityValue);
+        Player blackPlayer = new Player(Alliance.BLACK, blackPieces, blackLegalMoves,
+                redLegalMoves, blackPieceCount, blackMobilityValue);
         return new PlayerInfo(redPlayer, blackPlayer);
     }
 
@@ -154,27 +162,37 @@ public class Board {
         Collection<Piece> redPieces = new ArrayList<>();
         Collection<Move> redLegalMoves = new ArrayList<>();
         int[] redPieceCount;
+        int redMobilityValue = 0;
 
         Collection<Piece> blackPieces = new ArrayList<>();
         Collection<Move> blackLegalMoves = new ArrayList<>();
         int[] blackPieceCount;
+        int blackMobilityValue = 0;
 
         for (Piece piece : getRedPlayer().getActivePieces()) {
             if (piece.equals(movedPiece) || piece.equals(capturedPiece)) continue;
             redPieces.add(piece);
-            redLegalMoves.addAll(piece.getLegalMoves(this));
+            Collection<Move> moves = piece.getLegalMoves(this);
+            redLegalMoves.addAll(moves);
+            redMobilityValue += piece.getPieceType().getMobilityValue() * moves.size();
         }
         for (Piece piece : getBlackPlayer().getActivePieces()) {
             if (piece.equals(movedPiece) || piece.equals(capturedPiece)) continue;
             blackPieces.add(piece);
-            blackLegalMoves.addAll(piece.getLegalMoves(this));
+            Collection<Move> moves = piece.getLegalMoves(this);
+            blackLegalMoves.addAll(moves);
+            blackMobilityValue += piece.getPieceType().getMobilityValue() * moves.size();
         }
         if (destPiece.getAlliance().isRed()) {
             redPieces.add(destPiece);
-            redLegalMoves.addAll(destPiece.getLegalMoves(this));
+            Collection<Move> moves = destPiece.getLegalMoves(this);
+            redLegalMoves.addAll(moves);
+            redMobilityValue += destPiece.getPieceType().getMobilityValue() * moves.size();
         } else {
             blackPieces.add(destPiece);
-            blackLegalMoves.addAll(destPiece.getLegalMoves(this));
+            Collection<Move> moves = destPiece.getLegalMoves(this);
+            blackLegalMoves.addAll(moves);
+            blackMobilityValue += destPiece.getPieceType().getMobilityValue() * moves.size();
         }
 
         if (capturedPiece == null) {
@@ -192,8 +210,10 @@ public class Board {
             }
         }
 
-        Player redPlayer = new Player(Alliance.RED, redPieces, redLegalMoves, blackLegalMoves, redPieceCount);
-        Player blackPlayer = new Player(Alliance.BLACK, blackPieces, blackLegalMoves, redLegalMoves, blackPieceCount);
+        Player redPlayer = new Player(Alliance.RED, redPieces, redLegalMoves,
+                blackLegalMoves, redPieceCount, redMobilityValue);
+        Player blackPlayer = new Player(Alliance.BLACK, blackPieces, blackLegalMoves,
+                redLegalMoves, blackPieceCount, blackMobilityValue);
         return new PlayerInfo(redPlayer, blackPlayer);
     }
 

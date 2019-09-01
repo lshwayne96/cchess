@@ -113,25 +113,24 @@ public abstract class Piece {
      */
     public enum PieceType {
 
-        SOLDIER("S", true, MIDGAME_VALUES_SOLDIER, ENDGAME_VALUES_SOLDIER,
-                1, 3, 0, 1),
-        ADVISOR("A", false, VALUES_ADVISOR, VALUES_ADVISOR,
-                1, 4, 0, 0),
-        ELEPHANT("E", false, VALUES_ELEPHANT, VALUES_ELEPHANT,
-                1, 4, 0, 0),
-        HORSE("H", true, MIDGAME_VALUES_HORSE, ENDGAME_VALUES_HORSE,
-                18, 2, 1, 2),
-        CANNON("C", true, MIDGAME_VALUES_CANNON, ENDGAME_VALUES_CANNON,
-                3, 2, 1, 1),
-        CHARIOT("R", true, MIDGAME_VALUES_CHARIOT, ENDGAME_VALUES_CHARIOT,
-                5, 1, 2, 2),
-        GENERAL("G", false, MIDGAME_VALUES_GENERAL, ENDGAME_VALUES_GENERAL,
+        SOLDIER("S", MIDGAME_VALUES_SOLDIER, ENDGAME_VALUES_SOLDIER,
+                0, 3, 0, 1),
+        ADVISOR("A", VALUES_ADVISOR, VALUES_ADVISOR,
+                0, 4, 0, 0),
+        ELEPHANT("E", VALUES_ELEPHANT, VALUES_ELEPHANT,
+                0, 4, 0, 0),
+        HORSE("H", MIDGAME_VALUES_HORSE, ENDGAME_VALUES_HORSE,
+                0, 2, 1, 2),
+        CANNON("C", MIDGAME_VALUES_CANNON, ENDGAME_VALUES_CANNON,
+                0, 2, 1, 1),
+        CHARIOT("R", MIDGAME_VALUES_CHARIOT, ENDGAME_VALUES_CHARIOT,
+                0, 1, 2, 2),
+        GENERAL("G", MIDGAME_VALUES_GENERAL, ENDGAME_VALUES_GENERAL,
                 0, 5, 0, 0);
 
-        public static final PieceType[] pieceTypes = PieceType.values();
+        public static final PieceType[] PIECE_TYPES = PieceType.values();
 
         private final String abbrev;
-        private final boolean isAttacking;
         private final int[][] midGameValues;
         private final int[][] endGameValues;
         private final int mobilityValue;
@@ -139,10 +138,9 @@ public abstract class Piece {
         private final int valueUnits;
         private final int attackUnits;
 
-        PieceType(String abbrev, boolean isAttacking, int[][] midGameValues, int[][] endGameValues,
+        PieceType(String abbrev, int[][] midGameValues, int[][] endGameValues,
                   int mobilityValue, int movePriority, int valueUnits, int attackUnits) {
             this.abbrev = abbrev;
-            this.isAttacking = isAttacking;
             this.midGameValues = midGameValues;
             this.endGameValues = endGameValues;
             this.mobilityValue = mobilityValue;
@@ -152,7 +150,7 @@ public abstract class Piece {
         }
 
         public boolean isAttacking() {
-            return isAttacking;
+            return attackUnits > 0;
         }
 
         public int getMobilityValue() {

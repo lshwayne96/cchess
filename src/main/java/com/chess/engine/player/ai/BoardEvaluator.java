@@ -25,7 +25,7 @@ import static com.chess.engine.pieces.Piece.*;
  * A helper class for evaluating a board.
  */
 class BoardEvaluator {
-
+//TODO: mobility, attack/defense
     private static final Random rand = new Random();
     private static final int RANDOM_BOUND = 10;
     private static final int CHECKMATE_VALUE = 10000;
@@ -36,8 +36,7 @@ class BoardEvaluator {
     private static final int DEFENSE_BONUS = 10;
 
     private static final int CANNON_ELEPHANT_BONUS = 100;
-    private static final int CHARIOT_ONE_ADVISOR_BONUS = 400;
-    private static final int CHARIOT_ZERO_ADVISOR_BONUS = 600;
+    private static final int CHARIOT_ADVISOR_BONUS = 400;
     private static final int MAX_ATTACK_VALUE = 8;
 
     private static final int CHARIOT_PIN_FACTOR = 7;
@@ -77,6 +76,10 @@ class BoardEvaluator {
         int redScore = 0, blackScore = 0;
 
 
+        // add mobility values
+        redScore += redPlayer.getTotalMobilityValue();
+        blackScore += blackPlayer.getTotalMobilityValue();
+
         // calculate total basic piece value and player attack value
         int redAttackValue = 0, blackAttackValue = 0;
         for (Piece piece : redPlayer.getActivePieces()) {
@@ -103,7 +106,7 @@ class BoardEvaluator {
         int blackValueUnits = blackPlayer.getTotalValueUnits();
         if (redValueUnits > blackValueUnits) {
             redAttackValue += (redValueUnits - blackValueUnits) * 2;
-        } else {
+        } else if (blackValueUnits > redValueUnits) {
             blackAttackValue += (blackValueUnits - redValueUnits) * 2;
         }
         redAttackValue = Math.min(redAttackValue, MAX_ATTACK_VALUE);
@@ -145,28 +148,18 @@ class BoardEvaluator {
                     * blackAttackValue / MAX_ATTACK_VALUE;
         }
         // double chariots might be strong against lack of advisors
-        if (redChariotCount == 2) {
-            if (blackAdvisorCount == 1) {
-                redScore += CHARIOT_ONE_ADVISOR_BONUS * redAttackValue / MAX_ATTACK_VALUE;
-            } else if (blackAdvisorCount == 0) {
-                redScore += CHARIOT_ZERO_ADVISOR_BONUS * redAttackValue / MAX_ATTACK_VALUE;
-            }
+        if (redChariotCount == 2 && blackAdvisorCount < 2) {
+            redScore += CHARIOT_ADVISOR_BONUS * redAttackValue / MAX_ATTACK_VALUE;
         }
-        if (blackChariotCount == 2) {
-            if (redAdvisorCount == 1) {
-                blackScore += CHARIOT_ONE_ADVISOR_BONUS * blackAttackValue / MAX_ATTACK_VALUE;
-            } else if (redAdvisorCount == 0) {
-                blackScore += CHARIOT_ZERO_ADVISOR_BONUS * blackAttackValue / MAX_ATTACK_VALUE;
-            }
+        if (blackChariotCount == 2 && redAdvisorCount < 2) {
+            blackScore += CHARIOT_ADVISOR_BONUS * blackAttackValue / MAX_ATTACK_VALUE;
         }
 
 
         return redScore - blackScore + (Table.getInstance().isAIRandomised() ? rand.nextInt(RANDOM_BOUND) : 0);
     }
 
-    /**
-     * Returns the relationship score difference between the two players on the given board.
-     *//*
+/*
     private static int getRelationScoreDiff(Board board, boolean isEndgame) {
         int[] scores = new int[2];
         Map<Piece, List<Move>> incomingAttacksMap = new HashMap<>();
