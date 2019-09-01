@@ -130,11 +130,11 @@ public abstract class Piece {
         ELEPHANT("E", VALUES_ELEPHANT, VALUES_ELEPHANT,
                 0, 4, 0, 0),
         HORSE("H", MIDGAME_VALUES_HORSE, ENDGAME_VALUES_HORSE,
-                6, 2, 1, 2),
+                5, 2, 1, 2),
         CANNON("C", MIDGAME_VALUES_CANNON, ENDGAME_VALUES_CANNON,
                 1, 2, 1, 1),
         CHARIOT("R", MIDGAME_VALUES_CHARIOT, ENDGAME_VALUES_CHARIOT,
-                3, 1, 2, 2),
+                2, 1, 2, 2),
         GENERAL("G", MIDGAME_VALUES_GENERAL, ENDGAME_VALUES_GENERAL,
                 0, 5, 0, 0);
 

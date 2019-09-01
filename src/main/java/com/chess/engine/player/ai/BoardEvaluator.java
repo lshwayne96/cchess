@@ -24,15 +24,15 @@ import static com.chess.engine.pieces.Piece.*;
  * A helper class for evaluating a board.
  */
 class BoardEvaluator {
-//TODO: mobility, cannon
+
     private static final Random rand = new Random();
-    private static final int RANDOM_BOUND = 10;
+    private static final int RANDOM_BOUND = 5;
     private static final int CHECKMATE_VALUE = 10000;
     private static final Coordinate FORWARD_VECTOR = new Coordinate(1, 0);
 
     private static final int CHARIOT_BONUS = 100;
     private static final int CANNON_HORSE_BONUS = 20;
-    private static final int DEFENSE_BONUS = 5;
+    private static final int DEFENSE_BONUS = 3;
 
     private static final int CANNON_ELEPHANT_BONUS = 100;
     private static final int CHARIOT_ADVISOR_BONUS = 400;

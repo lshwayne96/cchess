@@ -31,6 +31,9 @@ public class FixedDepthSearch extends MiniMax {
             // get value-sorted move entries for the current depth (best move at the front)
             List<MoveEntry> newMoveEntries = alphaBetaRoot(oldMoveEntries, currDepth, alpha, beta);
             bestMoveEntry = newMoveEntries.get(0);
+            if (newMoveEntries.size() == 1) {
+                return bestMoveEntry.move;
+            }
 
             int bestVal = bestMoveEntry.val;
             if (bestVal <= alpha || bestVal >= beta) { // reset aspiration window

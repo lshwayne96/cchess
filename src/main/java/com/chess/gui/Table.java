@@ -887,6 +887,8 @@ public class Table extends BorderPane {
      */
     private static abstract class AIPlayer extends Task<Move> {
 
+        private static final int MAX_CONSEC_CHECKS = 3;
+
         final Collection<Move> legalMoves;
         final Timer timer;
         TimerTask task;
@@ -895,6 +897,44 @@ public class Table extends BorderPane {
             timer = new Timer("AI Timer");
             legalMoves = new ArrayList<>(getInstance().board.getCurrPlayer().getLegalMoves());
             legalMoves.removeAll(getInstance().bannedMoves);
+
+            Piece bannedPiece = getBannedCheckingPiece();
+            if (bannedPiece != null) {
+                Board board = getInstance().board.getCopy();
+                for (Move move : legalMoves) {
+                    board.makeMove(move);
+                    if (move.getMovedPiece().equals(bannedPiece) && !move.isCapture()
+                            && board.getCurrPlayer().isInCheck()) {
+                        legalMoves.remove(move);
+                    }
+                    board.unmakeMove(move);
+                }
+            }
+        }
+
+        /**
+         * Returns the piece not to check the opponent with, if any.
+         */
+        private Piece getBannedCheckingPiece() {
+            if (!getInstance().board.lastThreeChecks()) {
+                return null;
+            }
+
+            List<Move> moveHistory = getInstance().fullMovelog.getMoves();
+            Move move = moveHistory.get(moveHistory.size() - MAX_CONSEC_CHECKS*2);
+            if (move.isCapture()) {
+                return null;
+            }
+            Piece movedPiece = move.getMovedPiece().movePiece(move);
+            for (int i = 1; i < MAX_CONSEC_CHECKS; i++) {
+                move = moveHistory.get(moveHistory.size() - MAX_CONSEC_CHECKS*2 + i*2);
+                if (!move.getMovedPiece().equals(movedPiece) || move.isCapture()) {
+                    return null;
+                }
+                movedPiece = move.getMovedPiece().movePiece(move);
+            }
+
+            return movedPiece;
         }
 
         /**

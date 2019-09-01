@@ -334,7 +334,12 @@ public class Board {
      * @return true if the game is a draw, false otherwise.
      */
     public boolean isGameDraw() {
-        for (Piece piece : getAllPieces()) {
+        for (Piece piece : getRedPlayer().getActivePieces()) {
+            if (piece.getPieceType().isAttacking()) {
+                return false;
+            }
+        }
+        for (Piece piece : getBlackPlayer().getActivePieces()) {
             if (piece.getPieceType().isAttacking()) {
                 return false;
             }
@@ -388,6 +393,28 @@ public class Board {
     }
 
     /**
+     * Checks if the current player has given a check for three consecutive times.
+     * @return true if the current player has given a check for three consecutive times, false otherwise.
+     */
+    public boolean lastThreeChecks() {
+        if (playerInfoHistory.size() < 5) {
+            return false;
+        }
+        for (int i = 0; i < 3; i++) {
+            if (currTurn.isRed()) {
+                if (!playerInfoHistory.get(playerInfoHistory.size() - 1 - i*2).blackPlayer.isInCheck()) {
+                    return false;
+                }
+            } else {
+                if (!playerInfoHistory.get(playerInfoHistory.size() - 1 - i*2).redPlayer.isInCheck()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
      * Returns the point on this board with the given position.
      * @param position The position of the point.
      * @return The point on this board with the given position.
@@ -398,24 +425,6 @@ public class Board {
 
     public long getZobristKey() {
         return zobristKey;
-    }
-
-    public Collection<Piece> getAllPieces() {
-        Collection<Piece> allPieces = new ArrayList<>();
-
-        allPieces.addAll(getRedPlayer().getActivePieces());
-        allPieces.addAll(getBlackPlayer().getActivePieces());
-
-        return allPieces;
-    }
-
-    public Collection<Move> getAllLegalMoves() {
-        Collection<Move> allMoves = new ArrayList<>();
-
-        allMoves.addAll(getRedPlayer().getLegalMoves());
-        allMoves.addAll(getBlackPlayer().getLegalMoves());
-
-        return allMoves;
     }
 
     public Player getRedPlayer() {
@@ -453,6 +462,7 @@ public class Board {
      * Represents both players on this board.
      */
     private static class PlayerInfo {
+
         private Player redPlayer;
         private Player blackPlayer;
 
