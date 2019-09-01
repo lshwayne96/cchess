@@ -24,7 +24,7 @@ import static com.chess.engine.pieces.Piece.*;
  * A helper class for evaluating a board.
  */
 class BoardEvaluator {
-
+//TODO: mobility, pin, defense
     private static final Random rand = new Random();
     private static final int RANDOM_BOUND = 5;
     private static final int CHECKMATE_VALUE = 10000;
@@ -32,7 +32,7 @@ class BoardEvaluator {
 
     private static final int CHARIOT_BONUS = 100;
     private static final int CANNON_HORSE_BONUS = 20;
-    private static final int DEFENSE_BONUS = 3;
+    private static final int DEFENSE_BONUS = 0;
 
     private static final int CANNON_ELEPHANT_BONUS = 100;
     private static final int CHARIOT_ADVISOR_BONUS = 400;
@@ -282,7 +282,8 @@ class BoardEvaluator {
         int centralHorseCol = BoardUtil.fileToCol(5, cannonAlliance);
         Point centralHorsePoint = board.getPoint(new Coordinate(centralHorseRow, centralHorseCol));
         if (!centralHorsePoint.isEmpty()
-                && centralHorsePoint.getPiece().get().getPieceType().equals(PieceType.HORSE)) {
+                && centralHorsePoint.getPiece().get().getPieceType().equals(PieceType.HORSE)
+                && centralHorsePoint.getPiece().get().getAlliance().equals(cannonAlliance.opposite())) {
             return CANNON_CENTRAL_BONUS[cannonRank - 1];
         }
 
