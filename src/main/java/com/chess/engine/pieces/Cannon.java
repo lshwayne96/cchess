@@ -50,6 +50,42 @@ public class Cannon extends Piece {
     }
 
     @Override
+    public Collection<Move> getLegalMoves(Board board, Collection<Attack> attacks, Collection<Defense> defenses) {
+        List<Move> legalMoves = new ArrayList<>();
+        List<Piece> attackedPieces = new ArrayList<>();
+        List<Piece> defendedPieces = new ArrayList<>();
+
+        for (Coordinate vector : MOVE_VECTORS) {
+            Coordinate destPosition = position.add(vector);
+            boolean jumped = false;
+
+            while (BoardUtil.isWithinBounds(destPosition)) {
+                Optional<Piece> destPiece = board.getPoint(destPosition).getPiece();
+                if (!jumped && !destPiece.isPresent()) { // before first piece
+                    legalMoves.add(new Move(board.getZobristKey(), this, destPosition));
+                } else if (!jumped) { // reached first piece
+                    jumped = true;
+                } else if (destPiece.isPresent()) { // after first piece
+                    if (!destPiece.get().alliance.equals(this.alliance)) {
+                        legalMoves.add(new Move(board.getZobristKey(), this, destPosition, destPiece.get()));
+                        attackedPieces.add(destPiece.get());
+                    } else {
+                        defendedPieces.add(destPiece.get());
+                    }
+                    break;
+                }
+                destPosition = destPosition.add(vector);
+            }
+        }
+        Attack attack = new Attack(this, attackedPieces);
+        Defense defense = new Defense(this, defendedPieces);
+
+        attacks.add(attack);
+        defenses.add(defense);
+        return Collections.unmodifiableList(legalMoves);
+    }
+
+    @Override
     public Cannon movePiece(Move move) {
         return new Cannon(move.getDestPosition(), move.getMovedPiece().getAlliance());
     }

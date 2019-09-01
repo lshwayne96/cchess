@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
+import static com.chess.engine.pieces.Piece.*;
+
 /**
  * Represents a Chinese Chess board.
  */
@@ -119,11 +121,15 @@ public class Board {
         Collection<Move> redLegalMoves = new ArrayList<>();
         int[] redPieceCount = new int[7];
         int redMobilityValue = 0;
+        Collection<Attack> redAttacks = new ArrayList<>();
+        Collection<Defense> redDefenses = new ArrayList<>();
 
         Collection<Piece> blackPieces = new ArrayList<>();
         Collection<Move> blackLegalMoves = new ArrayList<>();
         int[] blackPieceCount = new int[7];
         int blackMobilityValue = 0;
+        Collection<Attack> blackAttacks = new ArrayList<>();
+        Collection<Defense> blackDefenses = new ArrayList<>();
 
         for (Point point : points) {
             if (point.isEmpty()) continue;
@@ -131,23 +137,23 @@ public class Board {
 
             if (piece.getAlliance().isRed()) {
                 redPieces.add(piece);
-                Collection<Move> moves = piece.getLegalMoves(this);
+                Collection<Move> moves = piece.getLegalMoves(this, redAttacks, redDefenses);
                 redLegalMoves.addAll(moves);
                 redPieceCount[piece.getPieceType().ordinal()]++;
                 redMobilityValue += piece.getPieceType().getMobilityValue() * moves.size();
             } else {
                 blackPieces.add(piece);
-                Collection<Move> moves = piece.getLegalMoves(this);
+                Collection<Move> moves = piece.getLegalMoves(this, blackAttacks, blackDefenses);
                 blackLegalMoves.addAll(moves);
                 blackPieceCount[piece.getPieceType().ordinal()]++;
                 blackMobilityValue += piece.getPieceType().getMobilityValue() * moves.size();
             }
         }
 
-        Player redPlayer = new Player(Alliance.RED, redPieces, redLegalMoves,
-                blackLegalMoves, redPieceCount, redMobilityValue);
-        Player blackPlayer = new Player(Alliance.BLACK, blackPieces, blackLegalMoves,
-                redLegalMoves, blackPieceCount, blackMobilityValue);
+        Player redPlayer = new Player(Alliance.RED, redPieces, redLegalMoves, blackLegalMoves,
+                redPieceCount, redMobilityValue, redAttacks, redDefenses);
+        Player blackPlayer = new Player(Alliance.BLACK, blackPieces, blackLegalMoves, redLegalMoves,
+                blackPieceCount, blackMobilityValue, blackAttacks, blackDefenses);
         return new PlayerInfo(redPlayer, blackPlayer);
     }
 
@@ -163,34 +169,38 @@ public class Board {
         Collection<Move> redLegalMoves = new ArrayList<>();
         int[] redPieceCount;
         int redMobilityValue = 0;
+        Collection<Attack> redAttacks = new ArrayList<>();
+        Collection<Defense> redDefenses = new ArrayList<>();
 
         Collection<Piece> blackPieces = new ArrayList<>();
         Collection<Move> blackLegalMoves = new ArrayList<>();
         int[] blackPieceCount;
         int blackMobilityValue = 0;
+        Collection<Attack> blackAttacks = new ArrayList<>();
+        Collection<Defense> blackDefenses = new ArrayList<>();
 
         for (Piece piece : getRedPlayer().getActivePieces()) {
             if (piece.equals(movedPiece) || piece.equals(capturedPiece)) continue;
             redPieces.add(piece);
-            Collection<Move> moves = piece.getLegalMoves(this);
+            Collection<Move> moves = piece.getLegalMoves(this, redAttacks, redDefenses);
             redLegalMoves.addAll(moves);
             redMobilityValue += piece.getPieceType().getMobilityValue() * moves.size();
         }
         for (Piece piece : getBlackPlayer().getActivePieces()) {
             if (piece.equals(movedPiece) || piece.equals(capturedPiece)) continue;
             blackPieces.add(piece);
-            Collection<Move> moves = piece.getLegalMoves(this);
+            Collection<Move> moves = piece.getLegalMoves(this, blackAttacks, blackDefenses);
             blackLegalMoves.addAll(moves);
             blackMobilityValue += piece.getPieceType().getMobilityValue() * moves.size();
         }
         if (destPiece.getAlliance().isRed()) {
             redPieces.add(destPiece);
-            Collection<Move> moves = destPiece.getLegalMoves(this);
+            Collection<Move> moves = destPiece.getLegalMoves(this, redAttacks, redDefenses);
             redLegalMoves.addAll(moves);
             redMobilityValue += destPiece.getPieceType().getMobilityValue() * moves.size();
         } else {
             blackPieces.add(destPiece);
-            Collection<Move> moves = destPiece.getLegalMoves(this);
+            Collection<Move> moves = destPiece.getLegalMoves(this, blackAttacks, blackDefenses);
             blackLegalMoves.addAll(moves);
             blackMobilityValue += destPiece.getPieceType().getMobilityValue() * moves.size();
         }
@@ -210,10 +220,10 @@ public class Board {
             }
         }
 
-        Player redPlayer = new Player(Alliance.RED, redPieces, redLegalMoves,
-                blackLegalMoves, redPieceCount, redMobilityValue);
-        Player blackPlayer = new Player(Alliance.BLACK, blackPieces, blackLegalMoves,
-                redLegalMoves, blackPieceCount, blackMobilityValue);
+        Player redPlayer = new Player(Alliance.RED, redPieces, redLegalMoves, blackLegalMoves,
+                redPieceCount, redMobilityValue, redAttacks, redDefenses);
+        Player blackPlayer = new Player(Alliance.BLACK, blackPieces, blackLegalMoves, redLegalMoves,
+                blackPieceCount, blackMobilityValue, blackAttacks, blackDefenses);
         return new PlayerInfo(redPlayer, blackPlayer);
     }
 

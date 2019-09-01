@@ -23,15 +23,20 @@ public class Player {
     private final boolean isInCheck;
     private final int[] pieceCount;
     private final int totalMobilityValue;
+    private final Collection<Attack> attacks;
+    private final Collection<Defense> defenses;
 
     public Player(Alliance alliance, Collection<Piece> activePieces, Collection<Move> legalMoves,
-                  Collection<Move> oppLegalMoves, int[] pieceCount, int totalMobilityValue) {
+                  Collection<Move> oppLegalMoves, int[] pieceCount, int totalMobilityValue,
+                  Collection<Attack> attacks, Collection<Defense> defenses) {
         this.alliance = alliance;
         this.activePieces = activePieces;
         this.legalMoves = legalMoves;
         isInCheck = !getIncomingAttacks(findPlayerGeneral().getPosition(), oppLegalMoves).isEmpty();
         this.pieceCount = pieceCount;
         this.totalMobilityValue = totalMobilityValue;
+        this.attacks = attacks;
+        this.defenses = defenses;
     }
 
     private Piece findPlayerGeneral() {
@@ -93,5 +98,13 @@ public class Player {
             totalValueUnits += pieceType.getValueUnits() * getPieceCount(pieceType);
         }
         return totalValueUnits;
+    }
+
+    public Collection<Attack> getAttacks() {
+        return Collections.unmodifiableCollection(attacks);
+    }
+
+    public Collection<Defense> getDefenses() {
+        return Collections.unmodifiableCollection(defenses);
     }
 }

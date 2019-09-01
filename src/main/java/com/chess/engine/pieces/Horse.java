@@ -55,6 +55,40 @@ public class Horse extends Piece {
     }
 
     @Override
+    public Collection<Move> getLegalMoves(Board board, Collection<Attack> attacks, Collection<Defense> defenses) {
+        List<Move> legalMoves = new ArrayList<>();
+        List<Piece> attackedPieces = new ArrayList<>();
+        List<Piece> defendedPieces = new ArrayList<>();
+
+        for (int i = 0; i < FIRST_MOVE_VECTORS.size(); i++) {
+            Coordinate firstPosition = position.add(FIRST_MOVE_VECTORS.get(i));
+            if (!(BoardUtil.isWithinBounds(firstPosition)
+                    && board.getPoint(firstPosition).isEmpty())) continue;
+
+            for (Coordinate second : SECOND_MOVE_VECTORS_LIST.get(i)) {
+                Coordinate destPosition = firstPosition.add(second);
+                if (BoardUtil.isWithinBounds(destPosition)) {
+                    Optional<Piece> destPiece = board.getPoint(destPosition).getPiece();
+                    destPiece.ifPresentOrElse(p -> {
+                        if (!p.alliance.equals(this.alliance)) {
+                            legalMoves.add(new Move(board.getZobristKey(), this, destPosition, p));
+                            attackedPieces.add(p);
+                        } else {
+                            defendedPieces.add(p);
+                        }
+                    }, () -> legalMoves.add(new Move(board.getZobristKey(), this, destPosition)));
+                }
+            }
+        }
+        Attack attack = new Attack(this, attackedPieces);
+        Defense defense = new Defense(this, defendedPieces);
+
+        attacks.add(attack);
+        defenses.add(defense);
+        return Collections.unmodifiableList(legalMoves);
+    }
+
+    @Override
     public Horse movePiece(Move move) {
         return new Horse(move.getDestPosition(), move.getMovedPiece().getAlliance());
     }

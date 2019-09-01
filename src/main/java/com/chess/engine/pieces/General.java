@@ -59,6 +59,50 @@ public class General extends Piece {
     }
 
     @Override
+    public Collection<Move> getLegalMoves(Board board, Collection<Attack> attacks, Collection<Defense> defenses) {
+        List<Move> legalMoves = new ArrayList<>();
+        List<Piece> attackedPieces = new ArrayList<>();
+        List<Piece> defendedPieces = new ArrayList<>();
+
+        for (Coordinate vector : MOVE_VECTORS) {
+            Coordinate destPosition = position.add(vector);
+            if (isValidPosition(destPosition)) {
+                Optional<Piece> destPiece = board.getPoint(destPosition).getPiece();
+                destPiece.ifPresentOrElse(p -> {
+                    if (!p.alliance.equals(this.alliance)) {
+                        legalMoves.add(new Move(board.getZobristKey(), this, destPosition, p));
+                        attackedPieces.add(p);
+                    } else {
+                        defendedPieces.add(p);
+                    }
+                }, () -> legalMoves.add(new Move(board.getZobristKey(), this, destPosition)));
+            }
+        }
+
+        // flying general move (only used for enforcing check)
+        Coordinate vector = FORWARD_VECTOR.scale(alliance.getDirection());
+        Coordinate currPosition = position.add(vector);
+        while (BoardUtil.isWithinBounds(currPosition)) {
+            Optional<Piece> piece = board.getPoint(currPosition).getPiece();
+            if (piece.isPresent()) {
+                if (piece.get().getPieceType().equals(PieceType.GENERAL)) {
+                    legalMoves.add(new Move(board.getZobristKey(), this, currPosition, piece.get()));
+                    attackedPieces.add(piece.get());
+                }
+                break;
+            }
+            currPosition = currPosition.add(vector);
+        }
+
+        Attack attack = new Attack(this, attackedPieces);
+        Defense defense = new Defense(this, defendedPieces);
+
+        attacks.add(attack);
+        defenses.add(defense);
+        return Collections.unmodifiableList(legalMoves);
+    }
+
+    @Override
     public General movePiece(Move move) {
         return new General(move.getDestPosition(), move.getMovedPiece().getAlliance());
     }

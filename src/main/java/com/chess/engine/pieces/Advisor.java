@@ -58,6 +58,34 @@ public class Advisor extends Piece {
     }
 
     @Override
+    public Collection<Move> getLegalMoves(Board board, Collection<Attack> attacks, Collection<Defense> defenses) {
+        List<Move> legalMoves = new ArrayList<>();
+        List<Piece> attackedPieces = new ArrayList<>();
+        List<Piece> defendedPieces = new ArrayList<>();
+
+        for (Coordinate vector : MOVE_VECTORS) {
+            Coordinate destPosition = position.add(vector);
+            if (isValidPosition(destPosition)) {
+                Optional<Piece> destPiece = board.getPoint(destPosition).getPiece();
+                destPiece.ifPresentOrElse(p -> {
+                    if (!p.alliance.equals(this.alliance)) {
+                        legalMoves.add(new Move(board.getZobristKey(), this, destPosition, p));
+                        attackedPieces.add(p);
+                    } else {
+                        defendedPieces.add(p);
+                    }
+                }, () -> legalMoves.add(new Move(board.getZobristKey(), this, destPosition)));
+            }
+        }
+        Attack attack = new Attack(this, attackedPieces);
+        Defense defense = new Defense(this, defendedPieces);
+
+        attacks.add(attack);
+        defenses.add(defense);
+        return Collections.unmodifiableList(legalMoves);
+    }
+
+    @Override
     public Advisor movePiece(Move move) {
         return new Advisor(move.getDestPosition(), move.getMovedPiece().getAlliance());
     }

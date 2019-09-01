@@ -56,6 +56,38 @@ public class Elephant extends Piece {
         return Collections.unmodifiableList(legalMoves);
     }
 
+    @Override
+    public Collection<Move> getLegalMoves(Board board, Collection<Attack> attacks, Collection<Defense> defenses) {
+        List<Move> legalMoves = new ArrayList<>();
+        List<Piece> attackedPieces = new ArrayList<>();
+        List<Piece> defendedPieces = new ArrayList<>();
+
+        for (Coordinate vector : MOVE_VECTORS) {
+            Coordinate firstPosition = position.add(vector);
+            if (!(BoardUtil.isWithinBounds(firstPosition)
+                    && board.getPoint(firstPosition).isEmpty())) continue;
+
+            Coordinate destPosition = firstPosition.add(vector);
+            if (isValidPosition(destPosition)) {
+                Optional<Piece> destPiece = board.getPoint(destPosition).getPiece();
+                destPiece.ifPresentOrElse(p -> {
+                    if (!p.alliance.equals(this.alliance)) {
+                        legalMoves.add(new Move(board.getZobristKey(), this, destPosition, p));
+                        attackedPieces.add(p);
+                    } else {
+                        defendedPieces.add(p);
+                    }
+                }, () -> legalMoves.add(new Move(board.getZobristKey(), this, destPosition)));
+            }
+        }
+        Attack attack = new Attack(this, attackedPieces);
+        Defense defense = new Defense(this, defendedPieces);
+
+        attacks.add(attack);
+        defenses.add(defense);
+        return Collections.unmodifiableList(legalMoves);
+    }
+
 
     public Collection<Coordinate> getDestPositions(Board board) {
         List<Coordinate> destPositions = new ArrayList<>();

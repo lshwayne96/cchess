@@ -54,6 +54,47 @@ public class Soldier extends Piece {
     }
 
     @Override
+    public Collection<Move> getLegalMoves(Board board, Collection<Attack> attacks, Collection<Defense> defenses) {
+        List<Move> legalMoves = new ArrayList<>();
+        List<Piece> attackedPieces = new ArrayList<>();
+        List<Piece> defendedPieces = new ArrayList<>();
+
+        if (!crossedRiver()) {
+            Coordinate destPosition = position.add(MOVE_VECTOR_BEFORE_RIVER.scale(alliance.getDirection()));
+            Optional<Piece> destPiece = board.getPoint(destPosition).getPiece();
+            destPiece.ifPresentOrElse(p -> {
+                if (!p.alliance.equals(this.alliance)) {
+                    legalMoves.add(new Move(board.getZobristKey(), this, destPosition, p));
+                    attackedPieces.add(p);
+                } else {
+                    defendedPieces.add(p);
+                }
+            }, () -> legalMoves.add(new Move(board.getZobristKey(), this, destPosition)));
+        } else {
+            for (Coordinate vector : MOVE_VECTORS_AFTER_RIVER) {
+                Coordinate destPosition = position.add(vector.scale(alliance.getDirection()));
+                if (BoardUtil.isWithinBounds(destPosition)) {
+                    Optional<Piece> destPiece = board.getPoint(destPosition).getPiece();
+                    destPiece.ifPresentOrElse(p -> {
+                        if (!p.alliance.equals(this.alliance)) {
+                            legalMoves.add(new Move(board.getZobristKey(), this, destPosition, p));
+                            attackedPieces.add(p);
+                        } else {
+                            defendedPieces.add(p);
+                        }
+                    }, () -> legalMoves.add(new Move(board.getZobristKey(), this, destPosition)));
+                }
+            }
+        }
+        Attack attack = new Attack(this, attackedPieces);
+        Defense defense = new Defense(this, defendedPieces);
+
+        attacks.add(attack);
+        defenses.add(defense);
+        return Collections.unmodifiableList(legalMoves);
+    }
+
+    @Override
     public Soldier movePiece(Move move) {
         return new Soldier(move.getDestPosition(), move.getMovedPiece().getAlliance());
     }
