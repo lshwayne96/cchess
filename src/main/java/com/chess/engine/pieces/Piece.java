@@ -124,17 +124,17 @@ public abstract class Piece {
     public enum PieceType {
 
         SOLDIER("S", MIDGAME_VALUES_SOLDIER, ENDGAME_VALUES_SOLDIER,
-                0, 3, 0, 1),
+                1, 3, 0, 1),
         ADVISOR("A", VALUES_ADVISOR, VALUES_ADVISOR,
                 0, 4, 0, 0),
         ELEPHANT("E", VALUES_ELEPHANT, VALUES_ELEPHANT,
                 0, 4, 0, 0),
         HORSE("H", MIDGAME_VALUES_HORSE, ENDGAME_VALUES_HORSE,
-                0, 2, 1, 2),
+                10, 2, 1, 2),
         CANNON("C", MIDGAME_VALUES_CANNON, ENDGAME_VALUES_CANNON,
-                0, 2, 1, 1),
+                2, 2, 1, 1),
         CHARIOT("R", MIDGAME_VALUES_CHARIOT, ENDGAME_VALUES_CHARIOT,
-                0, 1, 2, 2),
+                5, 1, 2, 2),
         GENERAL("G", MIDGAME_VALUES_GENERAL, ENDGAME_VALUES_GENERAL,
                 0, 5, 0, 0);
 
