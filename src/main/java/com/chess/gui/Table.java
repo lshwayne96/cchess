@@ -896,20 +896,23 @@ public class Table extends BorderPane {
         private AIPlayer() {
             timer = new Timer("AI Timer");
             legalMoves = new ArrayList<>(getInstance().board.getCurrPlayer().getLegalMoves());
-            legalMoves.removeAll(getInstance().bannedMoves);
 
             Piece bannedPiece = getBannedCheckingPiece();
+            Collection<Move> bannedMoves = new ArrayList<>();
             if (bannedPiece != null) {
                 Board board = getInstance().board.getCopy();
                 for (Move move : legalMoves) {
                     board.makeMove(move);
                     if (move.getMovedPiece().equals(bannedPiece) && !move.isCapture()
                             && board.getCurrPlayer().isInCheck()) {
-                        legalMoves.remove(move);
+                        bannedMoves.add(move);
                     }
                     board.unmakeMove(move);
                 }
             }
+
+            legalMoves.removeAll(bannedMoves);
+            legalMoves.removeAll(getInstance().bannedMoves);
         }
 
         /**
