@@ -332,47 +332,42 @@ public abstract class Piece {
             {   0,   0,   0,   5,  55,   5,   0,   0,   0}
     };
 
+    public static abstract class Relation {
+
+        final Piece piece;
+        final Collection<Piece> relatedPieces;
+
+        private Relation(Piece piece, Collection<Piece> relatedPieces) {
+            this.piece = piece;
+            this.relatedPieces = relatedPieces;
+        }
+
+        public Piece getPiece() {
+            return piece;
+        }
+
+        public Collection<Piece> getRelatedPieces() {
+            return relatedPieces;
+        }
+    }
+
     /**
      * Represents the attacks by a piece.
      */
-    public static class Attack {
-
-        private final Piece attackingPiece;
-        private final Collection<Piece> attackedPieces;
+    public static class Attack extends Relation {
 
         public Attack(Piece attackingPiece, Collection<Piece> attackedPieces) {
-            this.attackingPiece = attackingPiece;
-            this.attackedPieces = attackedPieces;
-        }
-
-        public Piece getAttackingPiece() {
-            return attackingPiece;
-        }
-
-        public Collection<Piece> getAttackedPieces() {
-            return attackedPieces;
+            super(attackingPiece, attackedPieces);
         }
     }
 
     /**
      * Represents the defenses by a piece.
      */
-    public static class Defense {
-
-        private final Piece defendingPiece;
-        private final Collection<Piece> defendedPieces;
+    public static class Defense extends Relation {
 
         public Defense(Piece defendingPiece, Collection<Piece> defendedPieces) {
-            this.defendingPiece = defendingPiece;
-            this.defendedPieces = defendedPieces;
-        }
-
-        public Piece getDefendingPiece() {
-            return defendingPiece;
-        }
-
-        public Collection<Piece> getDefendedPieces() {
-            return defendedPieces;
+            super(defendingPiece, defendedPieces);
         }
     }
 }

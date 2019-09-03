@@ -154,156 +154,23 @@ class BoardEvaluator {
             blackScore += CHARIOT_ADVISOR_BONUS * blackAttackValue / MAX_ATTACK_VALUE;
         }
 
-        Collection<Attack> allAttacks = new ArrayList<>();
-        allAttacks.addAll(redPlayer.getAttacks());
-        allAttacks.addAll(blackPlayer.getAttacks());
-        Collection<Defense> allDefenses = new ArrayList<>();
-        allDefenses.addAll(redPlayer.getDefenses());
-        allDefenses.addAll(blackPlayer.getDefenses());
-
         // store all attacks and defenses into maps
         Map<Piece, List<Piece>> incomingAttacksMap = new HashMap<>();
         Map<Piece, List<Piece>> defendingPiecesMap = new HashMap<>();
-        for (Attack attack : allAttacks) {
-            Piece attackingPiece = attack.getAttackingPiece();
-            for (Piece attackedPiece : attack.getAttackedPieces()) {
-                if (incomingAttacksMap.containsKey(attackedPiece)) {
-                    incomingAttacksMap.get(attackedPiece).add(attackingPiece);
-                } else {
-                    List<Piece> attackingPieces = new ArrayList<>();
-                    attackingPieces.add(attackingPiece);
-                    incomingAttacksMap.put(attackedPiece, attackingPieces);
-                }
-            }
-        }
-        for (Defense defense : allDefenses) {
-            Piece defendingPiece = defense.getDefendingPiece();
-            for (Piece defendedPiece : defense.getDefendedPieces()) {
-                if (defendingPiecesMap.containsKey(defendedPiece)) {
-                    defendingPiecesMap.get(defendedPiece).add(defendingPiece);
-                } else {
-                    List<Piece> defendingPieces = new ArrayList<>();
-                    defendingPieces.add(defendingPiece);
-                    defendingPiecesMap.put(defendedPiece, defendingPieces);
-                }
-            }
-        }
-
-        Collection<Piece> allPieces = new ArrayList<>();
-        allPieces.addAll(board.getRedPlayer().getActivePieces());
-        allPieces.addAll(board.getBlackPlayer().getActivePieces());
+        storeRelationIntoMap(redPlayer.getAttacks(), incomingAttacksMap);
+        storeRelationIntoMap(blackPlayer.getAttacks(), incomingAttacksMap);
+        storeRelationIntoMap(redPlayer.getDefenses(), defendingPiecesMap);
+        storeRelationIntoMap(blackPlayer.getDefenses(), defendingPiecesMap);
 
         // calculate relation scores
-        for (Piece piece : allPieces) {
-            if (piece.getPieceType().equals(PieceType.GENERAL)) continue;
-            int pieceValue = piece.getValue(isEndgame);
-            Alliance alliance = piece.getAlliance();
-
-            int oppTotalAttack = 0;
-            int oppMinAttack = Integer.MAX_VALUE;
-            int oppMaxAttack = 0;
-            int playerTotalDefense = 0;
-            int playerMinDefense = Integer.MAX_VALUE;
-            int playerMaxDefense = 0;
-            int flagValue = Integer.MAX_VALUE;
-            int unitValue = pieceValue >> 3;
-
-            List<Piece> attackingPieces = incomingAttacksMap.get(piece);
-            List<Piece> defendingPieces = defendingPiecesMap.get(piece);
-            if (attackingPieces != null) {
-                for (Piece attackingPiece : attackingPieces) {
-                    int attackValue = attackingPiece.getValue(isEndgame);
-                    if (attackValue < pieceValue && attackValue < flagValue) {
-                        flagValue = attackValue;
-                    }
-                    oppMinAttack = Math.min(oppMinAttack, attackValue);
-                    oppMaxAttack = Math.max(oppMaxAttack, attackValue);
-                    oppTotalAttack += attackValue;
-                }
-            }
-            if (defendingPieces != null) {
-                for (Piece defendingPiece : defendingPieces) {
-                    int defendingValue = defendingPiece.getValue(isEndgame);
-                    playerMinDefense = Math.min(playerMinDefense, defendingValue);
-                    playerMaxDefense = Math.max(playerMaxDefense, defendingValue);
-                    playerTotalDefense += defendingValue;
-                }
-            }
-
-            // attack/defense
-            boolean isCurrTurn = board.getCurrPlayer().getAlliance().equals(alliance);
-            if (attackingPieces == null) {
-                 if (alliance.isRed()) {
-                     redScore += defendingPieces == null ? 0 : DEFENSE_BONUS * defendingPieces.size();
-                 } else {
-                     blackScore += defendingPieces == null ? 0 : DEFENSE_BONUS * defendingPieces.size();
-                 }
-            } else {
-                if (defendingPieces == null) {
-                    if (alliance.isRed()) {
-                        redScore -= isCurrTurn ? unitValue : 5 * unitValue;
-                    } else {
-                        blackScore -= isCurrTurn ? unitValue : 5 * unitValue;
-                    }
-                } else {
-                    int playerScore = 0;
-                    int oppScore = 0;
-
-                    if (flagValue != Integer.MAX_VALUE) {
-                        playerScore = unitValue;
-                        oppScore = flagValue >> 3;
-                    } else if (defendingPieces.size() == 1 && attackingPieces.size() > 1
-                            && oppMinAttack < (pieceValue + playerTotalDefense)) {
-                        playerScore = unitValue + (playerTotalDefense >> 3);
-                        oppScore = oppMinAttack >> 3;
-                    } else if (defendingPieces.size() == 2 && attackingPieces.size() == 3
-                            && (oppTotalAttack - oppMaxAttack) < (pieceValue + playerTotalDefense)) {
-                        playerScore = unitValue + (playerTotalDefense >> 3);
-                        oppScore = (oppTotalAttack - oppMaxAttack) >> 3;
-                    } else if (defendingPieces.size() == attackingPieces.size()
-                            && oppTotalAttack < (pieceValue + playerTotalDefense - playerMaxDefense)) {
-                        playerScore = unitValue + ((playerTotalDefense - playerMaxDefense) >> 3);
-                        oppScore = oppTotalAttack >> 3;
-                    }
-
-                    if (alliance.isRed()) {
-                        redScore -= isCurrTurn ? playerScore : 5 * playerScore;
-                        blackScore -= isCurrTurn ? oppScore  : 5 * oppScore;
-                    } else {
-                        blackScore -= isCurrTurn ? playerScore : 5 * playerScore;
-                        redScore -= isCurrTurn ? oppScore  : 5 * oppScore;
-                    }
-                }
-            }
-
-            // pin
-            if (piece.getPieceType().equals(PieceType.CHARIOT)) continue;
-            if (attackingPieces == null || defendingPieces == null || defendingPieces.size() != 1
-                    || !defendingPieces.get(0).getPieceType().equals(PieceType.CHARIOT)) continue;
-            for (Piece attackingPiece : attackingPieces) {
-                if (BoardUtil.sameColOrRow(piece.getPosition(), attackingPiece.getPosition(),
-                        defendingPieces.get(0).getPosition())) {
-                    if (attackingPiece.getPieceType().equals(PieceType.CHARIOT)
-                            && defendingPiecesMap.get(defendingPieces.get(0)) == null) {
-                        if (piece.getAlliance().isRed()) {
-                            redScore -= piece.getValue(isEndgame) / CHARIOT_PIN_FACTOR;
-                        } else {
-                            blackScore -= piece.getValue(isEndgame) / CHARIOT_PIN_FACTOR;
-                        }
-                    } else if (attackingPiece.getPieceType().equals(PieceType.CANNON)
-                            && !piece.getPieceType().equals(PieceType.CANNON)) {
-                        if (piece.getAlliance().isRed()) {
-                            redScore -= piece.getValue(isEndgame) / CANNON_PIN_FACTOR;
-                        } else {
-                            blackScore -= piece.getValue(isEndgame) / CANNON_PIN_FACTOR;
-                        }
-                    }
-                }
-            }
-        }
+        int relationScoreDiff =
+                calculateRelationScoreDiff(board.getCurrPlayer().getAlliance(), isEndgame,
+                redPlayer.getActivePieces(), incomingAttacksMap, defendingPiecesMap)
+                + calculateRelationScoreDiff(board.getCurrPlayer().getAlliance(), isEndgame,
+                blackPlayer.getActivePieces(), incomingAttacksMap, defendingPiecesMap);
 
 
-        return redScore - blackScore;
+        return redScore - blackScore + relationScoreDiff;
     }
 
     /**
@@ -365,5 +232,115 @@ class BoardEvaluator {
         }
 
         return 0;
+    }
+
+    private static void storeRelationIntoMap(Collection<? extends Relation> relations, Map<Piece, List<Piece>> map) {
+        for (Relation relation : relations) {
+            Piece piece = relation.getPiece();
+            for (Piece relatedPiece : relation.getRelatedPieces()) {
+                if (map.containsKey(relatedPiece)) {
+                    map.get(relatedPiece).add(piece);
+                } else {
+                    List<Piece> pieces = new ArrayList<>();
+                    pieces.add(piece);
+                    map.put(relatedPiece, pieces);
+                }
+            }
+        }
+    }
+
+    private static int calculateRelationScoreDiff(Alliance currTurn, boolean isEndgame, Collection<Piece> pieces,
+                                              Map<Piece, List<Piece>> incomingAttacksMap,
+                                              Map<Piece, List<Piece>> defendingPiecesMap) {
+        int[] scores = new int[2];
+
+        for (Piece piece : pieces) {
+            if (piece.getPieceType().equals(PieceType.GENERAL)) continue;
+            int index = piece.getAlliance().isRed() ? 0 : 1;
+            boolean isCurrTurn = currTurn.equals(piece.getAlliance());
+            int pieceValue = piece.getValue(isEndgame);
+
+            int oppTotalAttack = 0;
+            int oppMinAttack = Integer.MAX_VALUE;
+            int oppMaxAttack = 0;
+            int playerTotalDefense = 0;
+            int playerMinDefense = Integer.MAX_VALUE;
+            int playerMaxDefense = 0;
+            int flagValue = Integer.MAX_VALUE;
+            int unitValue = pieceValue >> 3;
+
+            List<Piece> attackingPieces = incomingAttacksMap.get(piece);
+            List<Piece> defendingPieces = defendingPiecesMap.get(piece);
+            if (attackingPieces != null) {
+                for (Piece attackingPiece : attackingPieces) {
+                    int attackValue = attackingPiece.getValue(isEndgame);
+                    if (attackValue < pieceValue && attackValue < flagValue) {
+                        flagValue = attackValue;
+                    }
+                    oppMinAttack = Math.min(oppMinAttack, attackValue);
+                    oppMaxAttack = Math.max(oppMaxAttack, attackValue);
+                    oppTotalAttack += attackValue;
+                }
+            }
+            if (defendingPieces != null) {
+                for (Piece defendingPiece : defendingPieces) {
+                    int defendingValue = defendingPiece.getValue(isEndgame);
+                    playerMinDefense = Math.min(playerMinDefense, defendingValue);
+                    playerMaxDefense = Math.max(playerMaxDefense, defendingValue);
+                    playerTotalDefense += defendingValue;
+                }
+            }
+
+            // attack/defense
+            if (attackingPieces == null) {
+                scores[index] += defendingPieces == null ? 0 : DEFENSE_BONUS * defendingPieces.size();
+            } else {
+                if (defendingPieces == null) {
+                    scores[index] -= isCurrTurn ? unitValue : 5 * unitValue;
+                } else {
+                    int playerScore = 0;
+                    int oppScore = 0;
+
+                    if (flagValue != Integer.MAX_VALUE) {
+                        playerScore = unitValue;
+                        oppScore = flagValue >> 3;
+                    } else if (defendingPieces.size() == 1 && attackingPieces.size() > 1
+                            && oppMinAttack < (pieceValue + playerTotalDefense)) {
+                        playerScore = unitValue + (playerTotalDefense >> 3);
+                        oppScore = oppMinAttack >> 3;
+                    } else if (defendingPieces.size() == 2 && attackingPieces.size() == 3
+                            && (oppTotalAttack - oppMaxAttack) < (pieceValue + playerTotalDefense)) {
+                        playerScore = unitValue + (playerTotalDefense >> 3);
+                        oppScore = (oppTotalAttack - oppMaxAttack) >> 3;
+                    } else if (defendingPieces.size() == attackingPieces.size()
+                            && oppTotalAttack < (pieceValue + playerTotalDefense - playerMaxDefense)) {
+                        playerScore = unitValue + ((playerTotalDefense - playerMaxDefense) >> 3);
+                        oppScore = oppTotalAttack >> 3;
+                    }
+
+                    scores[index] -= isCurrTurn ? playerScore : 5 * playerScore;
+                    scores[1 - index] -= isCurrTurn ? oppScore  : 5 * oppScore;
+                }
+            }
+
+            // pin
+            if (piece.getPieceType().equals(PieceType.CHARIOT)) continue;
+            if (attackingPieces == null || defendingPieces == null || defendingPieces.size() != 1
+                    || !defendingPieces.get(0).getPieceType().equals(PieceType.CHARIOT)) continue;
+            for (Piece attackingPiece : attackingPieces) {
+                if (BoardUtil.sameColOrRow(piece.getPosition(), attackingPiece.getPosition(),
+                        defendingPieces.get(0).getPosition())) {
+                    if (attackingPiece.getPieceType().equals(PieceType.CHARIOT)
+                            && defendingPiecesMap.get(defendingPieces.get(0)) == null) {
+                        scores[index] -= piece.getValue(isEndgame) / CHARIOT_PIN_FACTOR;
+                    } else if (attackingPiece.getPieceType().equals(PieceType.CANNON)
+                            && !piece.getPieceType().equals(PieceType.CANNON)) {
+                        scores[index] -= piece.getValue(isEndgame) / CANNON_PIN_FACTOR;
+                    }
+                }
+            }
+        }
+
+        return scores[0] - scores[1];
     }
 }
