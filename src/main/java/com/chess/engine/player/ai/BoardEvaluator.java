@@ -35,17 +35,19 @@ class BoardEvaluator {
 
     private static final int GENERAL_PENALTY = 100;
     private static final int CHARIOT_BONUS = 100;
-    private static final int CANNON_HORSE_BONUS = 20;
-    private static final int DEFENSE_BONUS = 10;
+    private static final int CANNON_HORSE_BONUS = 30;
+    private static final int DEFENSE_BONUS_L = 10;
+    private static final int DEFENSE_BONUS_S = 5;
 
     private static final int CANNON_ELEPHANT_BONUS = 100;
     private static final int CHARIOT_ADVISOR_BONUS = 400;
-    private static final int PIN_FACTOR = 5;
+
+    private static final int CHARIOT_PIN_FACTOR = 7;
+    private static final int CANNON_PIN_FACTOR = 5;
 
     private static final int[] CANNON_HOLLOW_BONUS = {400, 400, 400, 375, 350, 325, 300, 0, 0, 0};
     private static final int CANNON_HOLLOW_REDUCTION = 2;
     private static final int[] CANNON_CENTRAL_BONUS = {150, 150, 150, 175, 200, 225, 250, 0, 0, 0};
-    private static final int CANNON_CENTRAL_REDUCTION = 5;
     private static final int CANNON_CHARIOT_BONUS = 100;
     private static final int[] CANNON_BOTTOM_BONUS = {200, 150,  0,  0,  0,  0,  0, 150, 200};
 
@@ -261,8 +263,8 @@ class BoardEvaluator {
                 return CANNON_CENTRAL_BONUS[cannonRank - 1];
             }
 
-            int bonus = CANNON_CENTRAL_BONUS[cannonRank - 1] / CANNON_CENTRAL_REDUCTION;
             // check if chariot at opp general free file
+            int bonus = 0;
             int freeCol;
             if (oppAdvStruct.equals(AdvisorStructure.LEFT)) { // right free
                 freeCol = BoardUtil.fileToCol(4, oppAlliance);
@@ -319,8 +321,10 @@ class BoardEvaluator {
 
             // no attack
             if (attackingPieces == null) {
-                if (defendingPieces != null && piece.getPieceType().getValueUnits() > 0) {
-                    scores[index] += DEFENSE_BONUS * defendingPieces.size();
+                if (defendingPieces != null) {
+                    scores[index] += piece.getPieceType().getValueUnits() > 0
+                            ? DEFENSE_BONUS_L * defendingPieces.size()
+                            : DEFENSE_BONUS_S * defendingPieces.size();
                 }
                 continue;
             }
@@ -385,13 +389,17 @@ class BoardEvaluator {
             if (piece.getPieceType().equals(PieceType.CHARIOT) || defendingPieces.size() != 1
                     || !defendingPieces.get(0).getPieceType().equals(PieceType.CHARIOT)) continue;
             for (Piece attackingPiece : attackingPieces) {
-                if ((attackingPiece.getPieceType().equals(PieceType.CHARIOT)
-                        && defendingPiecesMap.get(defendingPieces.get(0)) == null)
-                        || (attackingPiece.getPieceType().equals(PieceType.CANNON)
-                        && !piece.getPieceType().equals(PieceType.CANNON))) {
+                if (attackingPiece.getPieceType().equals(PieceType.CHARIOT)
+                        && defendingPiecesMap.get(defendingPieces.get(0)) == null) {
                     if (BoardUtil.sameColOrRow(piece.getPosition(), attackingPiece.getPosition(),
                             defendingPieces.get(0).getPosition())) {
-                        scores[index] -= pieceValue / PIN_FACTOR;
+                        scores[index] -= pieceValue / CHARIOT_PIN_FACTOR;
+                    }
+                } else if (attackingPiece.getPieceType().equals(PieceType.CANNON)
+                        && !piece.getPieceType().equals(PieceType.CANNON)) {
+                    if (BoardUtil.sameColOrRow(piece.getPosition(), attackingPiece.getPosition(),
+                            defendingPieces.get(0).getPosition())) {
+                        scores[index] -= pieceValue / CANNON_PIN_FACTOR;
                     }
                 }
             }
