@@ -32,7 +32,7 @@ public class Board {
     public static final int NUM_COLS = 9;
     public static final int RIVER_ROW_RED = 5;
     public static final int RIVER_ROW_BLACK = 4;
-    private static final int MAX_VALUE_UNITS_ENDGAME = 4;
+    private static final int MAX_VALUE_UNITS_ENDGAME = 3;
     private static final Zobrist ZOBRIST = new Zobrist();
 
     private final List<Point> points;
@@ -179,14 +179,17 @@ public class Board {
         Collection<Attack> blackAttacks = new ArrayList<>();
         Collection<Defense> blackDefenses = new ArrayList<>();
 
-        for (Piece piece : getRedPlayer().getActivePieces()) {
+        Player redPlayer = getPlayer(Alliance.RED);
+        Player blackPlayer = getPlayer(Alliance.BLACK);
+
+        for (Piece piece : redPlayer.getActivePieces()) {
             if (piece.equals(movedPiece) || piece.equals(capturedPiece)) continue;
             redPieces.add(piece);
             Collection<Move> moves = piece.getLegalMoves(this, redAttacks, redDefenses);
             redLegalMoves.addAll(moves);
             redMobilityValue += piece.getPieceType().getMobilityValue() * moves.size();
         }
-        for (Piece piece : getBlackPlayer().getActivePieces()) {
+        for (Piece piece : blackPlayer.getActivePieces()) {
             if (piece.equals(movedPiece) || piece.equals(capturedPiece)) continue;
             blackPieces.add(piece);
             Collection<Move> moves = piece.getLegalMoves(this, blackAttacks, blackDefenses);
@@ -206,23 +209,23 @@ public class Board {
         }
 
         if (capturedPiece == null) {
-            redPieceCount = getRedPlayer().getPieceCountArray();
-            blackPieceCount = getBlackPlayer().getPieceCountArray();
+            redPieceCount = redPlayer.getPieceCountArray();
+            blackPieceCount = blackPlayer.getPieceCountArray();
         } else {
             if (capturedPiece.getAlliance().isRed()) {
-                redPieceCount = Arrays.copyOf(getRedPlayer().getPieceCountArray(), 7);
+                redPieceCount = Arrays.copyOf(redPlayer.getPieceCountArray(), 7);
                 redPieceCount[capturedPiece.getPieceType().ordinal()]--;
-                blackPieceCount = getBlackPlayer().getPieceCountArray();
+                blackPieceCount = blackPlayer.getPieceCountArray();
             } else {
-                blackPieceCount = Arrays.copyOf(getBlackPlayer().getPieceCountArray(), 7);
+                blackPieceCount = Arrays.copyOf(blackPlayer.getPieceCountArray(), 7);
                 blackPieceCount[capturedPiece.getPieceType().ordinal()]--;
-                redPieceCount = getRedPlayer().getPieceCountArray();
+                redPieceCount = redPlayer.getPieceCountArray();
             }
         }
 
-        Player redPlayer = new Player(Alliance.RED, redPieces, redLegalMoves, blackLegalMoves,
+        redPlayer = new Player(Alliance.RED, redPieces, redLegalMoves, blackLegalMoves,
                 redPieceCount, redMobilityValue, redAttacks, redDefenses);
-        Player blackPlayer = new Player(Alliance.BLACK, blackPieces, blackLegalMoves, redLegalMoves,
+        blackPlayer = new Player(Alliance.BLACK, blackPieces, blackLegalMoves, redLegalMoves,
                 blackPieceCount, blackMobilityValue, blackAttacks, blackDefenses);
         return new PlayerInfo(redPlayer, blackPlayer);
     }
@@ -306,8 +309,8 @@ public class Board {
      * @return true if this board is currently in endgame, false otherwise.
      */
     public boolean isEndgame() {
-        return getRedPlayer().getTotalValueUnits() <= MAX_VALUE_UNITS_ENDGAME
-                && getBlackPlayer().getTotalValueUnits() <= MAX_VALUE_UNITS_ENDGAME;
+        return getPlayer(Alliance.RED).getTotalValueUnits() <= MAX_VALUE_UNITS_ENDGAME
+                && getPlayer(Alliance.BLACK).getTotalValueUnits() <= MAX_VALUE_UNITS_ENDGAME;
     }
 
     /**
@@ -334,12 +337,12 @@ public class Board {
      * @return true if the game is a draw, false otherwise.
      */
     public boolean isGameDraw() {
-        for (Piece piece : getRedPlayer().getActivePieces()) {
+        for (Piece piece : getPlayer(Alliance.RED).getActivePieces()) {
             if (piece.getPieceType().isAttacking()) {
                 return false;
             }
         }
-        for (Piece piece : getBlackPlayer().getActivePieces()) {
+        for (Piece piece : getPlayer(Alliance.BLACK).getActivePieces()) {
             if (piece.getPieceType().isAttacking()) {
                 return false;
             }
@@ -415,10 +418,38 @@ public class Board {
     }
 
     /**
-     * Returns the point on this board with the given position.
-     * @param position The position of the point.
-     * @return The point on this board with the given position.
+     * Returns the advisor structure of the player with the given alliance.
+     * @param alliance The alliance of the player to check.
+     * @return The advisor structure of the player with the given alliance.
      */
+    public AdvisorStructure getAdvisorStructure(Alliance alliance) {
+        if (getPlayer(alliance).getPieceCount(PieceType.ADVISOR) < 2) {
+            return AdvisorStructure.OTHER;
+        }
+
+        int lowRow = BoardUtil.rankToRow(1, alliance);
+        int midRow = BoardUtil.rankToRow(2, alliance);
+        int leftCol = BoardUtil.fileToCol(6, alliance);
+        int rightCol = BoardUtil.fileToCol(4, alliance);
+
+        Optional<Piece> left = getPoint(new Coordinate(lowRow, leftCol)).getPiece();
+        Optional<Piece> right = getPoint(new Coordinate(lowRow, rightCol)).getPiece();
+        Optional<Piece> mid = getPoint(new Coordinate(midRow, 4)).getPiece();
+        boolean hasLeft = left.map(p -> p.getPieceType().equals(PieceType.ADVISOR)).orElse(false);
+        boolean hasRight = right.map(p -> p.getPieceType().equals(PieceType.ADVISOR)).orElse(false);
+        boolean hasMid = mid.map(p -> p.getPieceType().equals(PieceType.ADVISOR)).orElse(false);
+
+        if (hasLeft && hasRight) {
+            return AdvisorStructure.START;
+        } else if (hasLeft && hasMid) {
+            return AdvisorStructure.LEFT;
+        } else if (hasRight && hasMid) {
+            return AdvisorStructure.RIGHT;
+        } else {
+            return AdvisorStructure.OTHER;
+        }
+    }
+
     public Point getPoint(Coordinate position) {
         return points.get(BoardUtil.positionToIndex(position));
     }
@@ -427,20 +458,16 @@ public class Board {
         return zobristKey;
     }
 
-    public Player getRedPlayer() {
-        return playerInfo.redPlayer;
-    }
-
-    public Player getBlackPlayer() {
-        return playerInfo.blackPlayer;
+    public Player getPlayer(Alliance alliance) {
+        return alliance.isRed() ? playerInfo.redPlayer : playerInfo.blackPlayer;
     }
 
     public Player getCurrPlayer() {
-        return currTurn.isRed() ? getRedPlayer() : getBlackPlayer();
+        return currTurn.isRed() ? getPlayer(Alliance.RED) : getPlayer(Alliance.BLACK);
     }
 
     public Player getOppPlayer() {
-        return currTurn.isRed() ? getBlackPlayer() : getRedPlayer();
+        return currTurn.isRed() ? getPlayer(Alliance.BLACK) : getPlayer(Alliance.RED);
     }
 
     @Override
@@ -456,6 +483,16 @@ public class Board {
         }
 
         return sb.toString();
+    }
+
+    /**
+     * Represents the structure of a player's advisors.
+     */
+    public enum AdvisorStructure {
+        START, // both advisors on starting positions
+        LEFT, // one on left file, one on middle
+        RIGHT, // one on right file, one on middle
+        OTHER // any other structure
     }
 
     /**

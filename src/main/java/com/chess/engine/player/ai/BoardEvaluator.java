@@ -5,7 +5,6 @@ import com.chess.engine.board.Board;
 import com.chess.engine.board.BoardUtil;
 import com.chess.engine.board.Coordinate;
 import com.chess.engine.board.Point;
-import com.chess.engine.pieces.Advisor;
 import com.chess.engine.pieces.General;
 import com.chess.engine.pieces.Piece;
 import com.chess.engine.player.Player;
@@ -18,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import static com.chess.engine.board.Board.*;
 import static com.chess.engine.pieces.Piece.*;
 
 /**
@@ -28,21 +28,26 @@ class BoardEvaluator {
     private static final Random rand = new Random();
     private static final int RANDOM_BOUND = 10;
     private static final int CHECKMATE_VALUE = 10000;
+    private static final int MAX_ATTACK_VALUE = 8;
     private static final Coordinate FORWARD_VECTOR = new Coordinate(1, 0);
+    private static final Coordinate PALACE_CENTRE_RED = new Coordinate(8, 4);
+    private static final Coordinate PALACE_CENTRE_BLACK = new Coordinate(1, 4);
 
+    private static final int GENERAL_PENALTY = 100;
     private static final int CHARIOT_BONUS = 100;
-    private static final int CANNON_HORSE_BONUS = 30;
-    private static final int DEFENSE_BONUS = 8;
+    private static final int CANNON_HORSE_BONUS = 20;
+    private static final int DEFENSE_BONUS = 10;
 
     private static final int CANNON_ELEPHANT_BONUS = 100;
     private static final int CHARIOT_ADVISOR_BONUS = 400;
-    private static final int MAX_ATTACK_VALUE = 8;
-
-    private static final int CHARIOT_PIN_FACTOR = 7;
-    private static final int CANNON_PIN_FACTOR = 5;
+    private static final int PIN_FACTOR = 5;
 
     private static final int[] CANNON_HOLLOW_BONUS = {400, 400, 400, 375, 350, 325, 300, 0, 0, 0};
+    private static final int CANNON_HOLLOW_REDUCTION = 2;
     private static final int[] CANNON_CENTRAL_BONUS = {150, 150, 150, 175, 200, 225, 250, 0, 0, 0};
+    private static final int CANNON_CENTRAL_REDUCTION = 5;
+    private static final int CANNON_CHARIOT_BONUS = 100;
+    private static final int[] CANNON_BOTTOM_BONUS = {200, 150,  0,  0,  0,  0,  0, 150, 200};
 
     /**
      * Returns the heuristic value of the given board.
@@ -69,11 +74,15 @@ class BoardEvaluator {
      * Returns the score difference between the two players on the given board.
      */
     private static int getScoreDiff(Board board) {
-        Player redPlayer = board.getRedPlayer();
-        Player blackPlayer = board.getBlackPlayer();
+        Player redPlayer = board.getPlayer(Alliance.RED);
+        Player blackPlayer = board.getPlayer(Alliance.BLACK);
         boolean isEndgame = board.isEndgame();
         int redScore = 0, blackScore = 0;
 
+        Collection<Piece> redCannons = new ArrayList<>();
+        Collection<Piece> redChariots = new ArrayList<>();
+        Collection<Piece> blackCannons = new ArrayList<>();
+        Collection<Piece> blackChariots = new ArrayList<>();
 
         // add mobility values
         redScore += redPlayer.getTotalMobilityValue();
@@ -87,7 +96,9 @@ class BoardEvaluator {
                 redAttackValue += piece.getPieceType().getAttackUnits();
             }
             if (piece.getPieceType().equals(PieceType.CANNON)) {
-                redScore += getCannonBonus(piece, board, isEndgame);
+                redCannons.add(piece);
+            } else if (piece.getPieceType().equals(PieceType.CHARIOT)) {
+                redChariots.add(piece);
             }
         }
         for (Piece piece : blackPlayer.getActivePieces()) {
@@ -96,7 +107,9 @@ class BoardEvaluator {
                 blackAttackValue += piece.getPieceType().getAttackUnits();
             }
             if (piece.getPieceType().equals(PieceType.CANNON)) {
-                blackScore += getCannonBonus(piece, board, isEndgame);
+                blackCannons.add(piece);
+            } else if (piece.getPieceType().equals(PieceType.CHARIOT)) {
+                blackChariots.add(piece);
             }
         }
 
@@ -123,6 +136,19 @@ class BoardEvaluator {
         int blackElephantCount = blackPlayer.getPieceCount(PieceType.ELEPHANT);
         int blackAdvisorCount = blackPlayer.getPieceCount(PieceType.ADVISOR);
 
+        // general on palace centre might be bad when having 2 advisors
+        if (redAdvisorCount == 2) {
+           if (board.getPoint(PALACE_CENTRE_RED).getPiece()
+                   .map(p -> p.getPieceType().equals(PieceType.GENERAL)).orElse(false)) {
+               redScore -= GENERAL_PENALTY;
+           }
+        }
+        if (blackAdvisorCount == 2) {
+            if (board.getPoint(PALACE_CENTRE_BLACK).getPiece()
+                    .map(p -> p.getPieceType().equals(PieceType.GENERAL)).orElse(false)) {
+                blackScore -= GENERAL_PENALTY;
+            }
+        }
         // chariot(s) might be strong against no chariot
         if (redChariotCount > 0 && blackChariotCount == 0 && (blackCannonCount + blackHorseCount) <= 2) {
             redScore += CHARIOT_BONUS;
@@ -153,6 +179,13 @@ class BoardEvaluator {
         if (blackChariotCount == 2 && redAdvisorCount < 2) {
             blackScore += CHARIOT_ADVISOR_BONUS * blackAttackValue / MAX_ATTACK_VALUE;
         }
+        // get cannon special bonuses
+        for (Piece cannon : redCannons) {
+            redScore += getCannonBonus(cannon, redChariots, redAttackValue, board, isEndgame);
+        }
+        for (Piece cannon : blackCannons) {
+            blackScore += getCannonBonus(cannon, blackChariots, blackAttackValue, board, isEndgame);
+        }
 
         // store all attacks and defenses into maps
         Map<Piece, List<Piece>> incomingAttacksMap = new HashMap<>();
@@ -176,59 +209,79 @@ class BoardEvaluator {
     /**
      * Returns the bonus value of the given cannon on the given board.
      */
-    private static int getCannonBonus(Piece cannon, Board board, boolean isEndgame) {
+    private static int getCannonBonus(Piece cannon, Collection<Piece> chariots, int attackValue,
+                                      Board board, boolean isEndgame) {
         Coordinate cannonPosition = cannon.getPosition();
         Alliance cannonAlliance = cannon.getAlliance();
-
-        // check position of cannon
+        Alliance oppAlliance = cannonAlliance.opposite();
         int cannonFile = BoardUtil.colToFile(cannonPosition.getCol(), cannonAlliance);
         int cannonRank = BoardUtil.rowToRank(cannonPosition.getRow(), cannonAlliance);
-        if (cannonFile != 5 || cannonRank > 7) {
-            return 0;
-        }
 
-        // check if opponent general and advisors are in starting positions
-        Point oppGeneralStartPoint = board.getPoint(General.getStartingPosition(cannonAlliance.opposite()));
+        // check if opponent general is in starting position
+        Point oppGeneralStartPoint = board.getPoint(General.getStartingPosition(oppAlliance));
         if (oppGeneralStartPoint.isEmpty()
                 || !oppGeneralStartPoint.getPiece().get().getPieceType().equals(PieceType.GENERAL)) {
             return 0;
         }
-        for (Coordinate pos : Advisor.getStartingPositions(cannon.getAlliance().opposite())) {
-            Point oppAdvisorStartPoint = board.getPoint(pos);
-            if (oppAdvisorStartPoint.isEmpty()
-                    || !oppAdvisorStartPoint.getPiece().get().getPieceType().equals(PieceType.ADVISOR)) {
+
+        if (cannonFile == 5 && cannonRank <= 7) { // central cannon
+            AdvisorStructure oppAdvStruct = board.getAdvisorStructure(oppAlliance);
+            if (oppAdvStruct.equals(AdvisorStructure.OTHER)) {
                 return 0;
             }
-        }
 
-        // check pieces between cannon and opponent general
-        int pieceCount = 0;
-        Coordinate position = cannonPosition.add(FORWARD_VECTOR.scale(cannonAlliance.getDirection()));
-        while (BoardUtil.isWithinBounds(position)) {
-            Point point = board.getPoint(position);
-            if (!point.isEmpty()) {
-                Piece piece = point.getPiece().get();
-                if (piece.getPieceType().equals(PieceType.GENERAL)) break;
-                pieceCount++;
-                if (pieceCount > 2) {
-                    return 0;
+            // check pieces between cannon and opponent general
+            int pieceCount = 0;
+            Coordinate position = cannonPosition.add(FORWARD_VECTOR.scale(cannonAlliance.getDirection()));
+            while (BoardUtil.isWithinBounds(position)) {
+                Point point = board.getPoint(position);
+                if (!point.isEmpty()) {
+                    Piece piece = point.getPiece().get();
+                    if (piece.getPieceType().equals(PieceType.GENERAL)) break;
+                    pieceCount++;
+                    if (pieceCount > 2) {
+                        return 0;
+                    }
+                }
+                position = position.add(FORWARD_VECTOR.scale(cannonAlliance.getDirection()));
+            }
+
+            if (pieceCount == 0) { // advisors at start
+                return isEndgame ? CANNON_HOLLOW_BONUS[cannonRank - 1] / CANNON_HOLLOW_REDUCTION
+                        : CANNON_HOLLOW_BONUS[cannonRank - 1];
+            }
+
+            // pieceCount == 2, left/right advisors
+            // check opp central horse
+            Coordinate centralHorsePosition = oppAlliance.isRed() ? PALACE_CENTRE_RED : PALACE_CENTRE_BLACK;
+            Point centralHorsePoint = board.getPoint(centralHorsePosition);
+            if (!centralHorsePoint.isEmpty()
+                    && centralHorsePoint.getPiece().get().getPieceType().equals(PieceType.HORSE)
+                    && centralHorsePoint.getPiece().get().getAlliance().equals(oppAlliance)) {
+                return CANNON_CENTRAL_BONUS[cannonRank - 1];
+            }
+
+            int bonus = CANNON_CENTRAL_BONUS[cannonRank - 1] / CANNON_CENTRAL_REDUCTION;
+            // check if chariot at opp general free file
+            int freeCol;
+            if (oppAdvStruct.equals(AdvisorStructure.LEFT)) { // right free
+                freeCol = BoardUtil.fileToCol(4, oppAlliance);
+            } else { // left free
+                freeCol = BoardUtil.fileToCol(6, oppAlliance);
+            }
+            for (Piece chariot : chariots) {
+                if (chariot.getPosition().getCol() == freeCol) {
+                    bonus += CANNON_CHARIOT_BONUS;
                 }
             }
-            position = position.add(FORWARD_VECTOR.scale(cannonAlliance.getDirection()));
-        }
 
-        if (pieceCount == 0) {
-            return isEndgame ? CANNON_HOLLOW_BONUS[cannonRank - 1] / 2 : CANNON_HOLLOW_BONUS[cannonRank - 1];
-        }
-
-        // pieceCount == 2
-        int centralHorseRow = BoardUtil.rankToRow(9, cannonAlliance);
-        int centralHorseCol = BoardUtil.fileToCol(5, cannonAlliance);
-        Point centralHorsePoint = board.getPoint(new Coordinate(centralHorseRow, centralHorseCol));
-        if (!centralHorsePoint.isEmpty()
-                && centralHorsePoint.getPiece().get().getPieceType().equals(PieceType.HORSE)
-                && centralHorsePoint.getPiece().get().getAlliance().equals(cannonAlliance.opposite())) {
-            return CANNON_CENTRAL_BONUS[cannonRank - 1];
+            return bonus;
+        } else if (cannonRank == 10) { // bottom cannon
+            AdvisorStructure oppAdvStruct = board.getAdvisorStructure(oppAlliance);
+            if ((oppAdvStruct.equals(AdvisorStructure.LEFT) && cannonFile > 5)
+                    || (oppAdvStruct.equals(AdvisorStructure.RIGHT) && cannonFile < 5)) {
+                return CANNON_BOTTOM_BONUS[cannonFile - 1] * attackValue / MAX_ATTACK_VALUE;
+            }
         }
 
         return 0;
@@ -256,10 +309,31 @@ class BoardEvaluator {
 
         for (Piece piece : pieces) {
             if (piece.getPieceType().equals(PieceType.GENERAL)) continue;
+
             int index = piece.getAlliance().isRed() ? 0 : 1;
             boolean isCurrTurn = currTurn.equals(piece.getAlliance());
             int pieceValue = piece.getValue(isEndgame);
 
+            List<Piece> attackingPieces = incomingAttacksMap.get(piece);
+            List<Piece> defendingPieces = defendingPiecesMap.get(piece);
+
+            // no attack
+            if (attackingPieces == null) {
+                if (defendingPieces != null && piece.getPieceType().getValueUnits() > 0) {
+                    scores[index] += DEFENSE_BONUS * defendingPieces.size();
+                }
+                continue;
+            }
+
+            int unitValue = pieceValue >> 3;
+
+            // has attack, no defense
+            if (defendingPieces == null) {
+                scores[index] -= isCurrTurn ? unitValue : 5 * unitValue;
+                continue;
+            }
+
+            // has attack & defense
             int oppTotalAttack = 0;
             int oppMinAttack = Integer.MAX_VALUE;
             int oppMaxAttack = 0;
@@ -267,75 +341,57 @@ class BoardEvaluator {
             int playerMinDefense = Integer.MAX_VALUE;
             int playerMaxDefense = 0;
             int flagValue = Integer.MAX_VALUE;
-            int unitValue = pieceValue >> 3;
 
-            List<Piece> attackingPieces = incomingAttacksMap.get(piece);
-            List<Piece> defendingPieces = defendingPiecesMap.get(piece);
-            if (attackingPieces != null) {
-                for (Piece attackingPiece : attackingPieces) {
-                    int attackValue = attackingPiece.getValue(isEndgame);
-                    if (attackValue < pieceValue && attackValue < flagValue) {
-                        flagValue = attackValue;
-                    }
-                    oppMinAttack = Math.min(oppMinAttack, attackValue);
-                    oppMaxAttack = Math.max(oppMaxAttack, attackValue);
-                    oppTotalAttack += attackValue;
+            for (Piece attackingPiece : attackingPieces) {
+                int attackValue = attackingPiece.getValue(isEndgame);
+                if (attackValue < pieceValue && attackValue < flagValue) {
+                    flagValue = attackValue;
                 }
+                oppMinAttack = Math.min(oppMinAttack, attackValue);
+                oppMaxAttack = Math.max(oppMaxAttack, attackValue);
+                oppTotalAttack += attackValue;
             }
-            if (defendingPieces != null) {
-                for (Piece defendingPiece : defendingPieces) {
-                    int defendingValue = defendingPiece.getValue(isEndgame);
-                    playerMinDefense = Math.min(playerMinDefense, defendingValue);
-                    playerMaxDefense = Math.max(playerMaxDefense, defendingValue);
-                    playerTotalDefense += defendingValue;
-                }
+            for (Piece defendingPiece : defendingPieces) {
+                int defendingValue = defendingPiece.getValue(isEndgame);
+                playerMinDefense = Math.min(playerMinDefense, defendingValue);
+                playerMaxDefense = Math.max(playerMaxDefense, defendingValue);
+                playerTotalDefense += defendingValue;
             }
 
-            // attack/defense
-            if (attackingPieces == null) {
-                scores[index] += defendingPieces == null ? 0 : DEFENSE_BONUS * defendingPieces.size();
-            } else {
-                if (defendingPieces == null) {
-                    scores[index] -= isCurrTurn ? unitValue : 5 * unitValue;
-                } else {
-                    int playerScore = 0;
-                    int oppScore = 0;
+            int playerScore = 0;
+            int oppScore = 0;
 
-                    if (flagValue != Integer.MAX_VALUE) {
-                        playerScore = unitValue;
-                        oppScore = flagValue >> 3;
-                    } else if (defendingPieces.size() == 1 && attackingPieces.size() > 1
-                            && oppMinAttack < (pieceValue + playerTotalDefense)) {
-                        playerScore = unitValue + (playerTotalDefense >> 3);
-                        oppScore = oppMinAttack >> 3;
-                    } else if (defendingPieces.size() == 2 && attackingPieces.size() == 3
-                            && (oppTotalAttack - oppMaxAttack) < (pieceValue + playerTotalDefense)) {
-                        playerScore = unitValue + (playerTotalDefense >> 3);
-                        oppScore = (oppTotalAttack - oppMaxAttack) >> 3;
-                    } else if (defendingPieces.size() == attackingPieces.size()
-                            && oppTotalAttack < (pieceValue + playerTotalDefense - playerMaxDefense)) {
-                        playerScore = unitValue + ((playerTotalDefense - playerMaxDefense) >> 3);
-                        oppScore = oppTotalAttack >> 3;
-                    }
-
-                    scores[index] -= isCurrTurn ? playerScore : 5 * playerScore;
-                    scores[1 - index] -= isCurrTurn ? oppScore  : 5 * oppScore;
-                }
+            if (flagValue != Integer.MAX_VALUE) {
+                playerScore = unitValue;
+                oppScore = flagValue >> 3;
+            } else if (defendingPieces.size() == 1 && attackingPieces.size() > 1
+                    && oppMinAttack < (pieceValue + playerTotalDefense)) {
+                playerScore = unitValue + (playerTotalDefense >> 3);
+                oppScore = oppMinAttack >> 3;
+            } else if (defendingPieces.size() == 2 && attackingPieces.size() == 3
+                    && (oppTotalAttack - oppMaxAttack) < (pieceValue + playerTotalDefense)) {
+                playerScore = unitValue + (playerTotalDefense >> 3);
+                oppScore = (oppTotalAttack - oppMaxAttack) >> 3;
+            } else if (defendingPieces.size() == attackingPieces.size()
+                    && oppTotalAttack < (pieceValue + playerTotalDefense - playerMaxDefense)) {
+                playerScore = unitValue + ((playerTotalDefense - playerMaxDefense) >> 3);
+                oppScore = oppTotalAttack >> 3;
             }
+
+            scores[index] -= isCurrTurn ? playerScore : 5 * playerScore;
+            scores[1 - index] -= isCurrTurn ? oppScore  : 5 * oppScore;
 
             // pin
-            if (piece.getPieceType().equals(PieceType.CHARIOT)) continue;
-            if (attackingPieces == null || defendingPieces == null || defendingPieces.size() != 1
+            if (piece.getPieceType().equals(PieceType.CHARIOT) || defendingPieces.size() != 1
                     || !defendingPieces.get(0).getPieceType().equals(PieceType.CHARIOT)) continue;
             for (Piece attackingPiece : attackingPieces) {
-                if (BoardUtil.sameColOrRow(piece.getPosition(), attackingPiece.getPosition(),
-                        defendingPieces.get(0).getPosition())) {
-                    if (attackingPiece.getPieceType().equals(PieceType.CHARIOT)
-                            && defendingPiecesMap.get(defendingPieces.get(0)) == null) {
-                        scores[index] -= piece.getValue(isEndgame) / CHARIOT_PIN_FACTOR;
-                    } else if (attackingPiece.getPieceType().equals(PieceType.CANNON)
-                            && !piece.getPieceType().equals(PieceType.CANNON)) {
-                        scores[index] -= piece.getValue(isEndgame) / CANNON_PIN_FACTOR;
+                if ((attackingPiece.getPieceType().equals(PieceType.CHARIOT)
+                        && defendingPiecesMap.get(defendingPieces.get(0)) == null)
+                        || (attackingPiece.getPieceType().equals(PieceType.CANNON)
+                        && !piece.getPieceType().equals(PieceType.CANNON))) {
+                    if (BoardUtil.sameColOrRow(piece.getPosition(), attackingPiece.getPosition(),
+                            defendingPieces.get(0).getPosition())) {
+                        scores[index] -= pieceValue / PIN_FACTOR;
                     }
                 }
             }

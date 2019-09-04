@@ -28,12 +28,6 @@ public class Advisor extends Piece {
                     new Coordinate(1,4),
                     new Coordinate(2, 3), new Coordinate(2, 5));
 
-    private static final List<Coordinate> STARTING_POSITIONS_RED =
-            List.of(new Coordinate(9, 3), new Coordinate(9, 5));
-
-    private static final List<Coordinate> STARTING_POSITIONS_BLACK =
-            List.of(new Coordinate(0, 3), new Coordinate(0, 5));
-
     public Advisor(Coordinate position, Alliance alliance) {
         super(PieceType.ADVISOR, position, alliance);
     }
@@ -105,9 +99,5 @@ public class Advisor extends Piece {
         } else {
             return VALID_POSITIONS_BLACK.contains(positionToTest);
         }
-    }
-
-    public static Collection<Coordinate> getStartingPositions(Alliance alliance) {
-        return alliance.isRed() ? STARTING_POSITIONS_RED : STARTING_POSITIONS_BLACK;
     }
 }

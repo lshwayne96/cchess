@@ -132,9 +132,9 @@ public abstract class Piece {
         HORSE("H", MIDGAME_VALUES_HORSE, ENDGAME_VALUES_HORSE,
                 10, 2, 1, 2),
         CANNON("C", MIDGAME_VALUES_CANNON, ENDGAME_VALUES_CANNON,
-                2, 2, 1, 1),
+                1, 2, 1, 1),
         CHARIOT("R", MIDGAME_VALUES_CHARIOT, ENDGAME_VALUES_CHARIOT,
-                5, 1, 2, 2),
+                4, 1, 2, 2),
         GENERAL("G", MIDGAME_VALUES_GENERAL, ENDGAME_VALUES_GENERAL,
                 0, 5, 0, 0);
 
