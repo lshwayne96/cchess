@@ -31,7 +31,7 @@ public class BoardUtil {
     /**
      * Returns the index of a given position.
      */
-    static int positionToIndex(Coordinate position) {
+    public static int positionToIndex(Coordinate position) {
         return positionToIndex(position.getRow(), position.getCol());
     }
 

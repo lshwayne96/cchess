@@ -100,6 +100,14 @@ public class Player {
         return totalValueUnits;
     }
 
+    public int getTotalSimpleUnits() {
+        int totalSimpleUnits = 0;
+        for (PieceType pieceType : PieceType.PIECE_TYPES) {
+            totalSimpleUnits += pieceType.getSimpleUnits() * getPieceCount(pieceType);
+        }
+        return totalSimpleUnits;
+    }
+
     public Collection<Attack> getAttacks() {
         return Collections.unmodifiableCollection(attacks);
     }

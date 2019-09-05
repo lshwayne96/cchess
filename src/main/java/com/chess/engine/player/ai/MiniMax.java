@@ -321,16 +321,16 @@ abstract class MiniMax {
 
         private static final Comparator<Move> MOVE_COMPARATOR = (m1, m2) -> {
             int cpValue1 = m1.isCapture()
-                    ? m1.getCapturedPiece().get().getValue(false) : 0;
+                    ? m1.getCapturedPiece().get().getMidgameValue() : 0;
             int cpValue2 = m2.isCapture()
-                    ? m2.getCapturedPiece().get().getValue(false) : 0;
+                    ? m2.getCapturedPiece().get().getMidgameValue() : 0;
             if (cpValue1 == 0 && cpValue2 == 0) { // both non-captures, compare move priority
                 return m1.getMovedPiece().getPieceType().getMovePriority()
                         - m2.getMovedPiece().getPieceType().getMovePriority();
             }
 
-            int pValue1 = m1.getMovedPiece().getValue(false);
-            int pValue2 = m2.getMovedPiece().getValue(false);
+            int pValue1 = m1.getMovedPiece().getMidgameValue();
+            int pValue2 = m2.getMovedPiece().getMidgameValue();
             if (cpValue1 != 0 && cpValue2 != 0) { // both captures, compare difference of capture profits
                 return (cpValue2 - pValue2) - (cpValue1 - pValue1);
             }

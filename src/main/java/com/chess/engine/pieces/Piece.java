@@ -55,6 +55,32 @@ public abstract class Piece {
      */
     public abstract Piece getMirrorPiece();
 
+    /**
+     * Returns the combined material and positional value of this piece during midgame.
+     * @return The combined material and positional value of this piece during midgame.
+     */
+    public int getMidgameValue() {
+        return alliance.isRed() ? pieceType.midGameValues[position.getRow()][position.getCol()]
+                : pieceType.midGameValues[Board.NUM_ROWS-position.getRow()-1][Board.NUM_COLS-position.getCol()-1];
+    }
+
+    /**
+     * Returns the combined material and positional value of this piece during endgame.
+     * @return The combined material and positional value of this piece during endgame.
+     */
+    public int getEndgameValue() {
+        return alliance.isRed() ? pieceType.endGameValues[position.getRow()][position.getCol()]
+                : pieceType.endGameValues[Board.NUM_ROWS-position.getRow()-1][Board.NUM_COLS-position.getCol()-1];
+    }
+
+    /**
+     * Checks if this piece has crossed its side of the river.
+     * @return true if this piece has crossed its side of the river, false otherwise.
+     */
+    public boolean crossedRiver() {
+        return alliance.isRed() ? position.getRow() < Board.RIVER_ROW_RED : position.getRow() > Board.RIVER_ROW_BLACK;
+    }
+
     public PieceType getPieceType() {
         return pieceType;
     }
@@ -65,29 +91,6 @@ public abstract class Piece {
 
     public Alliance getAlliance() {
         return alliance;
-    }
-
-    /**
-     * Returns the combined material and positional value of this piece given the current board status.
-     * @param isEndGame Whether the board is currently in endgame.
-     * @return The combined material and positional value of this piece given the current board status.
-     */
-    public int getValue(boolean isEndGame) {
-        if (isEndGame) {
-            return alliance.isRed() ? pieceType.endGameValues[position.getRow()][position.getCol()]
-                    : pieceType.endGameValues[Board.NUM_ROWS-position.getRow()-1][Board.NUM_COLS-position.getCol()-1];
-        } else {
-            return alliance.isRed() ? pieceType.midGameValues[position.getRow()][position.getCol()]
-                    : pieceType.midGameValues[Board.NUM_ROWS-position.getRow()-1][Board.NUM_COLS-position.getCol()-1];
-        }
-    }
-
-    /**
-     * Checks if this piece has crossed its side of the river.
-     * @return true if this piece has crossed its side of the river, false otherwise.
-     */
-    public boolean crossedRiver() {
-        return alliance.isRed() ? position.getRow() < Board.RIVER_ROW_RED : position.getRow() > Board.RIVER_ROW_BLACK;
     }
 
     @Override
@@ -124,19 +127,19 @@ public abstract class Piece {
     public enum PieceType {
 
         SOLDIER("S", MIDGAME_VALUES_SOLDIER, ENDGAME_VALUES_SOLDIER,
-                1, 3, 0, 1),
+                1, 3, 0, 1, 1),
         ADVISOR("A", VALUES_ADVISOR, VALUES_ADVISOR,
-                0, 4, 0, 0),
+                0, 4, 0, 0, 1),
         ELEPHANT("E", VALUES_ELEPHANT, VALUES_ELEPHANT,
-                0, 4, 0, 0),
+                0, 4, 0, 0, 1),
         HORSE("H", MIDGAME_VALUES_HORSE, ENDGAME_VALUES_HORSE,
-                10, 2, 1, 2),
+                8, 2, 1, 2, 3),
         CANNON("C", MIDGAME_VALUES_CANNON, ENDGAME_VALUES_CANNON,
-                2, 2, 1, 1),
+                1, 2, 1, 1, 3),
         CHARIOT("R", MIDGAME_VALUES_CHARIOT, ENDGAME_VALUES_CHARIOT,
-                5, 1, 2, 2),
+                3, 1, 2, 2, 6),
         GENERAL("G", MIDGAME_VALUES_GENERAL, ENDGAME_VALUES_GENERAL,
-                0, 5, 0, 0);
+                0, 5, 0, 0, 0);
 
         public static final PieceType[] PIECE_TYPES = PieceType.values();
 
@@ -147,9 +150,10 @@ public abstract class Piece {
         private final int movePriority;
         private final int valueUnits;
         private final int attackUnits;
+        private final int simpleUnits;
 
         PieceType(String abbrev, int[][] midGameValues, int[][] endGameValues,
-                  int mobilityValue, int movePriority, int valueUnits, int attackUnits) {
+                  int mobilityValue, int movePriority, int valueUnits, int attackUnits, int simpleUnits) {
             this.abbrev = abbrev;
             this.midGameValues = midGameValues;
             this.endGameValues = endGameValues;
@@ -157,6 +161,7 @@ public abstract class Piece {
             this.movePriority = movePriority;
             this.valueUnits = valueUnits;
             this.attackUnits = attackUnits;
+            this.simpleUnits = simpleUnits;
         }
 
         public boolean isAttacking() {
@@ -177,6 +182,10 @@ public abstract class Piece {
 
         public int getAttackUnits() {
             return attackUnits;
+        }
+
+        public int getSimpleUnits() {
+            return simpleUnits;
         }
 
         @Override

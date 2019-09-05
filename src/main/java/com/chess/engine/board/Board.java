@@ -32,7 +32,6 @@ public class Board {
     public static final int NUM_COLS = 9;
     public static final int RIVER_ROW_RED = 5;
     public static final int RIVER_ROW_BLACK = 4;
-    private static final int MAX_VALUE_UNITS_ENDGAME = 3;
     private static final Zobrist ZOBRIST = new Zobrist();
 
     private final List<Point> points;
@@ -302,15 +301,6 @@ public class Board {
      */
     public boolean isStateAllowed() {
         return !getOppPlayer().isInCheck();
-    }
-
-    /**
-     * Checks if this board is currently in endgame.
-     * @return true if this board is currently in endgame, false otherwise.
-     */
-    public boolean isEndgame() {
-        return getPlayer(Alliance.RED).getTotalValueUnits() <= MAX_VALUE_UNITS_ENDGAME
-                && getPlayer(Alliance.BLACK).getTotalValueUnits() <= MAX_VALUE_UNITS_ENDGAME;
     }
 
     /**
