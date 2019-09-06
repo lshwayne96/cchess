@@ -38,8 +38,8 @@ class BoardEvaluator {
     private static final int GENERAL_PENALTY = 100;
     private static final int CHARIOT_BONUS = 100;
     private static final int CANNON_HORSE_BONUS = 20;
-    private static final int DEFENSE_BONUS_L = 10;
-    private static final int DEFENSE_BONUS_S = 5;
+    private static final int DEFENSE_BONUS_L = 8;
+    private static final int DEFENSE_BONUS_S = 3;
 
     private static final int CANNON_ELEPHANT_BONUS = 100;
     private static final int CHARIOT_ADVISOR_BONUS = 400;
@@ -49,7 +49,7 @@ class BoardEvaluator {
 
     private static final int[] CANNON_HOLLOW_BONUS = {400, 400, 400, 375, 350, 325, 300, 0, 0, 0};
     private static final int[] CANNON_CENTRAL_BONUS = {150, 150, 150, 175, 200, 225, 250, 0, 0, 0};
-    private static final int CANNON_CENTRAL_REDUCTION = 4;
+    private static final int CANNON_CENTRAL_REDUCTION = 5;
     private static final int CANNON_CHARIOT_BONUS = 100;
     private static final int[] CANNON_BOTTOM_BONUS = {200, 150,  0,  0,  0,  0,  0, 150, 200};
 
@@ -275,8 +275,13 @@ class BoardEvaluator {
                 return CANNON_CENTRAL_BONUS[cannonRank - 1];
             }
 
+            int bonus;
+            if (chariots.isEmpty()) {
+                return 0;
+            } else {
+                bonus = CANNON_CENTRAL_BONUS[cannonRank - 1] / CANNON_CENTRAL_REDUCTION;
+            }
             // check if chariot at opp general free file
-            int bonus = CANNON_CENTRAL_BONUS[cannonRank - 1] / CANNON_CENTRAL_REDUCTION;
             int freeCol;
             if (oppAdvStruct.equals(AdvisorStructure.LEFT)) { // right free
                 freeCol = BoardUtil.fileToCol(4, oppAlliance);
@@ -301,6 +306,9 @@ class BoardEvaluator {
         return 0;
     }
 
+    /**
+     * Stores the given collection of relations into a map.
+     */
     private static void storeRelationIntoMap(Collection<? extends Relation> relations, Map<Piece, List<Piece>> map) {
         for (Relation relation : relations) {
             Piece piece = relation.getPiece();
@@ -316,6 +324,9 @@ class BoardEvaluator {
         }
     }
 
+    /**
+     * Returns the total relation score of the given pieces (same alliance).
+     */
     private static int calculateRelationScore(int[] pieceValues, Collection<Piece> pieces,
                                               Map<Piece, List<Piece>> incomingAttacksMap,
                                               Map<Piece, List<Piece>> defendingPiecesMap) {
@@ -330,9 +341,11 @@ class BoardEvaluator {
 
             // add defense scores
             if (defendingPieces != null) {
-                score += piece.getPieceType().getValueUnits() > 0
-                        ? DEFENSE_BONUS_L * defendingPieces.size()
-                        : DEFENSE_BONUS_S * defendingPieces.size();
+                if (piece.getPieceType().equals(PieceType.CANNON) || piece.getPieceType().equals(PieceType.HORSE)) {
+                    score += DEFENSE_BONUS_L * defendingPieces.size();
+                } else {
+                    score += DEFENSE_BONUS_S * defendingPieces.size();
+                }
             }
 
             if (attackingPieces == null || defendingPieces == null) continue;
@@ -360,6 +373,9 @@ class BoardEvaluator {
         return score;
     }
 
+    /**
+     * Returns the weighted value of the given piece.
+     */
     private static int getPieceValue(Piece piece, int totalSimpleUnits) {
         return (piece.getMidgameValue() * totalSimpleUnits
                 + piece.getEndgameValue() * (MAX_SIMPLE_UNITS - totalSimpleUnits)) / MAX_SIMPLE_UNITS;

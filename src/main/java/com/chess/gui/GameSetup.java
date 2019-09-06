@@ -47,7 +47,7 @@ class GameSetup extends Dialog {
     private GameSetup() {
         // default settings
         redPlayerType = PlayerType.HUMAN;
-        blackPlayerType = PlayerType.AI;
+        blackPlayerType = PlayerType.HUMAN;
         aiType = AIType.DEPTH;
         searchDepth = 5;
         searchTime = 10;
@@ -73,7 +73,7 @@ class GameSetup extends Dialog {
         ToggleGroup blackGroup = new ToggleGroup();
         blackHumanButton.setToggleGroup(blackGroup);
         blackAIButton.setToggleGroup(blackGroup);
-        blackAIButton.setSelected(true);
+        blackHumanButton.setSelected(true);
 
         RadioButton fixedDepthAIButton = new RadioButton(FIXED_DEPTH_TEXT);
         RadioButton fixedTimeAIButton = new RadioButton(FIXED_TIME_TEXT);

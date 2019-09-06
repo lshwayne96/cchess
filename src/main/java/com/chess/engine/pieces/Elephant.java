@@ -88,24 +88,6 @@ public class Elephant extends Piece {
         return Collections.unmodifiableList(legalMoves);
     }
 
-
-    public Collection<Coordinate> getDestPositions(Board board) {
-        List<Coordinate> destPositions = new ArrayList<>();
-
-        for (Coordinate vector : MOVE_VECTORS) {
-            Coordinate firstPosition = position.add(vector);
-            if (!(BoardUtil.isWithinBounds(firstPosition)
-                    && board.getPoint(firstPosition).isEmpty())) continue;
-
-            Coordinate destPosition = firstPosition.add(vector);
-            if (isValidPosition(destPosition)) {
-                destPositions.add(destPosition);
-            }
-        }
-
-        return Collections.unmodifiableList(destPositions);
-    }
-
     @Override
     public Elephant movePiece(Move move) {
         return new Elephant(move.getDestPosition(), move.getMovedPiece().getAlliance());

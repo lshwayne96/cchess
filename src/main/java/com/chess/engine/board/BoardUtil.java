@@ -24,7 +24,7 @@ public class BoardUtil {
     /**
      * Returns the index of a position based on its row and column.
      */
-    static int positionToIndex(int row, int col) {
+    public static int positionToIndex(int row, int col) {
         return row * Board.NUM_COLS + col;
     }
 

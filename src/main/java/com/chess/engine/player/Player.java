@@ -39,6 +39,9 @@ public class Player {
         this.defenses = defenses;
     }
 
+    /**
+     * Returns the general of this player.
+     */
     private Piece findPlayerGeneral() {
         for (Piece piece : activePieces) {
             if (piece.getPieceType().equals(PieceType.GENERAL)) {
