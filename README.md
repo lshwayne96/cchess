@@ -35,3 +35,5 @@ AI details:
     - Quiescence search
     - Transposition table with Zobrist hashing
     - Move sorting
+    
+Note: AI is not designed to be fully efficient nor competitive, but simply for interest.
