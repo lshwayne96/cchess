@@ -348,13 +348,13 @@ class BoardEvaluator {
                 }
             }
 
-            if (attackingPieces == null || defendingPieces == null) continue;
-            if (piece.getPieceType().equals(PieceType.CHARIOT) || defendingPieces.size() != 1
+            if (attackingPieces == null || defendingPieces == null || defendingPieces.size() != 1
                     || !defendingPieces.get(0).getPieceType().equals(PieceType.CHARIOT)) continue;
 
             // add pin penalty
             for (Piece attackingPiece : attackingPieces) {
                 if (attackingPiece.getPieceType().equals(PieceType.CHARIOT)
+                        && !piece.getPieceType().equals(PieceType.CHARIOT)
                         && defendingPiecesMap.get(defendingPieces.get(0)) == null) {
                     if (BoardUtil.sameColOrRow(piece.getPosition(), attackingPiece.getPosition(),
                             defendingPieces.get(0).getPosition())) {
