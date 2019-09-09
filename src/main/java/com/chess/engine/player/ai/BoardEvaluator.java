@@ -38,8 +38,7 @@ class BoardEvaluator {
     private static final int GENERAL_PENALTY = 100;
     private static final int CHARIOT_BONUS = 100;
     private static final int CANNON_HORSE_BONUS = 20;
-    private static final int DEFENSE_BONUS_L = 8;
-    private static final int DEFENSE_BONUS_S = 3;
+    private static final int DEFENSE_BONUS_FACTOR = 50;
 
     private static final int CANNON_ELEPHANT_BONUS = 100;
     private static final int CHARIOT_ADVISOR_BONUS = 400;
@@ -49,7 +48,7 @@ class BoardEvaluator {
 
     private static final int[] CANNON_HOLLOW_BONUS = {400, 400, 400, 375, 350, 325, 300, 0, 0, 0};
     private static final int[] CANNON_CENTRAL_BONUS = {150, 150, 150, 175, 200, 225, 250, 0, 0, 0};
-    private static final int CANNON_CENTRAL_REDUCTION = 5;
+    private static final int CANNON_CENTRAL_REDUCTION = 4;
     private static final int CANNON_CHARIOT_BONUS = 100;
     private static final int[] CANNON_BOTTOM_BONUS = {200, 150,  0,  0,  0,  0,  0, 150, 200};
 
@@ -333,19 +332,16 @@ class BoardEvaluator {
         int score = 0;
 
         for (Piece piece : pieces) {
-            if (piece.getPieceType().equals(PieceType.GENERAL)) continue;
+            PieceType pieceType = piece.getPieceType();
+            if (pieceType.equals(PieceType.GENERAL)) continue;
 
             int pieceValue = pieceValues[BoardUtil.positionToIndex(piece.getPosition())];
             List<Piece> attackingPieces = incomingAttacksMap.get(piece);
             List<Piece> defendingPieces = defendingPiecesMap.get(piece);
 
             // add defense scores
-            if (defendingPieces != null) {
-                if (piece.getPieceType().equals(PieceType.CANNON) || piece.getPieceType().equals(PieceType.HORSE)) {
-                    score += DEFENSE_BONUS_L * defendingPieces.size();
-                } else {
-                    score += DEFENSE_BONUS_S * defendingPieces.size();
-                }
+            if (defendingPieces != null && !pieceType.equals(PieceType.CHARIOT)) {
+                score += pieceValue / DEFENSE_BONUS_FACTOR;
             }
 
             if (attackingPieces == null || defendingPieces == null || defendingPieces.size() != 1
@@ -356,14 +352,12 @@ class BoardEvaluator {
                 if (attackingPiece.getPieceType().equals(PieceType.CHARIOT)
                         && !piece.getPieceType().equals(PieceType.CHARIOT)
                         && defendingPiecesMap.get(defendingPieces.get(0)) == null) {
-                    if (BoardUtil.sameColOrRow(piece.getPosition(), attackingPiece.getPosition(),
-                            defendingPieces.get(0).getPosition())) {
+                    if (BoardUtil.sameColOrRow(attackingPiece.getPosition(), defendingPieces.get(0).getPosition())) {
                         score -= pieceValue / CHARIOT_PIN_FACTOR;
                     }
                 } else if (attackingPiece.getPieceType().equals(PieceType.CANNON)
                         && !piece.getPieceType().equals(PieceType.CANNON)) {
-                    if (BoardUtil.sameColOrRow(piece.getPosition(), attackingPiece.getPosition(),
-                            defendingPieces.get(0).getPosition())) {
+                    if (BoardUtil.sameColOrRow(attackingPiece.getPosition(), defendingPieces.get(0).getPosition())) {
                         score -= pieceValue / CANNON_PIN_FACTOR;
                     }
                 }

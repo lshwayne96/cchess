@@ -129,9 +129,9 @@ public abstract class Piece {
         SOLDIER("S", MIDGAME_VALUES_SOLDIER, ENDGAME_VALUES_SOLDIER,
                 1, 3, 0, 1, 1),
         ADVISOR("A", VALUES_ADVISOR, VALUES_ADVISOR,
-                0, 4, 0, 0, 1),
+                0, 3, 0, 0, 1),
         ELEPHANT("E", VALUES_ELEPHANT, VALUES_ELEPHANT,
-                0, 4, 0, 0, 1),
+                0, 3, 0, 0, 1),
         HORSE("H", MIDGAME_VALUES_HORSE, ENDGAME_VALUES_HORSE,
                 6, 2, 1, 2, 3),
         CANNON("C", MIDGAME_VALUES_CANNON, ENDGAME_VALUES_CANNON,
@@ -139,7 +139,7 @@ public abstract class Piece {
         CHARIOT("R", MIDGAME_VALUES_CHARIOT, ENDGAME_VALUES_CHARIOT,
                 3, 1, 2, 2, 6),
         GENERAL("G", MIDGAME_VALUES_GENERAL, ENDGAME_VALUES_GENERAL,
-                0, 5, 0, 0, 0);
+                0, 4, 0, 0, 0);
 
         public static final PieceType[] PIECE_TYPES = PieceType.values();
 
