@@ -86,49 +86,47 @@ class BoardEvaluator {
         redScore += redPlayer.getTotalMobilityValue();
         blackScore += blackPlayer.getTotalMobilityValue();
 
-        // calculate and adjust total simple units for piece value calculation
-        int totalSimpleUnits = redPlayer.getTotalSimpleUnits() + blackPlayer.getTotalSimpleUnits();
-        totalSimpleUnits = (2 * MAX_SIMPLE_UNITS - totalSimpleUnits) * totalSimpleUnits / MAX_SIMPLE_UNITS;
-
+        // calculate total simple units, player value units and attack value
+        // tabulate piece counts; get cannons and chariots
+        int totalSimpleUnits = 0;
+        int redValueUnits = 0, blackValueUnits = 0;
+        int redAttackValue = 0, blackAttackValue = 0;
+        int[] redPieceCount = new int[7];
+        int[] blackPieceCount = new int[7];
         Collection<Piece> redCannons = new ArrayList<>();
         Collection<Piece> redChariots = new ArrayList<>();
         Collection<Piece> blackCannons = new ArrayList<>();
         Collection<Piece> blackChariots = new ArrayList<>();
-
-        // calculate total basic piece value and player attack value
-        int redAttackValue = 0, blackAttackValue = 0;
         for (Piece piece : redPlayer.getActivePieces()) {
-            int value = getPieceValue(piece, totalSimpleUnits);
-            pieceValues[BoardUtil.positionToIndex(piece.getPosition())] = value;
-            redScore += value;
-
+            totalSimpleUnits += piece.getPieceType().getSimpleUnits();
+            redValueUnits += piece.getPieceType().getValueUnits();
             if (piece.crossedRiver()) {
                 redAttackValue += piece.getPieceType().getAttackUnits();
             }
-            if (piece.getPieceType().equals(PieceType.CANNON)) {
+            PieceType pieceType = piece.getPieceType();
+            redPieceCount[pieceType.ordinal()]++;
+            if (pieceType.equals(PieceType.CANNON)) {
                 redCannons.add(piece);
-            } else if (piece.getPieceType().equals(PieceType.CHARIOT)) {
+            } else if (pieceType.equals(PieceType.CHARIOT)) {
                 redChariots.add(piece);
             }
         }
         for (Piece piece : blackPlayer.getActivePieces()) {
-            int value = getPieceValue(piece, totalSimpleUnits);
-            pieceValues[BoardUtil.positionToIndex(piece.getPosition())] = value;
-            blackScore += value;
-
+            totalSimpleUnits += piece.getPieceType().getSimpleUnits();
+            blackValueUnits += piece.getPieceType().getValueUnits();
             if (piece.crossedRiver()) {
                 blackAttackValue += piece.getPieceType().getAttackUnits();
             }
-            if (piece.getPieceType().equals(PieceType.CANNON)) {
+            PieceType pieceType = piece.getPieceType();
+            blackPieceCount[pieceType.ordinal()]++;
+            if (pieceType.equals(PieceType.CANNON)) {
                 blackCannons.add(piece);
-            } else if (piece.getPieceType().equals(PieceType.CHARIOT)) {
+            } else if (pieceType.equals(PieceType.CHARIOT)) {
                 blackChariots.add(piece);
             }
         }
-
-        // adjust player attack value according to difference in value units
-        int redValueUnits = redPlayer.getTotalValueUnits();
-        int blackValueUnits = blackPlayer.getTotalValueUnits();
+        // adjust total simple units and player attack values
+        totalSimpleUnits = (2 * MAX_SIMPLE_UNITS - totalSimpleUnits) * totalSimpleUnits / MAX_SIMPLE_UNITS;
         if (redValueUnits > blackValueUnits) {
             redAttackValue += (redValueUnits - blackValueUnits) * 2;
         } else if (blackValueUnits > redValueUnits) {
@@ -137,17 +135,28 @@ class BoardEvaluator {
         redAttackValue = Math.min(redAttackValue, MAX_ATTACK_VALUE);
         blackAttackValue = Math.min(blackAttackValue, MAX_ATTACK_VALUE);
 
-        // get piece counts
-        int redChariotCount = redPlayer.getPieceCount(PieceType.CHARIOT);
-        int redCannonCount = redPlayer.getPieceCount(PieceType.CANNON);
-        int redHorseCount = redPlayer.getPieceCount(PieceType.HORSE);
-        int redElephantCount = redPlayer.getPieceCount(PieceType.ELEPHANT);
-        int redAdvisorCount = redPlayer.getPieceCount(PieceType.ADVISOR);
-        int blackChariotCount = blackPlayer.getPieceCount(PieceType.CHARIOT);
-        int blackCannonCount = blackPlayer.getPieceCount(PieceType.CANNON);
-        int blackHorseCount = blackPlayer.getPieceCount(PieceType.HORSE);
-        int blackElephantCount = blackPlayer.getPieceCount(PieceType.ELEPHANT);
-        int blackAdvisorCount = blackPlayer.getPieceCount(PieceType.ADVISOR);
+        // calculate basic piece values
+        for (Piece piece : redPlayer.getActivePieces()) {
+            int value = getPieceValue(piece, totalSimpleUnits);
+            pieceValues[BoardUtil.positionToIndex(piece.getPosition())] = value;
+            redScore += value;
+        }
+        for (Piece piece : blackPlayer.getActivePieces()) {
+            int value = getPieceValue(piece, totalSimpleUnits);
+            pieceValues[BoardUtil.positionToIndex(piece.getPosition())] = value;
+            blackScore += value;
+        }
+
+        int redChariotCount = redPieceCount[PieceType.CHARIOT.ordinal()];
+        int redCannonCount = redPieceCount[PieceType.CANNON.ordinal()];
+        int redHorseCount = redPieceCount[PieceType.HORSE.ordinal()];
+        int redElephantCount = redPieceCount[PieceType.ELEPHANT.ordinal()];
+        int redAdvisorCount = redPieceCount[PieceType.ADVISOR.ordinal()];
+        int blackChariotCount = blackPieceCount[PieceType.CHARIOT.ordinal()];
+        int blackCannonCount = blackPieceCount[PieceType.CANNON.ordinal()];
+        int blackHorseCount = blackPieceCount[PieceType.HORSE.ordinal()];
+        int blackElephantCount = blackPieceCount[PieceType.ELEPHANT.ordinal()];
+        int blackAdvisorCount = blackPieceCount[PieceType.ADVISOR.ordinal()];
 
         // general on palace centre might be bad when having 2 advisors
         if (redAdvisorCount == 2) {
@@ -199,7 +208,7 @@ class BoardEvaluator {
         for (Piece cannon : blackCannons) {
             blackScore += getCannonBonus(board, totalSimpleUnits, blackAttackValue, cannon, blackChariots);
         }
-
+/*
         // store all attacks and defenses into maps
         Map<Piece, List<Piece>> incomingAttacksMap = new HashMap<>();
         Map<Piece, List<Piece>> defendingPiecesMap = new HashMap<>();
@@ -214,9 +223,9 @@ class BoardEvaluator {
                         incomingAttacksMap, defendingPiecesMap)
                 - calculateRelationScore(pieceValues, blackPlayer.getActivePieces(),
                         incomingAttacksMap, defendingPiecesMap);
+*/
 
-
-        return redScore - blackScore + relationScoreDiff;
+        return redScore - blackScore;// + relationScoreDiff;
     }
 
     /**

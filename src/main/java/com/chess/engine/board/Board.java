@@ -118,14 +118,12 @@ public class Board {
     private PlayerInfo generatePlayerInfo() {
         Collection<Piece> redPieces = new ArrayList<>();
         Collection<Move> redLegalMoves = new ArrayList<>();
-        int[] redPieceCount = new int[7];
         int redMobilityValue = 0;
         Collection<Attack> redAttacks = new ArrayList<>();
         Collection<Defense> redDefenses = new ArrayList<>();
 
         Collection<Piece> blackPieces = new ArrayList<>();
         Collection<Move> blackLegalMoves = new ArrayList<>();
-        int[] blackPieceCount = new int[7];
         int blackMobilityValue = 0;
         Collection<Attack> blackAttacks = new ArrayList<>();
         Collection<Defense> blackDefenses = new ArrayList<>();
@@ -138,21 +136,19 @@ public class Board {
                 redPieces.add(piece);
                 Collection<Move> moves = piece.getLegalMoves(this, redAttacks, redDefenses);
                 redLegalMoves.addAll(moves);
-                redPieceCount[piece.getPieceType().ordinal()]++;
                 redMobilityValue += piece.getPieceType().getMobilityValue() * moves.size();
             } else {
                 blackPieces.add(piece);
                 Collection<Move> moves = piece.getLegalMoves(this, blackAttacks, blackDefenses);
                 blackLegalMoves.addAll(moves);
-                blackPieceCount[piece.getPieceType().ordinal()]++;
                 blackMobilityValue += piece.getPieceType().getMobilityValue() * moves.size();
             }
         }
 
         Player redPlayer = new Player(Alliance.RED, redPieces, redLegalMoves, blackLegalMoves,
-                redPieceCount, redMobilityValue, redAttacks, redDefenses);
+                redMobilityValue, redAttacks, redDefenses);
         Player blackPlayer = new Player(Alliance.BLACK, blackPieces, blackLegalMoves, redLegalMoves,
-                blackPieceCount, blackMobilityValue, blackAttacks, blackDefenses);
+                blackMobilityValue, blackAttacks, blackDefenses);
         return new PlayerInfo(redPlayer, blackPlayer);
     }
 
@@ -166,14 +162,12 @@ public class Board {
 
         Collection<Piece> redPieces = new ArrayList<>();
         Collection<Move> redLegalMoves = new ArrayList<>();
-        int[] redPieceCount;
         int redMobilityValue = 0;
         Collection<Attack> redAttacks = new ArrayList<>();
         Collection<Defense> redDefenses = new ArrayList<>();
 
         Collection<Piece> blackPieces = new ArrayList<>();
         Collection<Move> blackLegalMoves = new ArrayList<>();
-        int[] blackPieceCount;
         int blackMobilityValue = 0;
         Collection<Attack> blackAttacks = new ArrayList<>();
         Collection<Defense> blackDefenses = new ArrayList<>();
@@ -207,25 +201,10 @@ public class Board {
             blackMobilityValue += destPiece.getPieceType().getMobilityValue() * moves.size();
         }
 
-        if (capturedPiece == null) {
-            redPieceCount = redPlayer.getPieceCountArray();
-            blackPieceCount = blackPlayer.getPieceCountArray();
-        } else {
-            if (capturedPiece.getAlliance().isRed()) {
-                redPieceCount = Arrays.copyOf(redPlayer.getPieceCountArray(), 7);
-                redPieceCount[capturedPiece.getPieceType().ordinal()]--;
-                blackPieceCount = blackPlayer.getPieceCountArray();
-            } else {
-                blackPieceCount = Arrays.copyOf(blackPlayer.getPieceCountArray(), 7);
-                blackPieceCount[capturedPiece.getPieceType().ordinal()]--;
-                redPieceCount = redPlayer.getPieceCountArray();
-            }
-        }
-
         redPlayer = new Player(Alliance.RED, redPieces, redLegalMoves, blackLegalMoves,
-                redPieceCount, redMobilityValue, redAttacks, redDefenses);
+                redMobilityValue, redAttacks, redDefenses);
         blackPlayer = new Player(Alliance.BLACK, blackPieces, blackLegalMoves, redLegalMoves,
-                blackPieceCount, blackMobilityValue, blackAttacks, blackDefenses);
+                blackMobilityValue, blackAttacks, blackDefenses);
         return new PlayerInfo(redPlayer, blackPlayer);
     }
 
@@ -413,10 +392,6 @@ public class Board {
      * @return The advisor structure of the player with the given alliance.
      */
     public AdvisorStructure getAdvisorStructure(Alliance alliance) {
-        if (getPlayer(alliance).getPieceCount(PieceType.ADVISOR) < 2) {
-            return AdvisorStructure.OTHER;
-        }
-
         int lowRow = BoardUtil.rankToRow(1, alliance);
         int midRow = BoardUtil.rankToRow(2, alliance);
         int leftCol = BoardUtil.fileToCol(6, alliance);

@@ -21,19 +21,17 @@ public class Player {
     private final Collection<Piece> activePieces;
     private final Collection<Move> legalMoves;
     private final boolean isInCheck;
-    private final int[] pieceCount;
     private final int totalMobilityValue;
     private final Collection<Attack> attacks;
     private final Collection<Defense> defenses;
 
     public Player(Alliance alliance, Collection<Piece> activePieces, Collection<Move> legalMoves,
-                  Collection<Move> oppLegalMoves, int[] pieceCount, int totalMobilityValue,
+                  Collection<Move> oppLegalMoves, int totalMobilityValue,
                   Collection<Attack> attacks, Collection<Defense> defenses) {
         this.alliance = alliance;
         this.activePieces = activePieces;
         this.legalMoves = legalMoves;
         isInCheck = !getIncomingAttacks(findPlayerGeneral().getPosition(), oppLegalMoves).isEmpty();
-        this.pieceCount = pieceCount;
         this.totalMobilityValue = totalMobilityValue;
         this.attacks = attacks;
         this.defenses = defenses;
@@ -83,32 +81,8 @@ public class Player {
         return isInCheck;
     }
 
-    public int[] getPieceCountArray() {
-        return pieceCount;
-    }
-
-    public int getPieceCount(PieceType pieceType) {
-        return pieceCount[pieceType.ordinal()];
-    }
-
     public int getTotalMobilityValue() {
         return totalMobilityValue;
-    }
-
-    public int getTotalValueUnits() {
-        int totalValueUnits = 0;
-        for (PieceType pieceType : PieceType.PIECE_TYPES) {
-            totalValueUnits += pieceType.getValueUnits() * getPieceCount(pieceType);
-        }
-        return totalValueUnits;
-    }
-
-    public int getTotalSimpleUnits() {
-        int totalSimpleUnits = 0;
-        for (PieceType pieceType : PieceType.PIECE_TYPES) {
-            totalSimpleUnits += pieceType.getSimpleUnits() * getPieceCount(pieceType);
-        }
-        return totalSimpleUnits;
     }
 
     public Collection<Attack> getAttacks() {

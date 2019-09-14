@@ -141,8 +141,6 @@ public abstract class Piece {
         GENERAL("G", MIDGAME_VALUES_GENERAL, ENDGAME_VALUES_GENERAL,
                 0, 4, 0, 0, 0);
 
-        public static final PieceType[] PIECE_TYPES = PieceType.values();
-
         private final String abbrev;
         private final int[][] midGameValues;
         private final int[][] endGameValues;
