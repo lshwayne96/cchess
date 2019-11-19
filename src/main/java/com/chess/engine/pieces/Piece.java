@@ -133,7 +133,7 @@ public abstract class Piece {
         ELEPHANT("E", VALUES_ELEPHANT, VALUES_ELEPHANT,
                 0, 3, 0, 0, 1),
         HORSE("H", MIDGAME_VALUES_HORSE, ENDGAME_VALUES_HORSE,
-                6, 2, 1, 2, 3),
+                5, 2, 1, 2, 3),
         CANNON("C", MIDGAME_VALUES_CANNON, ENDGAME_VALUES_CANNON,
                 1, 2, 1, 1, 3),
         CHARIOT("R", MIDGAME_VALUES_CHARIOT, ENDGAME_VALUES_CHARIOT,

@@ -36,9 +36,9 @@ class BoardEvaluator {
     private static final int MAX_ATTACK_VALUE = 8;
 
     private static final int GENERAL_PENALTY = 100;
-    private static final int CHARIOT_BONUS = 100;
+    private static final int CHARIOT_BONUS = 50;
     private static final int CANNON_HORSE_BONUS = 20;
-    private static final int DEFENSE_BONUS_FACTOR = 50;
+    private static final int DEFENSE_BONUS_FACTOR = 60;
 
     private static final int CANNON_ELEPHANT_BONUS = 100;
     private static final int CHARIOT_ADVISOR_BONUS = 400;
@@ -208,7 +208,7 @@ class BoardEvaluator {
         for (Piece cannon : blackCannons) {
             blackScore += getCannonBonus(board, totalSimpleUnits, blackAttackValue, cannon, blackChariots);
         }
-/*
+
         // store all attacks and defenses into maps
         Map<Piece, List<Piece>> incomingAttacksMap = new HashMap<>();
         Map<Piece, List<Piece>> defendingPiecesMap = new HashMap<>();
@@ -223,9 +223,8 @@ class BoardEvaluator {
                         incomingAttacksMap, defendingPiecesMap)
                 - calculateRelationScore(pieceValues, blackPlayer.getActivePieces(),
                         incomingAttacksMap, defendingPiecesMap);
-*/
 
-        return redScore - blackScore;// + relationScoreDiff;
+        return redScore - blackScore + relationScoreDiff;
     }
 
     /**
